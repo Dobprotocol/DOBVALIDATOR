@@ -4,29 +4,42 @@
 /node_modules
 /.pnp
 .pnp.js
+.pnpm-store/
+.pnpm-debug.log
 
 # testing
 /coverage
+*.lcov
 
 # next.js
 /.next/
 /out/
+.next/
+**/.next/
 
 # production
 /build
+/dist
+**/dist/
 
 # misc
 .DS_Store
 *.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # local env files
 .env*.local
 .env
+.env.development
+.env.test
+.env.production
 
 # vercel
 .vercel
@@ -38,6 +51,29 @@ next-env.d.ts
 # IDE
 .idea/
 .vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+
+# Turbo
+.turbo
+
+# Build outputs
+**/build/
+**/dist/
+**/.next/
+**/out/
+
+# Cache
+.cache/
+**/.cache/
+.eslintcache
+.stylelintcache
+
+# Logs
+logs
+*.log
 
 # Dependencies
 node_modules/
@@ -47,32 +83,17 @@ shared/node_modules/
 backoffice/node_modules/
 backend/node_modules/
 
-# Build outputs
-.next/
-**/.next/
-frontend/.next/
-dist/
-**/dist/
-
 # Environment files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-
-# Debug logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# IDE files
-.idea/
-.vscode/
-*.swp
-*.swo
+.env.development
+.env.test
+.env.production
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
