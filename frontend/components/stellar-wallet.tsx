@@ -128,7 +128,7 @@ export function StellarWallet() {
           <DialogHeader>
             <DialogTitle>Connect Wallet</DialogTitle>
             <DialogDescription>
-              Connect your wallet to continue
+              You will be redirected to sign with a Stellar-compatible web3 wallet (Freighter, xBull, or Albedo) to connect your account.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
