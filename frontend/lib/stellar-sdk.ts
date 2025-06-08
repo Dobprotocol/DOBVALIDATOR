@@ -1,7 +1,16 @@
 import StellarSdk from 'stellar-sdk'
 
-// Export the SDK for use in components
-export { StellarSdk }
+// Create a wrapper that ensures proper initialization
+const StellarSDK = {
+  ...StellarSdk,
+  initialize: () => {
+    if (typeof window !== 'undefined') {
+      StellarSdk.Network.useTestNetwork()
+    }
+  }
+}
+
+export { StellarSDK as StellarSdk }
 
 // Initialize the SDK on the client side
 if (typeof window !== 'undefined') {

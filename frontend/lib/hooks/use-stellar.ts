@@ -1,22 +1,21 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import StellarSdk from 'stellar-sdk'
+import { useState, useEffect } from "react"
+import { StellarSdk } from "@/lib/stellar-sdk"
 
 export function useStellar() {
-  const [server, setServer] = useState<StellarSdk.Server | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [server, setServer] = useState<any>(null)
 
   useEffect(() => {
     const initializeStellar = async () => {
       try {
-        // Create server instance
+        // Initialize the SDK
+        StellarSdk.initialize()
+        
+        // Create a server instance
         const serverInstance = new StellarSdk.Server('https://horizon-testnet.stellar.org')
         
-        // Set network
-        StellarSdk.Network.useTestNetwork()
-        
-        // Set server and initialization state
         setServer(serverInstance)
         setIsInitialized(true)
       } catch (error) {
@@ -26,12 +25,14 @@ export function useStellar() {
       }
     }
 
-    initializeStellar()
+    if (typeof window !== 'undefined') {
+      initializeStellar()
+    }
   }, [])
 
   return {
+    StellarSdk,
     server,
-    isInitialized,
-    StellarSdk
+    isInitialized
   }
 } 
