@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/ui/header"
+import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
   title: 'DOB Validator',
@@ -21,6 +22,7 @@ export default function RootLayout({
           <main className="pt-20">
             {children}
           </main>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
