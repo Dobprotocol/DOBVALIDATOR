@@ -1,5 +1,68 @@
 # DOB Validator
 
+A monorepo containing the DOB Protocol Validator system, including the public-facing validator interface, admin backoffice, and shared backend services.
+
+## Project Structure
+
+```
+dob-validator/
+├── frontend/        # Public-facing Validator
+├── backoffice/      # Admin CMS interface
+├── backend/         # Shared API, auth, database logic
+├── shared/          # Shared types, components, utils
+├── prisma/          # Database schema and migrations
+├── docker/          # Docker configurations
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm
+- Docker (optional)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-org/dob-validator.git
+cd dob-validator
+```
+
+2. Install dependencies:
+```bash
+pnpm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+4. Start the development servers:
+```bash
+pnpm dev
+```
+
+## Development
+
+- `pnpm dev` - Start all services in development mode
+- `pnpm build` - Build all packages and applications
+- `pnpm start` - Start all services in production mode
+- `pnpm lint` - Run linting
+- `pnpm format` - Format code with Prettier
+
+## Contributing
+
+1. Create a new branch for your feature
+2. Make your changes
+3. Submit a pull request
+
+## License
+
+[Your License]
+
 ## Overview
 
 The DOB Validator is a crucial first step in Device Onboarding for DOB PROTOCOL. Its designed to automate and standardize the process of validating devices for funding consideration. This tool serves as the gateway for projects seeking funding through the DOB Protocol, ensuring that all necessary device information and documentation is properly collected and verified.
@@ -93,34 +156,6 @@ The DOB Validator serves as the critical first step in the device funding proces
 3. Standardizing the onboarding process
 4. Providing a foundation for automated funding decisions
 5. Creating a trusted source of device information
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (Latest LTS version)
-- pnpm package manager
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/blessedux/DOBVALIDATOR.git
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-```
-
-## Contributing
-
-We welcome contributions to the DOB Validator. Please read our contributing guidelines before submitting pull requests.
-
-## License
-
-[License information to be added]
 
 ## Contact
 
