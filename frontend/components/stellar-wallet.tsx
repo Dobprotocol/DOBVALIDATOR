@@ -2,191 +2,153 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { useStellar } from "@/lib/hooks/use-stellar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
-declare global {
-  interface Window {
-    freighterApi?: {
-      isConnected: () => Promise<boolean>
-      getPublicKey: () => Promise<string>
-      disconnect: () => Promise<void>
-    }
-  }
+// Helper function to truncate wallet address
+function truncateAddress(address: string): string {
+  if (!address) return ''
+  return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
 
 export function StellarWallet() {
-  const { toast } = useToast()
-  const { StellarSdk, isInitialized } = useStellar()
+  const [isOpen, setIsOpen] = useState(false)
   const [publicKey, setPublicKey] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  const [connectWindow, setConnectWindow] = useState<Window | null>(null)
+  const { toast } = useToast()
 
+  // Load saved public key on mount
   useEffect(() => {
-    const storedKey = localStorage.getItem('stellarPublicKey')
-    if (storedKey) {
-      setPublicKey(storedKey)
+    const savedKey = localStorage.getItem('stellarPublicKey')
+    if (savedKey) {
+      setPublicKey(savedKey)
+      console.log('Loaded saved wallet address:', savedKey)
     }
   }, [])
 
+  // Handle messages from Simple Signer
   useEffect(() => {
-    const handleMessage = async (e: MessageEvent) => {
-      if (e.origin !== SIMPLE_SIGNER_URL) return
+    const handleMessage = (e: MessageEvent) => {
+      // Reject messages that are not coming from Simple Signer
+      if (e.origin !== SIMPLE_SIGNER_URL) {
+        return
+      }
 
-      const eventMessage = e.data
-      console.log('Message from simple signer received:', eventMessage)
+      const messageEvent = e.data
 
-      switch (eventMessage.type) {
-        case 'onReady':
-          if (eventMessage.page === 'connect') {
-            console.log('Connect page is ready')
-          }
-          break
-
-        case 'onConnect':
-          const newPublicKey = eventMessage.message.publicKey
-          try {
-            // Validate the public key
-            StellarSdk.Keypair.fromPublicKey(newPublicKey)
-            localStorage.setItem('stellarPublicKey', newPublicKey)
-            setPublicKey(newPublicKey)
-            setIsConnecting(false)
-            toast({
-              title: "Wallet Connected",
-              description: "Your wallet has been connected successfully.",
-            })
-          } catch (error) {
-            console.error('Invalid public key received:', error)
-            toast({
-              title: "Connection Failed",
-              description: "Invalid public key received.",
-              variant: "destructive",
-            })
-          }
-          break
-
-        case 'onCancel':
-          setIsConnecting(false)
-          toast({
-            title: "Connection Cancelled",
-            description: "Wallet connection was cancelled.",
-          })
-          break
-
-        case 'onLogOut':
-          handleDisconnect()
-          break
+      if (messageEvent.type === 'onConnect') {
+        const publicKey = messageEvent.message.publicKey
+        const wallet = messageEvent.message.wallet
+        
+        console.log('Connected wallet details:', {
+          address: publicKey,
+          walletType: wallet,
+          timestamp: new Date().toISOString()
+        })
+        
+        // Store the public key and wallet type
+        localStorage.setItem('stellarPublicKey', publicKey)
+        localStorage.setItem('stellarWallet', wallet)
+        setPublicKey(publicKey)
+        setIsOpen(false)
+        setIsConnecting(false)
+        toast({
+          title: "Connected successfully",
+          description: `Connected with ${wallet} wallet`,
+        })
+      } else if (messageEvent.type === 'onCancel') {
+        setIsConnecting(false)
+        console.log('Wallet connection cancelled by user')
+        toast({
+          title: "Connection cancelled",
+          description: "Wallet connection was cancelled.",
+        })
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [StellarSdk, toast])
+  }, [toast])
 
-  const handleConnect = async () => {
-    try {
-      setIsConnecting(true)
+  const handleConnect = () => {
+    setIsConnecting(true)
+    console.log('Initiating wallet connection...')
+    const connectWindow = window.open(
+      `${SIMPLE_SIGNER_URL}/connect`,
+      'Connect_Window',
+      'width=360, height=450'
+    )
 
-      // Check if Freighter is installed
-      if (window.freighterApi) {
-        try {
-          const isConnected = await window.freighterApi.isConnected()
-          if (isConnected) {
-            const newPublicKey = await window.freighterApi.getPublicKey()
-            localStorage.setItem('stellarPublicKey', newPublicKey)
-            setPublicKey(newPublicKey)
-            toast({
-              title: "Wallet Connected",
-              description: "Your wallet has been connected successfully.",
-            })
-            return
-          }
-        } catch (error) {
-          console.error('Freighter connection failed:', error)
-        }
+    // Configure available wallets
+    window.addEventListener('message', (e) => {
+      if (
+        e.origin === SIMPLE_SIGNER_URL &&
+        e.data.type === 'onReady' &&
+        e.data.page === 'connect'
+      ) {
+        console.log('Simple Signer ready, configuring available wallets...')
+        connectWindow?.postMessage(
+          { wallets: ['freighter', 'xbull', 'albedo'] },
+          SIMPLE_SIGNER_URL
+        )
       }
-
-      // If Freighter is not available or connection failed, use Simple Stellar Signer
-      const signerWindow = window.open(`${SIMPLE_SIGNER_URL}/connect`, 'Connect_Window', 'width=360, height=450')
-      setConnectWindow(signerWindow)
-    } catch (error) {
-      console.error('Failed to connect wallet:', error)
-      toast({
-        title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Failed to connect wallet. Please try again.",
-        variant: "destructive",
-      })
-      setIsConnecting(false)
-    }
+    })
   }
 
-  const handleDisconnect = async () => {
-    try {
-      if (window.freighterApi) {
-        await window.freighterApi.disconnect()
-      } else {
-        const logoutWindow = window.open(`${SIMPLE_SIGNER_URL}/logout`, 'Logout_Window', 'width=100, height=100')
-        if (logoutWindow) {
-          logoutWindow.addEventListener('message', (e) => {
-            if (e.origin === SIMPLE_SIGNER_URL && e.data.type === 'onLogOut') {
-              logoutWindow.postMessage({ type: 'logout' }, SIMPLE_SIGNER_URL)
-              localStorage.removeItem('stellarPublicKey')
-              setPublicKey(null)
-              toast({
-                title: "Wallet Disconnected",
-                description: "Your wallet has been disconnected.",
-              })
-            }
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Failed to disconnect wallet:', error)
-      toast({
-        title: "Disconnect Failed",
-        description: "Failed to disconnect wallet. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  if (!isInitialized) {
-    return null
+  const handleDisconnect = () => {
+    console.log('Disconnecting wallet:', publicKey)
+    
+    // Clear all wallet-related data
+    localStorage.removeItem('stellarPublicKey')
+    localStorage.removeItem('stellarWallet')
+    setPublicKey(null)
+    setIsOpen(false)
+    
+    console.log('Wallet disconnected successfully')
+    toast({
+      title: "Disconnected",
+      description: "Your wallet has been disconnected.",
+    })
   }
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        {publicKey ? (
-          <Button
-            onClick={handleDisconnect}
-            variant="outline"
-            className="font-mono text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-          >
-            {`${publicKey.slice(0, 6)}...${publicKey.slice(-4)}`}
-          </Button>
-        ) : (
-          <Button
-            onClick={handleConnect}
-            className="bg-[#6366F1] hover:bg-[#5355d1] text-white font-medium px-6"
-          >
-            Connect Wallet
-          </Button>
-        )}
-      </div>
+      <Button
+        onClick={() => setIsOpen(true)}
+        variant="outline"
+        className="w-full"
+      >
+        {publicKey ? truncateAddress(publicKey) : "Connect Wallet"}
+      </Button>
 
-      <Dialog open={isConnecting} onOpenChange={setIsConnecting}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Connecting to Stellar Wallet</DialogTitle>
+            <DialogTitle>Connect Wallet</DialogTitle>
+            <DialogDescription>
+              Connect your wallet to continue
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-center py-6">
-            <div className="text-center">
-              <p className="text-muted-foreground">Please complete the connection in the popup window...</p>
-            </div>
+          <div className="grid gap-4 py-4">
+            {publicKey ? (
+              <Button
+                onClick={handleDisconnect}
+                className="w-full"
+                variant="destructive"
+              >
+                Disconnect Wallet
+              </Button>
+            ) : (
+              <Button
+                onClick={handleConnect}
+                className="w-full"
+                disabled={isConnecting}
+              >
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
