@@ -1,6 +1,6 @@
 {
-  "name": "@dob-validator/backoffice",
-  "version": "1.0.0",
+  "name": "my-v0-project",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,8 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@dob-validator/shared": "workspace:*",
-    "@dob-validator/backend": "workspace:*",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -31,7 +29,7 @@
     "@radix-ui/react-scroll-area": "1.2.2",
     "@radix-ui/react-select": "2.1.4",
     "@radix-ui/react-separator": "1.1.1",
-    "@radix-ui/react-slider": "1.2.2",
+    "@radix-ui/react-slider": "latest",
     "@radix-ui/react-slot": "1.1.1",
     "@radix-ui/react-switch": "1.1.2",
     "@radix-ui/react-tabs": "1.1.2",
@@ -39,6 +37,7 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
+    "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
@@ -47,7 +46,7 @@
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
-    "next-themes": "^0.4.4",
+    "next-themes": "latest",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
@@ -64,10 +63,8 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8",
-    "postcss-import": "^16.1.0",
+    "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
-} 
+}
