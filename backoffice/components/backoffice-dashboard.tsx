@@ -335,45 +335,15 @@ function InboxSection() {
                     {new Date(submission.submittedAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
-                          <DialogHeader>
-                            <DialogTitle>{submission.title}</DialogTitle>
-                            <DialogDescription>
-                              Submitted by {submission.submitter} on{" "}
-                              {new Date(submission.submittedAt).toLocaleDateString()}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <h4 className="font-medium mb-2">Documents</h4>
-                              <div className="space-y-2">
-                                {submission.documents.map((doc, index) => (
-                                  <div key={index} className="flex items-center justify-between p-2 border rounded">
-                                    <div className="flex items-center gap-2">
-                                      <FileText className="h-4 w-4" />
-                                      <span className="text-sm">{doc}</span>
-                                    </div>
-                                    <Button variant="ghost" size="sm">
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                      <Button variant="ghost" size="sm">
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={() => window.location.href = `/submission-review?id=${submission.id}`}
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>Review</span>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
