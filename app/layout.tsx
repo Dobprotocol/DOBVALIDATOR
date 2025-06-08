@@ -1,26 +1,28 @@
-import type React from "react"
-import { Inter } from "next/font/google"
-import "./globals.css"
+import './globals.css'
+import type { Metadata } from 'next'
 import { ThemeProvider } from "@/components/theme-provider"
+import { Header } from "@/components/ui/header"
 
-const inter = Inter({ subsets: ["latin"] })
+export const metadata: Metadata = {
+  title: 'DOB Validator',
+  description: 'A tool for validating and managing date of birth information',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light">
-          {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <Header />
+          <main className="pt-20">
+            {children}
+          </main>
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
-export const metadata = {
-      generator: 'v0.dev'
-    };

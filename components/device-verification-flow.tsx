@@ -7,7 +7,6 @@ import { DeviceFinancialInfo } from "@/components/steps/device-financial-info"
 import { DeviceDocumentation } from "@/components/steps/device-documentation"
 import { DeviceReview } from "@/components/steps/device-review"
 import { DeviceSuccess } from "@/components/steps/device-success"
-import { Header } from "@/components/ui/header"
 import { StepIndicator } from "@/components/ui/step-indicator"
 
 export type DeviceData = {
@@ -39,42 +38,44 @@ export type DeviceData = {
 export function DeviceVerificationFlow() {
   const [currentStep, setCurrentStep] = useState(1)
   const [deviceData, setDeviceData] = useState<DeviceData>({
-    deviceName: "",
-    deviceType: "",
-    serialNumber: "",
-    manufacturer: "",
-    model: "",
-    yearOfManufacture: "",
-    condition: "",
-    specifications: "",
-    purchasePrice: "",
-    currentValue: "",
-    expectedRevenue: "",
-    operationalCosts: "",
+    deviceName: '',
+    deviceType: '',
+    serialNumber: '',
+    manufacturer: '',
+    model: '',
+    yearOfManufacture: '',
+    condition: '',
+    specifications: '',
+    purchasePrice: '',
+    currentValue: '',
+    expectedRevenue: '',
+    operationalCosts: '',
     technicalCertification: null,
     purchaseProof: null,
     maintenanceRecords: null,
     additionalDocuments: [],
   })
 
+  const totalSteps = 6
+
   const updateDeviceData = (data: Partial<DeviceData>) => {
     setDeviceData((prev) => ({ ...prev, ...data }))
   }
 
   const nextStep = () => {
-    setCurrentStep((prev) => Math.min(prev + 1, 6))
+    if (currentStep < totalSteps) {
+      setCurrentStep((prev) => prev + 1)
+    }
   }
 
   const prevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1))
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1)
+    }
   }
-
-  const totalSteps = 5
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Header />
-
       <div className="mt-8 mb-12">
         <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
       </div>
