@@ -14,6 +14,11 @@ declare global {
       isConnected: () => Promise<boolean>
       getPublicKey: () => Promise<string>
       disconnect: () => Promise<void>
+      signTransaction: (xdr: string) => Promise<string>
+      signAuthEntry: (xdr: string) => Promise<string>
+      signMessage: (message: string) => Promise<string>
+      signBlob: (blob: string) => Promise<string>
+      signSorobanTransaction: (xdr: string) => Promise<string>
     }
   }
 }
@@ -25,6 +30,12 @@ export function StellarWallet() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [connectWindow, setConnectWindow] = useState<Window | null>(null)
   const [isError, setIsError] = useState(false)
+  const [isFreighterAvailable, setIsFreighterAvailable] = useState(false)
+
+  useEffect(() => {
+    // Check if Freighter is available
+    setIsFreighterAvailable(!!window.freighterApi)
+  }, [])
 
   useEffect(() => {
     const storedKey = localStorage.getItem('stellarPublicKey')
@@ -95,6 +106,7 @@ export function StellarWallet() {
       // Check if Freighter is installed
       if (window.freighterApi) {
         try {
+          // First check if already connected
           const isConnected = await window.freighterApi.isConnected()
           if (isConnected) {
             const newPublicKey = await window.freighterApi.getPublicKey()
@@ -106,8 +118,48 @@ export function StellarWallet() {
             })
             return
           }
+
+          // If not connected, try to connect
+          // Create a simple transaction to trigger the connection
+          const server = new StellarSdk.Server('https://horizon-testnet.stellar.org')
+          const account = await server.loadAccount(await window.freighterApi.getPublicKey())
+          const transaction = new StellarSdk.TransactionBuilder(account, {
+            fee: StellarSdk.BASE_FEE,
+            networkPassphrase: StellarSdk.Network.current().networkPassphrase(),
+          })
+            .addOperation(StellarSdk.Operation.accountMerge({
+              destination: account.accountId(),
+            }))
+            .setTimeout(30)
+            .build()
+
+          // This will trigger the Freighter popup
+          await window.freighterApi.signTransaction(transaction.toXDR())
+          
+          // If we get here, the user approved the connection
+          const newPublicKey = await window.freighterApi.getPublicKey()
+          localStorage.setItem('stellarPublicKey', newPublicKey)
+          setPublicKey(newPublicKey)
+          toast({
+            title: "Wallet Connected",
+            description: "Your wallet has been connected successfully.",
+          })
+          return
         } catch (error) {
           console.error('Freighter connection failed:', error)
+          // If the error is because the user rejected, show a different message
+          if (error instanceof Error && error.message.includes('User rejected')) {
+            toast({
+              title: "Connection Cancelled",
+              description: "Wallet connection was cancelled by user.",
+            })
+          } else {
+            toast({
+              title: "Connection Failed",
+              description: "Failed to connect to Freighter wallet. Please try again.",
+              variant: "destructive",
+            })
+          }
         }
       }
 
@@ -130,6 +182,12 @@ export function StellarWallet() {
     try {
       if (window.freighterApi) {
         await window.freighterApi.disconnect()
+        localStorage.removeItem('stellarPublicKey')
+        setPublicKey(null)
+        toast({
+          title: "Wallet Disconnected",
+          description: "Your wallet has been disconnected.",
+        })
       } else {
         const logoutWindow = window.open(`${SIMPLE_SIGNER_URL}/logout`, 'Logout_Window', 'width=100, height=100')
         if (logoutWindow) {
@@ -185,11 +243,17 @@ export function StellarWallet() {
       <Dialog open={isConnecting} onOpenChange={setIsConnecting}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Connecting to Stellar Wallet</DialogTitle>
+            <DialogTitle>
+              {isFreighterAvailable ? "Connecting to Freighter" : "Connecting to Stellar Wallet"}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-6">
             <div className="text-center">
-              <p className="text-muted-foreground">Please complete the connection in the popup window...</p>
+              <p className="text-muted-foreground">
+                {isFreighterAvailable
+                  ? "Please approve the connection in your Freighter wallet..."
+                  : "Please complete the connection in the popup window..."}
+              </p>
             </div>
           </div>
         </DialogContent>
