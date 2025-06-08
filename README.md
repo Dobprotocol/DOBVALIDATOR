@@ -2,6 +2,11 @@
 
 A monorepo containing the DOB Protocol Validator system, including the public-facing validator interface, admin backoffice, and shared backend services.
 
+## Overview
+DOB Validator is the official project validation portal of the DOB Protocol, designed to assess and certify DePIN projects through the TRUFA standard (Trustless Revenue Utility & Flow Automation). It enables infrastructure operators to submit documentation and metadata for review, aiming to tokenize their devices and qualify for inclusion in verified revenue pools.
+
+On the other side, the BackOffice CMS is an internal tool used by the DOB team to manage, review, and score incoming submissions. Admins can track submission statuses, leave comments, assign TRUFA scores, and push certified metadata to the Stellar blockchain.
+
 ## Project Structure
 
 ```
@@ -156,7 +161,3 @@ The DOB Validator serves as the critical first step in the device funding proces
 3. Standardizing the onboarding process
 4. Providing a foundation for automated funding decisions
 5. Creating a trusted source of device information
-
-## Contact
-
-[Contact information to be added]
