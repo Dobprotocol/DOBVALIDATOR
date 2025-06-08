@@ -27,6 +27,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { Input } from "@/components/ui/input"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
 
 // Mock submission data
 const mockSubmission = {
@@ -67,6 +80,20 @@ interface SubmissionReviewProps {
   onBack?: () => void
 }
 
+// Define the form schema
+const formSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
+  documentType: z.enum(["passport", "id_card", "drivers_license"], {
+    required_error: "Please select a document type",
+  }),
+  documentNumber: z.string().min(5, "Document number must be at least 5 characters"),
+  notes: z.string().optional(),
+})
+
+type FormValues = z.infer<typeof formSchema>
+
 export function SubmissionReview({ submissionId = "PROJ-001", onBack }: SubmissionReviewProps) {
   const { toast } = useToast()
   const [trufaScores, setTrufaScores] = useState({
@@ -89,6 +116,18 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
   const connectedWallet = "GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ"
 
   const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      name: "",
+      dateOfBirth: "",
+      documentType: undefined,
+      documentNumber: "",
+      notes: "",
+    },
+  })
 
   const handleSignAndSubmit = async () => {
     if (!isWalletConnected || !isWalletWhitelisted || isApproved === null) return
@@ -135,6 +174,29 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
   }
 
   const canSign = isWalletConnected && isWalletWhitelisted && isApproved !== null && !isSubmitted
+
+  async function onSubmit(data: FormValues) {
+    setIsSubmitting(true)
+    try {
+      // TODO: Implement API call to validate submission
+      console.log("Form submitted:", data)
+      
+      toast({
+        title: "Submission received",
+        description: "We will review your submission and get back to you shortly.",
+      })
+      
+      form.reset()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -349,7 +411,7 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
                 <Separator />
 
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">{averageScore}</div>
+                  <div className="text-3xl font-bold text-[hsl(var(--primary))]">{averageScore}</div>
                   <p className="text-sm text-muted-foreground">Overall TRUFA Score</p>
                 </div>
               </CardContent>
