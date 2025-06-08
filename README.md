@@ -60,12 +60,22 @@ pnpm dev
 3. Submit a pull request
 
 ## License
+Copyright (c) 2025 DOB Protocol.
 
-[Your License]
+This software and its contents are the exclusive property of DOB Protocol.  
+It is provided solely for evaluation, demonstration, and development collaboration purposes.
+
+**You may not:**
+- Use this software for commercial purposes.
+- Copy, modify, or distribute this code without explicit written permission.
+- Fork or publish derivative projects publicly.
+
+All rights reserved.
 
 ## Overview
+DOB Validator is the official project validation portal of the DOB Protocol, designed to assess and certify DePIN projects through the TRUFA standard (Trustless Revenue Utility & Flow Automation). It enables infrastructure operators to submit documentation and metadata for review, aiming to tokenize their devices and qualify for inclusion in verified revenue pools.
 
-The DOB Validator is a crucial first step in Device Onboarding for DOB PROTOCOL. Its designed to automate and standardize the process of validating devices for funding consideration. This tool serves as the gateway for projects seeking funding through the DOB Protocol, ensuring that all necessary device information and documentation is properly collected and verified.
+On the other side, the BackOffice CMS is an internal tool used by the DOB team to manage, review, and score incoming submissions. Admins can track submission statuses, leave comments, assign TRUFA scores, and push certified metadata to the Stellar blockchain.
 
 ## Problem Statement
 
@@ -156,7 +166,3 @@ The DOB Validator serves as the critical first step in the device funding proces
 3. Standardizing the onboarding process
 4. Providing a foundation for automated funding decisions
 5. Creating a trusted source of device information
-
-## Contact
-
-[Contact information to be added]
