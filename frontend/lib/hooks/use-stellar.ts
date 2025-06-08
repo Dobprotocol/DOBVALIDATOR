@@ -1,32 +1,26 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { StellarSdk, isInitialized as sdkInitialized } from "@/lib/stellar-sdk"
+import { getStellarSDK, isInitialized as sdkInitialized } from "@/lib/stellar-sdk"
 
 export function useStellar() {
   const [isInitialized, setIsInitialized] = useState(false)
-  const [server, setServer] = useState<any>(null)
+  const [sdk, setSdk] = useState<any>(null)
 
   useEffect(() => {
-    const initializeStellar = async () => {
+    const initializeStellar = () => {
       try {
         if (!sdkInitialized) {
-          // Try to initialize the SDK
-          const initialized = StellarSdk.initialize()
-          if (!initialized) {
-            throw new Error('Failed to initialize Stellar SDK')
-          }
+          console.error('Stellar SDK not initialized')
+          return
         }
-        
-        // Create a server instance
-        const serverInstance = new StellarSdk.Server('https://horizon-testnet.stellar.org')
-        
-        setServer(serverInstance)
+
+        const stellarSDK = getStellarSDK()
+        setSdk(stellarSDK)
         setIsInitialized(true)
       } catch (error) {
         console.error('Failed to initialize Stellar SDK:', error)
-        // Still set initialized to true to show the connect button
-        setIsInitialized(true)
+        setIsInitialized(false)
       }
     }
 
@@ -35,14 +29,12 @@ export function useStellar() {
     }
 
     return () => {
-      // Cleanup if needed
-      setServer(null)
+      setSdk(null)
     }
   }, [])
 
   return {
-    StellarSdk,
-    server,
+    sdk,
     isInitialized
   }
 } 
