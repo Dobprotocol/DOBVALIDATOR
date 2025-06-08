@@ -5,17 +5,25 @@ const StellarSDK = {
   ...StellarSdk,
   initialize: () => {
     if (typeof window !== 'undefined') {
-      StellarSdk.Network.useTestNetwork()
+      try {
+        // Set the network passphrase for testnet
+        StellarSdk.Network.useTestNetwork()
+        // Set the base fee
+        StellarSdk.BASE_FEE = '100'
+        return true
+      } catch (error) {
+        console.error('Failed to initialize Stellar SDK:', error)
+        return false
+      }
     }
+    return false
   }
 }
 
-export { StellarSDK as StellarSdk }
-
 // Initialize the SDK on the client side
+let isInitialized = false
 if (typeof window !== 'undefined') {
-  // Set the network passphrase for testnet
-  StellarSdk.Network.useTestNetwork()
-  // Set the base fee
-  StellarSdk.BASE_FEE = '100'
-} 
+  isInitialized = StellarSDK.initialize()
+}
+
+export { StellarSDK as StellarSdk, isInitialized } 

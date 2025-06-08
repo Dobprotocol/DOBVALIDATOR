@@ -24,6 +24,7 @@ export function StellarWallet() {
   const [publicKey, setPublicKey] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [connectWindow, setConnectWindow] = useState<Window | null>(null)
+  const [isError, setIsError] = useState(false)
 
   useEffect(() => {
     const storedKey = localStorage.getItem('stellarPublicKey')
@@ -89,6 +90,7 @@ export function StellarWallet() {
   const handleConnect = async () => {
     try {
       setIsConnecting(true)
+      setIsError(false)
 
       // Check if Freighter is installed
       if (window.freighterApi) {
@@ -114,6 +116,7 @@ export function StellarWallet() {
       setConnectWindow(signerWindow)
     } catch (error) {
       console.error('Failed to connect wallet:', error)
+      setIsError(true)
       toast({
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet. Please try again.",
@@ -172,8 +175,9 @@ export function StellarWallet() {
           <Button
             onClick={handleConnect}
             className="bg-[#6366F1] hover:bg-[#5355d1] text-white font-medium px-6"
+            disabled={isError}
           >
-            Connect Wallet
+            {isError ? "Connection Failed" : "Connect Wallet"}
           </Button>
         )}
       </div>
