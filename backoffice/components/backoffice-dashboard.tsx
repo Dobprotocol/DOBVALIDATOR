@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Archive,
   Bell,
@@ -18,6 +18,7 @@ import {
   Download,
   MessageSquare,
   Star,
+  LogOut,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -63,6 +64,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Slider } from "@/components/ui/slider"
 import { useTheme } from "next-themes"
+import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 // Mock data
 const mockSubmissions = [
@@ -127,6 +131,50 @@ const priorityColors = {
 
 function AppSidebar() {
   const [activeSection, setActiveSection] = useState("inbox")
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('stellarPublicKey')
+    if (savedKey) {
+      setWalletAddress(savedKey)
+    }
+
+    // Listen for wallet state changes
+    const handleWalletStateChange = () => {
+      const newKey = localStorage.getItem('stellarPublicKey')
+      setWalletAddress(newKey)
+    }
+
+    window.addEventListener('walletStateChange', handleWalletStateChange)
+    return () => window.removeEventListener('walletStateChange', handleWalletStateChange)
+  }, [])
+
+  const truncateAddress = (address: string) => {
+    if (!address) return ''
+    return `${address.slice(0, 4)}...${address.slice(-4)}`
+  }
+
+  const handleDisconnect = () => {
+    console.log('=== Starting Wallet Disconnection from Sidebar ===')
+    try {
+      // Clear all wallet-related data
+      console.log('Clearing localStorage...')
+      localStorage.removeItem('stellarPublicKey')
+      localStorage.removeItem('stellarWallet')
+      
+      console.log('Removing cookie...')
+      document.cookie = 'stellarPublicKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      
+      console.log('Redirecting to landing page...')
+      // Force a hard redirect to ensure clean state
+      window.location.href = '/'
+      
+      console.log('=== Wallet Disconnection Complete ===')
+    } catch (error) {
+      console.error('Error during wallet disconnection:', error)
+    }
+  }
 
   const menuItems = [
     {
@@ -199,24 +247,34 @@ function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="w-full">
-                  <Wallet className="h-4 w-4" />
-                  <span className="truncate">validator1.stellar</span>
-                </SidebarMenuButton>
+                <Button variant="ghost" className="w-full justify-start">
+                  <Wallet className="h-4 w-4 mr-2" />
+                  <span>{walletAddress ? truncateAddress(walletAddress) : "Connect Wallet"}</span>
+                </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
-                <DropdownMenuLabel>Wallet Actions</DropdownMenuLabel>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Connected Wallet</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {walletAddress}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Wallet Settings
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">Disconnect</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDisconnect}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Disconnect</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
