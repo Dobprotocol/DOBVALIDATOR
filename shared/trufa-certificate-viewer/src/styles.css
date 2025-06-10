@@ -1,69 +1,105 @@
 .trufa-certificate-viewer {
-  font-family: system-ui, -apple-system, sans-serif;
-  border-radius: 8px;
-  padding: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .trufa-certificate-viewer.light {
-  background-color: #ffffff;
+  background-color: white;
   color: #1a1a1a;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .trufa-certificate-viewer.dark {
   background-color: #1a1a1a;
   color: #ffffff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .certificate-header {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid currentColor;
+  padding: 1.5rem;
+  border-bottom: 1px solid;
+}
+
+.trufa-certificate-viewer.light .certificate-header {
+  border-color: #e5e7eb;
+}
+
+.trufa-certificate-viewer.dark .certificate-header {
+  border-color: #374151;
 }
 
 .certificate-header h1 {
-  font-size: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
   margin: 0;
-  color: #2563eb;
 }
 
 .certificate-id {
   font-size: 0.875rem;
-  opacity: 0.7;
+  color: #6b7280;
   margin-top: 0.5rem;
 }
 
 .certificate-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  padding: 1.5rem;
+}
+
+.project-info {
+  margin-bottom: 1.5rem;
 }
 
 .project-info h2 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
   margin: 0 0 0.5rem 0;
+}
+
+.project-info p {
+  color: #6b7280;
+  margin: 0;
 }
 
 .validation-details {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
+  margin-bottom: 1.5rem;
   padding: 1rem;
-  background-color: rgba(37, 99, 235, 0.1);
-  border-radius: 4px;
+  border-radius: 0.5rem;
+}
+
+.trufa-certificate-viewer.light .validation-details {
+  background-color: #f9fafb;
+}
+
+.trufa-certificate-viewer.dark .validation-details {
+  background-color: #2d3748;
+}
+
+.validation-date,
+.expiry-date,
+.trufa-score {
+  font-size: 0.875rem;
+}
+
+.trufa-score {
+  font-weight: 600;
+  color: #059669;
 }
 
 .device-specifications {
-  margin-top: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.device-specifications h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
 }
 
 .specs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -75,58 +111,121 @@
 }
 
 .spec-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.spec-value {
   font-weight: 500;
-  opacity: 0.7;
 }
 
 .blockchain-info {
-  margin-top: 2rem;
   padding: 1rem;
-  background-color: rgba(37, 99, 235, 0.05);
-  border-radius: 4px;
+  border-radius: 0.5rem;
+}
+
+.trufa-certificate-viewer.light .blockchain-info {
+  background-color: #f9fafb;
+}
+
+.trufa-certificate-viewer.dark .blockchain-info {
+  background-color: #2d3748;
+}
+
+.blockchain-info h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+
+.blockchain-info p {
+  font-size: 0.875rem;
+  margin: 0 0 0.5rem 0;
 }
 
 .blockchain-info a {
   color: #2563eb;
   text-decoration: none;
+  font-size: 0.875rem;
 }
 
 .blockchain-info a:hover {
   text-decoration: underline;
 }
 
-/* Compact mode styles */
-.trufa-certificate-viewer.compact {
+/* Loading state */
+.trufa-certificate-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
+.trufa-certificate-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: #dc2626;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Not found state */
+.trufa-certificate-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.not-found-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Compact mode */
+.trufa-certificate-viewer.compact .device-specifications,
+.trufa-certificate-viewer.compact .blockchain-info {
+  display: none;
+}
+
+.trufa-certificate-viewer.compact .certificate-content {
   padding: 1rem;
 }
 
 .trufa-certificate-viewer.compact .certificate-header {
+  padding: 1rem;
+}
+
+.trufa-certificate-viewer.compact .validation-details {
+  padding: 0.75rem;
   margin-bottom: 1rem;
-}
-
-.trufa-certificate-viewer.compact .certificate-header h1 {
-  font-size: 1.5rem;
-}
-
-/* Loading and error states */
-.trufa-certificate-loading,
-.trufa-certificate-error,
-.trufa-certificate-not-found {
-  padding: 2rem;
-  text-align: center;
-  border-radius: 8px;
-}
-
-.trufa-certificate-loading.light,
-.trufa-certificate-error.light,
-.trufa-certificate-not-found.light {
-  background-color: #f3f4f6;
-  color: #1a1a1a;
-}
-
-.trufa-certificate-loading.dark,
-.trufa-certificate-error.dark,
-.trufa-certificate-not-found.dark {
-  background-color: #2d2d2d;
-  color: #ffffff;
 } 
