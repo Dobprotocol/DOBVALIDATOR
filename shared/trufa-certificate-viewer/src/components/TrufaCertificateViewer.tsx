@@ -1,6 +1,30 @@
 import React from 'react';
 import { TrufaCertificateViewerProps, CertificateData } from '../types';
 
+// Mock data for demonstration
+const mockCertificateData: CertificateData = {
+  projectName: "Solar Farm Project Alpha",
+  operatorName: "Green Energy Solutions",
+  validationDate: "2024-03-15T10:00:00Z",
+  expiryDate: "2025-03-15T10:00:00Z",
+  trufaScore: 92,
+  deviceSpecifications: {
+    type: "Solar Panel Array",
+    model: "SP-2000X",
+    manufacturer: "SolarTech Industries",
+    specifications: {
+      "Power Output": "2.5 MW",
+      "Efficiency": "22.5%",
+      "Dimensions": "2.0m x 1.0m",
+      "Weight": "25kg",
+      "Operating Temperature": "-40°C to 85°C",
+      "Warranty": "25 years"
+    }
+  },
+  blockchainTxId: "0x1234...5678",
+  verificationUrl: "https://explorer.example.com/tx/0x1234...5678"
+};
+
 export const TrufaCertificateViewer: React.FC<TrufaCertificateViewerProps> = ({
   projectId,
   certificateId,
@@ -13,14 +37,13 @@ export const TrufaCertificateViewer: React.FC<TrufaCertificateViewerProps> = ({
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    // Simulate API call with mock data
     const fetchCertificateData = async () => {
       try {
         setLoading(true);
-        // TODO: Implement actual API call to fetch certificate data
-        // This is a placeholder for the actual implementation
-        const response = await fetch(`/api/certificates/${certificateId}`);
-        const data = await response.json();
-        setCertificateData(data);
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setCertificateData(mockCertificateData);
       } catch (err) {
         setError('Failed to load certificate data');
         console.error('Error fetching certificate:', err);
@@ -35,7 +58,8 @@ export const TrufaCertificateViewer: React.FC<TrufaCertificateViewerProps> = ({
   if (loading) {
     return (
       <div className={`trufa-certificate-loading ${theme} ${className}`}>
-        Loading certificate...
+        <div className="loading-spinner"></div>
+        <p>Loading certificate...</p>
       </div>
     );
   }
@@ -43,7 +67,8 @@ export const TrufaCertificateViewer: React.FC<TrufaCertificateViewerProps> = ({
   if (error) {
     return (
       <div className={`trufa-certificate-error ${theme} ${className}`}>
-        {error}
+        <div className="error-icon">⚠️</div>
+        <p>{error}</p>
       </div>
     );
   }
@@ -51,7 +76,8 @@ export const TrufaCertificateViewer: React.FC<TrufaCertificateViewerProps> = ({
   if (!certificateData) {
     return (
       <div className={`trufa-certificate-not-found ${theme} ${className}`}>
-        Certificate not found
+        <div className="not-found-icon">🔍</div>
+        <p>Certificate not found</p>
       </div>
     );
   }
