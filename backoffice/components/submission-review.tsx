@@ -40,6 +40,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 // Mock submission data
 const mockSubmission = {
@@ -109,6 +110,7 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
   const [stellarTxHash, setStellarTxHash] = useState("")
   const [txStatus, setTxStatus] = useState<"pending" | "confirmed" | null>(null)
   const [copiedHash, setCopiedHash] = useState(false)
+  const [openPdf, setOpenPdf] = useState<string | null>(null)
 
   // Mock wallet connection state
   const [isWalletConnected] = useState(true)
@@ -273,20 +275,13 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {mockSubmission.documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded">
-                          <FileText className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground">{doc.size}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="truncate">{doc.name}</span>
+                      {doc.type === "pdf" ? (
+                        <Button variant="ghost" size="sm" onClick={() => setOpenPdf(doc.name)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      ) : (
                         <Button variant="ghost" size="sm" asChild>
                           <a
                             href={`/${doc.name}`}
@@ -297,10 +292,17 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
                             <Eye className="h-4 w-4" />
                           </a>
                         </Button>
-                        <Button variant="ghost" size="sm">
+                      )}
+                      <Button variant="ghost" size="sm" asChild>
+                        <a
+                          href={`/${doc.name}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Download ${doc.name}`}
+                        >
                           <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        </a>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -563,6 +565,21 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
           </div>
         </div>
       </div>
+
+      <Dialog open={!!openPdf} onOpenChange={() => setOpenPdf(null)}>
+        <DialogContent className="max-w-3xl w-full h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Preview: {openPdf}</DialogTitle>
+          </DialogHeader>
+          {openPdf && (
+            <iframe
+              src={`/${openPdf}`}
+              title={openPdf}
+              className="w-full h-[70vh] border rounded"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
