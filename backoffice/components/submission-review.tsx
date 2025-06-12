@@ -52,8 +52,8 @@ const mockSubmission = {
   description:
     "Expansion of Helium network infrastructure across Chile with focus on rural connectivity and IoT device deployment.",
   documents: [
-    { name: "technical-specifications.pdf", size: "2.4 MB", type: "pdf" },
-    { name: "financial-projections.xlsx", size: "1.8 MB", type: "excel" },
+    { name: "technical-specs.pdf", size: "2.4 MB", type: "pdf" },
+    { name: "financial-model.xlsx", size: "1.8 MB", type: "excel" },
     { name: "environmental-impact.pdf", size: "3.2 MB", type: "pdf" },
     { name: "regulatory-compliance.pdf", size: "1.5 MB", type: "pdf" },
   ],
@@ -287,8 +287,15 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={`/${doc.name}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`View ${doc.name}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </a>
                         </Button>
                         <Button variant="ghost" size="sm">
                           <Download className="h-4 w-4" />
