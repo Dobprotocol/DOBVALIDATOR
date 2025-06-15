@@ -5,6 +5,8 @@ import type { DeviceData } from "@/components/device-verification-flow"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Upload, X, FileText, Plus } from "lucide-react"
+import { useDropzone } from 'react-dropzone'
+import { useState } from 'react'
 
 interface DeviceDocumentationProps {
   deviceData: DeviceData
@@ -14,6 +16,14 @@ interface DeviceDocumentationProps {
 }
 
 export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBack }: DeviceDocumentationProps) {
+  const [progress, setProgress] = useState({
+    technicalCertification: 0,
+    purchaseProof: 0,
+    maintenanceRecords: 0,
+    additionalDocuments: [] as number[],
+  })
+  const maxSize = 10 * 1024 * 1024 // 10MB
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onNext()
@@ -39,6 +49,68 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     updatedFiles.splice(index, 1)
     updateDeviceData({ additionalDocuments: updatedFiles })
   }
+
+  // Helper for dropzone
+  const getDropzone = (field: keyof DeviceData, accept: string) => {
+    return useDropzone({
+      accept: { [accept]: ['.pdf'] },
+      maxFiles: 1,
+      maxSize,
+      onDrop: (acceptedFiles, fileRejections) => {
+        if (acceptedFiles.length > 0) {
+          updateDeviceData({ [field]: acceptedFiles[0] })
+          setProgress((prev) => ({ ...prev, [field]: 100 }))
+        }
+        // Optionally handle fileRejections for error UI
+      },
+    })
+  }
+
+  const getMultiDropzone = () => {
+    return useDropzone({
+      accept: { 'application/pdf': ['.pdf'], 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'application/msword': ['.doc'], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'], 'application/vnd.ms-excel': ['.xls'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+      maxSize,
+      onDrop: (acceptedFiles, fileRejections) => {
+        if (acceptedFiles.length > 0) {
+          updateDeviceData({
+            additionalDocuments: [...deviceData.additionalDocuments, ...acceptedFiles],
+          })
+          setProgress((prev) => ({ ...prev, additionalDocuments: [...(prev.additionalDocuments || []), 100] }))
+        }
+        // Optionally handle fileRejections for error UI
+      },
+    })
+  }
+
+  // Replace each file input section with dropzone logic
+  // Example for technicalCertification:
+  const {
+    getRootProps: getTechCertRootProps,
+    getInputProps: getTechCertInputProps,
+    isDragActive: isTechCertDragActive,
+    fileRejections: techCertRejections,
+  } = getDropzone('technicalCertification', 'application/pdf')
+
+  const {
+    getRootProps: getPurchaseProofRootProps,
+    getInputProps: getPurchaseProofInputProps,
+    isDragActive: isPurchaseProofDragActive,
+    fileRejections: purchaseProofRejections,
+  } = getDropzone('purchaseProof', 'application/pdf')
+
+  const {
+    getRootProps: getMaintenanceRootProps,
+    getInputProps: getMaintenanceInputProps,
+    isDragActive: isMaintenanceDragActive,
+    fileRejections: maintenanceRejections,
+  } = getDropzone('maintenanceRecords', 'application/pdf')
+
+  const {
+    getRootProps: getAdditionalRootProps,
+    getInputProps: getAdditionalInputProps,
+    isDragActive: isAdditionalDragActive,
+    fileRejections: additionalRejections,
+  } = getMultiDropzone()
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
@@ -67,20 +139,13 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
                   </Button>
                 </div>
               ) : (
-                <label htmlFor="technicalCertification" className="cursor-pointer">
+                <label {...getTechCertRootProps()} className="cursor-pointer">
                   <div className="flex flex-col items-center">
                     <Upload className="text-gray-400 mb-2" size={24} />
                     <span className="text-sm text-gray-500">Upload technical certification</span>
                     <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (max 10MB)</span>
                   </div>
-                  <input
-                    id="technicalCertification"
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileChange(e, "technicalCertification")}
-                    required
-                  />
+                  <input {...getTechCertInputProps()} />
                 </label>
               )}
             </div>
@@ -107,20 +172,13 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
                   </Button>
                 </div>
               ) : (
-                <label htmlFor="purchaseProof" className="cursor-pointer">
+                <label {...getPurchaseProofRootProps()} className="cursor-pointer">
                   <div className="flex flex-col items-center">
                     <Upload className="text-gray-400 mb-2" size={24} />
                     <span className="text-sm text-gray-500">Upload proof of purchase</span>
                     <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (max 10MB)</span>
                   </div>
-                  <input
-                    id="purchaseProof"
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileChange(e, "purchaseProof")}
-                    required
-                  />
+                  <input {...getPurchaseProofInputProps()} />
                 </label>
               )}
             </div>
@@ -147,20 +205,13 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
                   </Button>
                 </div>
               ) : (
-                <label htmlFor="maintenanceRecords" className="cursor-pointer">
+                <label {...getMaintenanceRootProps()} className="cursor-pointer">
                   <div className="flex flex-col items-center">
                     <Upload className="text-gray-400 mb-2" size={24} />
                     <span className="text-sm text-gray-500">Upload maintenance records</span>
                     <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (max 10MB)</span>
                   </div>
-                  <input
-                    id="maintenanceRecords"
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileChange(e, "maintenanceRecords")}
-                    required
-                  />
+                  <input {...getMaintenanceInputProps()} />
                 </label>
               )}
             </div>
@@ -169,19 +220,12 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
           <div>
             <div className="flex justify-between items-center mb-2">
               <Label>Additional Documents (Optional)</Label>
-              <label htmlFor="additionalDocuments">
-                <div className="flex items-center text-[#6366F1] text-sm cursor-pointer">
+              <label {...getAdditionalRootProps()} className="flex items-center text-[#6366F1] text-sm cursor-pointer">
+                <div className="flex items-center">
                   <Plus size={16} className="mr-1" />
                   <span>Add file</span>
                 </div>
-                <input
-                  id="additionalDocuments"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                  onChange={handleAdditionalFiles}
-                  multiple
-                />
+                <input {...getAdditionalInputProps()} />
               </label>
             </div>
 
