@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { FileText, Image as ImageIcon } from "lucide-react"
 import { useState } from "react"
 import Image from 'next/image'
+import { useToast } from "@/components/ui/use-toast"
 
 interface DeviceReviewProps {
   deviceData: DeviceData
@@ -16,6 +17,8 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<{ field: string; error: string }[]>([])
+  const { toast } = useToast()
 
   const formatCurrency = (value: string) => {
     if (!value) return "-"
@@ -26,6 +29,8 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
     setLoading(true)
     setError(null)
     setSuccess(false)
+    setValidationErrors([])
+
     try {
       const formData = new FormData()
       // Append all fields
@@ -42,15 +47,42 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
           formData.append(key, value as string)
         }
       })
+
       const res = await fetch('/api/submit', {
         method: 'POST',
         body: formData,
       })
-      if (!res.ok) throw new Error(await res.text())
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (res.status === 400 && data.errors) {
+          // Handle validation errors
+          setValidationErrors(data.errors)
+          toast({
+            title: "Validation Error",
+            description: "Please check the form for errors",
+            variant: "destructive",
+          })
+        } else {
+          throw new Error(data.message || 'Submission failed')
+        }
+        return
+      }
+
       setSuccess(true)
+      toast({
+        title: "Success",
+        description: "Your submission has been received",
+      })
       onNext()
     } catch (err: any) {
       setError(err.message || 'Submission failed. Please try again.')
+      toast({
+        title: "Error",
+        description: err.message || 'Submission failed. Please try again.',
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -59,6 +91,19 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
       <h2 className="text-xl font-medium text-gray-800 mb-6">Review Information</h2>
+
+      {validationErrors.length > 0 && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <h3 className="text-red-800 font-medium mb-2">Please fix the following errors:</h3>
+          <ul className="list-disc list-inside space-y-1">
+            {validationErrors.map((error, index) => (
+              <li key={index} className="text-red-600 text-sm">
+                {error.field}: {error.error}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="space-y-8">
         <section>
@@ -182,7 +227,12 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
         <Button type="button" variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button type="button" className="bg-[#6366F1] hover:bg-[#5355d1] text-white" onClick={handleFinalSubmit}>
+        <Button
+          type="button"
+          className="bg-[#6366F1] hover:bg-[#5355d1] text-white"
+          onClick={handleFinalSubmit}
+          disabled={loading}
+        >
           {loading ? "Submitting..." : "Submit for Verification"}
         </Button>
       </div>
