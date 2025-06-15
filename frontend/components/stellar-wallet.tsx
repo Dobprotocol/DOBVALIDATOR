@@ -118,7 +118,6 @@ export function StellarWallet() {
       <Button
         onClick={() => setIsOpen(true)}
         variant="outline"
-        className="w-full"
       >
         {publicKey ? truncateAddress(publicKey) : "Connect Wallet"}
       </Button>
