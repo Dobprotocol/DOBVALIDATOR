@@ -9,6 +9,42 @@ import Cookies from 'js-cookie'
 
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
+// ASCII Art for wallet connection
+const WALLET_ASCII = `
+                  .*%@@@@@@@@@#:                  
+              .-@@@@@@@@@%@@@@@@@@+.     .:*@#    
+            .#@@@@#:.        ..+*.    .+@@@@@#    
+           =@@@@:                 .-%@@@@@#-      
+          #@@@.                .*@@@@@@=.    .    
+         #@@%              .=%@@@@@*.    .+@@#    
+        =@@@           ..@@@@@@@:    .:@@@@@@*    
+        %@@=        .*@@@@@@=.    .*@@@@@@@.      
+       .@@@.    .:@@@@@@%     .-@@@@@@#%@@+       
+       :@@@  .#@@@@@%-     :#@@@@@@-.  #@@+       
+       :@@@@@@@@@*.    .=@@@@@@+.      %@@=       
+      =@@@@@@%:.    =%@@@@@*:.        -@@@.       
+    -@@@@%=.    :#@@@@@%=            .%@@+        
+    -@+..   .+@@@@@@+.               @@@#         
+         -%@@@@@#:.               .=@@@*          
+      #@@@@@@-.                  -@@@@-           
+    -@@@@*.    .+@@#-.      .-*@@@@@=.            
+    -@.         +@@@@@@@@@@@@@@@@%.               
+                   .-+#@@@@#*=:.                  
+`
+
+const WALLET_TEXT = `
+   __      ___                  ___ _         _      _         _      
+   \\ \\    / / |_  ___ _ _ ___  | _ ) |___  __| |____| |_  __ _(_)_ _  
+    \\ \\/\\/ /| ' \\/ -_) '_/ -_) | _ \\ / _ \\/ _| / / _| ' \\/ _\` | | ' \\ 
+  __ \\_/\\_/ |_||_\\___|_| \\___|_|___/_\\___/\\__|_\\_\\__|_||_\\__,_|_|_||_|
+ |  \\/  |___ ___| |_ ___ | |_| |_  ___  | _ \\___ __ _| |              
+ | |\\/| / -_) -_)  _(_-< |  _| ' \\/ -_) |   / -_) _\` | |              
+ |_|  |_\\___\\___|\\__/__/  \\__|_||_\\___| |_|_\\___\\__,_|_|              
+ \\ \\    / /__ _ _| |__| |                                             
+  \\ \\/\\/ / _ \\ '_| / _\` |_                                            
+   \\_/\\_/\\___/_| |_\\__,_(_)                                           
+`
+
 // Helper function to truncate wallet address
 function truncateAddress(address: string): string {
   if (!address) return ''
@@ -94,6 +130,8 @@ export function StellarWallet() {
   const handleConnect = () => {
     setIsConnecting(true)
     console.log('Initiating wallet connection...')
+    console.log(WALLET_ASCII)
+    console.log(WALLET_TEXT)
     const connectWindow = window.open(
       `${SIMPLE_SIGNER_URL}/connect`,
       'Connect_Window',
