@@ -2,9 +2,13 @@
 
 ## 0. General & Data Model
 
-- [ ] **Design TRUFA JSON Schema for Validation Payloads**
+- [x] **Design TRUFA JSON Schema for Validation Payloads**
 
 ## 1. Validator Form Implementation
+
+### User Dashboard
+
+- [ ] Create "My Devices" page for operators to view submitted forms and their status (approved, rejected, or under revision)
 
 ### File Upload System
 
@@ -40,9 +44,16 @@
   - [x] GET endpoint for file retrieval
   - [x] DELETE endpoint for file removal
 - [x] Implement file storage logic
+
   - [x] Add temporary storage handling
   - [x] Add permanent storage handling
   - [x] Add file metadata storage
+
+  ### First Frontend Deployment
+
+- [ ] Deploy the validator form with complete user flow for backend handoff
+- [ ] Deploy the backoffice UI with mock data for backend handoff
+- [ ] Document the data structures and API expectations for backend devs
 
 ## 2. Certificate System
 
