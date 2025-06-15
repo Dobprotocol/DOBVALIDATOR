@@ -1,5 +1,9 @@
 # DOB Validator System TODO
 
+## 0. General & Data Model
+
+- [ ] **Design TRUFA JSON Schema for Validation Payloads**
+
 ## 1. Validator Form Implementation
 
 ### File Upload System
@@ -140,7 +144,28 @@
   - [ ] CORS configuration
   - [ ] CSP configuration
 
-## 6. Testing
+## 6. Scoring, Commenting, and Status Tracking
+
+- [ ] **Develop TRUFA Scoring and Commenting UI**
+- [ ] **Create Status Tracking UI for Project Validation**
+
+## 7. Submission Inbox & Admin Tools
+
+- [ ] **Build Submission Inbox Table in BackOffice**
+- [ ] **Restrict TRUFA Certification Actions to Verified Admin**
+
+## 8. Storage & Blockchain
+
+- [ ] **Push Certified Project Metadata to Stellar Blockchain**
+- [ ] **Upload Stellar Metadata of Validated Projects**
+- [ ] **Setup Google Storage or Encrypted File Storage for Project Files**
+
+## 9. Authentication
+
+- [ ] **Admin Authentication System for BackOffice**
+- [ ] **Allow Users to Log In with Wallet to Access Their Certificates**
+
+## 10. Testing
 
 ### Unit Tests
 
@@ -155,14 +180,14 @@
 - [ ] Test email notifications
 - [ ] Test wallet authentication
 
-## 7. Documentation
+## 11. Documentation
 
 - [ ] Create API documentation
 - [ ] Write setup instructions
 - [ ] Create user guides
 - [ ] Document security measures
 
-## 8. Deployment
+## 12. Deployment
 
 - [ ] Set up CI/CD pipeline
 - [ ] Configure production environment
