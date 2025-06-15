@@ -11,11 +11,10 @@
 - [ ] Set up file upload directory structure
   - [x] Create `/public/uploads/pdfs` for validated PDFs
   - [x] Create `/public/uploads/temp` for temporary storage
-- [ ] Implement file upload component
-  - [ ] Add drag-and-drop functionality
-  - [ ] Add file type validation (PDF only)
-  - [ ] Add file size limits
-  - [ ] Add progress indicator
+- [x] Implement file upload component -[x] Add drag-and-drop functionality
+  - [x] Add file type validation (PDF only)
+  - [x] Add file size limits
+  - [x] Add progress indicator
 - [ ] Create file naming convention system
   - [ ] Implement timestamp-based naming
   - [ ] Add operator ID to filename
