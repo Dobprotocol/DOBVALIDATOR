@@ -18,10 +18,23 @@ interface DeviceBasicInfoProps {
 
 export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: DeviceBasicInfoProps) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(true)
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {}
+    if (!deviceData.deviceName || deviceData.deviceName.length < 2) newErrors.deviceName = "Device name is required (min 2 chars)"
+    if (!deviceData.deviceType) newErrors.deviceType = "Device type is required"
+    if (!deviceData.serialNumber || deviceData.serialNumber.length < 3) newErrors.serialNumber = "Serial number is required (min 3 chars)"
+    if (!deviceData.manufacturer || deviceData.manufacturer.length < 2) newErrors.manufacturer = "Manufacturer is required (min 2 chars)"
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onNext()
+    if (validate()) {
+      onNext()
+    }
   }
 
   const deviceTypes = ["Solar Panel", "Wind Turbine", "Battery Storage", "Mining Equipment", "Server", "Other"]
@@ -60,6 +73,7 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
                 placeholder="Enter a name for your device"
                 required
               />
+              {errors.deviceName && <p className="text-red-500 text-sm">{errors.deviceName}</p>}
             </div>
 
             <div>
@@ -80,6 +94,7 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
                   ))}
                 </SelectContent>
               </Select>
+              {errors.deviceType && <p className="text-red-500 text-sm">{errors.deviceType}</p>}
             </div>
 
             <div>
@@ -91,6 +106,7 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
                 placeholder="Enter the device serial number"
                 required
               />
+              {errors.serialNumber && <p className="text-red-500 text-sm">{errors.serialNumber}</p>}
             </div>
 
             <div>
@@ -102,6 +118,7 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
                 placeholder="Enter the device manufacturer"
                 required
               />
+              {errors.manufacturer && <p className="text-red-500 text-sm">{errors.manufacturer}</p>}
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useState } from "react"
 
 import type { DeviceData } from "@/components/device-verification-flow"
 import { Button } from "@/components/ui/button"
@@ -17,14 +18,28 @@ interface DeviceTechnicalInfoProps {
 }
 
 export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBack }: DeviceTechnicalInfoProps) {
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const currentYear = new Date().getFullYear()
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {}
+    if (!deviceData.model) newErrors.model = "Model is required"
+    if (!deviceData.yearOfManufacture || isNaN(Number(deviceData.yearOfManufacture)) || Number(deviceData.yearOfManufacture) < 1980 || Number(deviceData.yearOfManufacture) > currentYear) newErrors.yearOfManufacture = `Year must be between 1980 and ${currentYear}`
+    if (!deviceData.condition) newErrors.condition = "Condition is required"
+    if (!deviceData.specifications || deviceData.specifications.length < 10) newErrors.specifications = "Specifications required (min 10 chars)"
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onNext()
+    if (validate()) {
+      onNext()
+    }
   }
 
   const conditionOptions = ["New", "Like New", "Excellent", "Good", "Fair", "Poor"]
 
-  const currentYear = new Date().getFullYear()
   const yearOptions = Array.from({ length: 30 }, (_, i) => (currentYear - i).toString())
 
   return (
@@ -42,6 +57,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
               placeholder="Enter the device model"
               required
             />
+            {errors.model && <p className="text-red-500 text-sm">{errors.model}</p>}
           </div>
 
           <div>
@@ -62,6 +78,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
                 ))}
               </SelectContent>
             </Select>
+            {errors.yearOfManufacture && <p className="text-red-500 text-sm">{errors.yearOfManufacture}</p>}
           </div>
 
           <div>
@@ -82,6 +99,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
                 ))}
               </SelectContent>
             </Select>
+            {errors.condition && <p className="text-red-500 text-sm">{errors.condition}</p>}
           </div>
 
           <div>
@@ -94,6 +112,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
               className="min-h-[100px]"
               required
             />
+            {errors.specifications && <p className="text-red-500 text-sm">{errors.specifications}</p>}
           </div>
         </div>
 
