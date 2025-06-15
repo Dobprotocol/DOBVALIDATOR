@@ -1,0 +1,34 @@
+2025-06-12T00:01:29.740152Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/public/Certificado_Impacto_Ambiental_SantiagoReyes.pdf"), AnchoredSystemPathBuf("backoffice/public/environmental-impact.pdf")}
+2025-06-12T00:01:29.741067Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:01:44.331618Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/public/technical-specs.pdf"), AnchoredSystemPathBuf("backoffice/public/TRUFA_SantiagoReyes_Specification.pdf")}
+2025-06-12T00:01:44.331631Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:01:53.031622Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/public/financial-model.xlsx"), AnchoredSystemPathBuf("backoffice/public/SantiagoReyes_FinancialProjection.xlsx")}
+2025-06-12T00:01:53.031634Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:02:05.732575Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/public/Certificado_Cumplimiento_Regulatorio_SantiagoReyes.pdf"), AnchoredSystemPathBuf("backoffice/public/compliance.pdf")}
+2025-06-12T00:02:05.732598Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:02:15.932312Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/backoffice-dashboard.tsx")}
+2025-06-12T00:02:15.932320Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:03:24.233889Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/public/compliance.pdf"), AnchoredSystemPathBuf("backoffice/public/regulatory-compliance.pdf")}
+2025-06-12T00:03:24.233916Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:03:25.631177Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T00:03:25.631190Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:03:25.685651Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-12T00:17:20.973718Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T00:17:20.974379Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:20:34.968610Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T00:20:34.968749Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:21:08.366401Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T00:21:08.366410Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T00:21:08.366435Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-12T01:15:21.503027Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("shared/trufa-certificate-viewer/src/index.tsx"), AnchoredSystemPathBuf("shared/trufa-certificate-viewer/src/demo/main.tsx")}
+2025-06-12T01:15:21.503836Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/shared"), path: AnchoredSystemPathBuf("shared") }}))
+2025-06-12T01:32:22.334405Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T01:32:22.334857Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T01:37:07.904180Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T01:37:07.904770Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T01:37:07.929376Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-12T01:43:31.302748Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T01:43:31.303571Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T01:46:26.997257Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/submission-review.tsx")}
+2025-06-12T01:46:26.997279Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-12T01:46:26.997307Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
