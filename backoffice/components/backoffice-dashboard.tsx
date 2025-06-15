@@ -77,7 +77,7 @@ const mockSubmissions = [
     submittedAt: "2024-01-15T10:30:00Z",
     status: "pending",
     priority: "high",
-    documents: ["environmental-impact.pdf", "technical-specs.pdf", "financial-model.xlsx"],
+    documents: ["environmental-impact.pdf", "technical-specs.pdf", "financial-model.xlsx", "compliance.pdf"],
     trufaScore: null,
     validator: null,
   },

@@ -302,7 +302,7 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
                         >
                           <Download className="h-4 w-4" />
                         </a>
-                      </Button>
+                        </Button>
                     </div>
                   ))}
                 </div>
