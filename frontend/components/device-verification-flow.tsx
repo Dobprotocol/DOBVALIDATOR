@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DeviceBasicInfo } from "@/components/steps/device-basic-info"
 import { DeviceTechnicalInfo } from "@/components/steps/device-technical-info"
 import { DeviceFinancialInfo } from "@/components/steps/device-financial-info"
@@ -8,6 +8,8 @@ import { DeviceDocumentation } from "@/components/steps/device-documentation"
 import { DeviceReview } from "@/components/steps/device-review"
 import { DeviceSuccess } from "@/components/steps/device-success"
 import { StepIndicator } from "@/components/ui/step-indicator"
+import { StellarWallet } from "@/components/stellar-wallet"
+import { useRouter } from "next/navigation"
 
 export type DeviceData = {
   // Basic info
@@ -55,6 +57,35 @@ export function DeviceVerificationFlow() {
     maintenanceRecords: null,
     additionalDocuments: [],
   })
+  const [walletConnected, setWalletConnected] = useState(false)
+  const router = useRouter()
+
+  // Always start at step 1 and show welcome modal when wallet connects
+  useEffect(() => {
+    const wallet = typeof window !== 'undefined' ? localStorage.getItem('stellarWallet') : null
+    setWalletConnected(!!wallet)
+    if (wallet) {
+      setCurrentStep(1)
+    }
+    // Listen for wallet connect/disconnect events
+    const onWalletChange = () => {
+      const w = localStorage.getItem('stellarWallet')
+      setWalletConnected(!!w)
+      if (w) {
+        setCurrentStep(1)
+      }
+    }
+    window.addEventListener('walletStateChange', onWalletChange)
+    return () => window.removeEventListener('walletStateChange', onWalletChange)
+  }, [])
+
+  if (!walletConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <StellarWallet />
+      </div>
+    )
+  }
 
   const totalSteps = 6
 
