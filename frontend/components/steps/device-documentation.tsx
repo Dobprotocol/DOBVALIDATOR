@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Upload, X, FileText, Plus } from "lucide-react"
 import { useDropzone } from 'react-dropzone'
 import { useState } from 'react'
+import { generateFileName } from '@/lib/fileNaming'
 
 interface DeviceDocumentationProps {
   deviceData: DeviceData
@@ -23,10 +24,30 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     additionalDocuments: [] as number[],
   })
   const maxSize = 10 * 1024 * 1024 // 10MB
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  // Get operatorId from wallet address
+  const operatorId = typeof window !== 'undefined' ? localStorage.getItem('stellarPublicKey') || 'unknown' : 'unknown'
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {}
+    if (!deviceData.technicalCertification) newErrors.technicalCertification = "Technical certification is required (PDF, max 10MB)"
+    if (!deviceData.purchaseProof) newErrors.purchaseProof = "Purchase proof is required (PDF, max 10MB)"
+    if (!deviceData.maintenanceRecords) newErrors.maintenanceRecords = "Maintenance records are required (PDF, max 10MB)"
+    // Additional documents are optional, but check size/type if present
+    deviceData.additionalDocuments.forEach((file, idx) => {
+      if (file.size > 10 * 1024 * 1024) newErrors[`additionalDocuments_${idx}`] = "File too large (max 10MB)"
+      if (!['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'].includes(file.name.split('.').pop()?.toLowerCase() || '')) newErrors[`additionalDocuments_${idx}`] = "Invalid file type"
+    })
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onNext()
+    if (validate()) {
+      onNext()
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof DeviceData) => {
@@ -58,7 +79,14 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
       maxSize,
       onDrop: (acceptedFiles, fileRejections) => {
         if (acceptedFiles.length > 0) {
-          updateDeviceData({ [field]: acceptedFiles[0] })
+          // Generate convention-based file name
+          const file = acceptedFiles[0]
+          const namedFile = new File([file], generateFileName({
+            operatorId,
+            documentType: field,
+            originalName: file.name
+          }), { type: file.type })
+          updateDeviceData({ [field]: namedFile })
           setProgress((prev) => ({ ...prev, [field]: 100 }))
         }
         // Optionally handle fileRejections for error UI
@@ -72,8 +100,16 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
       maxSize,
       onDrop: (acceptedFiles, fileRejections) => {
         if (acceptedFiles.length > 0) {
+          // Generate convention-based file names for each file
+          const namedFiles = acceptedFiles.map(file => new File([
+            file
+          ], generateFileName({
+            operatorId,
+            documentType: 'additionalDocument',
+            originalName: file.name
+          }), { type: file.type }))
           updateDeviceData({
-            additionalDocuments: [...deviceData.additionalDocuments, ...acceptedFiles],
+            additionalDocuments: [...deviceData.additionalDocuments, ...namedFiles],
           })
           setProgress((prev) => ({ ...prev, additionalDocuments: [...(prev.additionalDocuments || []), 100] }))
         }

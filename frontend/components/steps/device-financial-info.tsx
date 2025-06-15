@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useState } from "react"
 
 import type { DeviceData } from "@/components/device-verification-flow"
 import { Button } from "@/components/ui/button"
@@ -15,9 +16,23 @@ interface DeviceFinancialInfoProps {
 }
 
 export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBack }: DeviceFinancialInfoProps) {
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {}
+    if (!deviceData.purchasePrice || isNaN(Number(deviceData.purchasePrice)) || Number(deviceData.purchasePrice) <= 0) newErrors.purchasePrice = "Purchase price must be > 0"
+    if (!deviceData.currentValue || isNaN(Number(deviceData.currentValue)) || Number(deviceData.currentValue) < 0) newErrors.currentValue = "Current value must be >= 0"
+    if (!deviceData.expectedRevenue || isNaN(Number(deviceData.expectedRevenue)) || Number(deviceData.expectedRevenue) < 0) newErrors.expectedRevenue = "Expected revenue must be >= 0"
+    if (!deviceData.operationalCosts || isNaN(Number(deviceData.operationalCosts)) || Number(deviceData.operationalCosts) < 0) newErrors.operationalCosts = "Operational costs must be >= 0"
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onNext()
+    if (validate()) {
+      onNext()
+    }
   }
 
   return (
@@ -38,6 +53,7 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               placeholder="Enter the original purchase price"
               required
             />
+            {errors.purchasePrice && <p className="text-red-500 text-sm">{errors.purchasePrice}</p>}
           </div>
 
           <div>
@@ -52,6 +68,7 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               placeholder="Enter the current estimated value"
               required
             />
+            {errors.currentValue && <p className="text-red-500 text-sm">{errors.currentValue}</p>}
           </div>
 
           <div>
@@ -66,6 +83,7 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               placeholder="Enter the expected annual revenue"
               required
             />
+            {errors.expectedRevenue && <p className="text-red-500 text-sm">{errors.expectedRevenue}</p>}
           </div>
 
           <div>
@@ -80,6 +98,7 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               placeholder="Enter the annual operational costs"
               required
             />
+            {errors.operationalCosts && <p className="text-red-500 text-sm">{errors.operationalCosts}</p>}
           </div>
         </div>
 
