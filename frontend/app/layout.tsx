@@ -9,7 +9,7 @@ import { Footer } from "@/components/ui/footer"
 
 export const metadata: Metadata = {
   title: 'DOB Validator',
-  description: 'A tool for validating and managing date of birth information',
+  description: 'DOB Validator is the core verification engine for RWA tokens in the DOB Protocol ecosystem. It ensures the authenticity, revenue flow, and trustless status of Infrastructure Tokens. Built on Stellar Blockchain.',
 }
 
 export default function RootLayout({
