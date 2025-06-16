@@ -34,7 +34,7 @@ export type DeviceData = {
   technicalCertification: File | null
   purchaseProof: File | null
   maintenanceRecords: File | null
-  additionalDocuments: File[]
+  deviceImages: File[]
 }
 
 export function DeviceVerificationFlow() {
@@ -55,7 +55,7 @@ export function DeviceVerificationFlow() {
     technicalCertification: null,
     purchaseProof: null,
     maintenanceRecords: null,
-    additionalDocuments: [],
+    deviceImages: [],
   })
   const [walletConnected, setWalletConnected] = useState(false)
   const router = useRouter()

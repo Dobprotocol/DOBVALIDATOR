@@ -2,46 +2,58 @@
 
 ## 0. General & Data Model
 
-- [ ] **Design TRUFA JSON Schema for Validation Payloads**
+- [x] **Design TRUFA JSON Schema for Validation Payloads**
 
 ## 1. Validator Form Implementation
 
+### User Dashboard
+
+- [ ] Create "My Devices" page for operators to view submitted forms and their status (approved, rejected, or under revision)
+
 ### File Upload System
 
-- [ ] Set up file upload directory structure
+- [x] Set up file upload directory structure
   - [x] Create `/public/uploads/pdfs` for validated PDFs
   - [x] Create `/public/uploads/temp` for temporary storage
-- [x] Implement file upload component -[x] Add drag-and-drop functionality
+- [x] Implement file upload component
+  - [x] Add drag-and-drop functionality
   - [x] Add file type validation (PDF only)
   - [x] Add file size limits
   - [x] Add progress indicator
-- [ ] Create file naming convention system
-  - [ ] Implement timestamp-based naming
-  - [ ] Add operator ID to filename
-  - [ ] Add document type identifier
+- [x] Create file naming convention system
+  - [x] Implement timestamp-based naming
+  - [x] Add operator ID to filename
+  - [x] Add document type identifier
 
 ### Form Components
 
-- [ ] Create validator form component
-  - [ ] Add form fields for operator information
-  - [ ] Add file upload section
-  - [ ] Add validation rules
-  - [ ] Add submission handling
-- [ ] Implement form validation
-  - [ ] Add client-side validation
-  - [ ] Add server-side validation
-  - [ ] Add error handling and messages
+- [x] Create validator form component
+  - [x] Add form fields for operator information
+  - [x] Add file upload section
+  - [x] Add validation rules
+  - [x] Add submission handling
+- [x] Implement form validation
+  - [x] Add client-side validation
+  - [x] Add server-side validation
+  - [x] Add error handling and messages
 
 ### API Integration
 
-- [ ] Create API routes for file handling
-  - [ ] POST endpoint for file upload
-  - [ ] GET endpoint for file retrieval
-  - [ ] DELETE endpoint for file removal
-- [ ] Implement file storage logic
-  - [ ] Add temporary storage handling
-  - [ ] Add permanent storage handling
-  - [ ] Add file metadata storage
+- [x] Create API routes for file handling
+  - [x] POST endpoint for file upload
+  - [x] GET endpoint for file retrieval
+  - [x] DELETE endpoint for file removal
+- [x] Implement file storage logic
+
+  - [x] Add temporary storage handling
+  - [x] Add permanent storage handling
+  - [x] Add file metadata storage
+
+  ### First Frontend Deployment
+
+- [ ] Deploy the validator form with complete user flow for backend handoff
+- [ ] Deploy the backoffice UI with mock data for backend handoff
+- [ ] Document the data structures and API expectations for backend devs
 
 ## 2. Certificate System
 
@@ -105,8 +117,8 @@
 
 ### API Development
 
-- [ ] Create API endpoints
-  - [ ] Form submission endpoint
+- [x] Create API endpoints
+  - [x] Form submission endpoint
   - [ ] Certificate generation endpoint
   - [ ] Email notification endpoint
 - [ ] Implement authentication
@@ -136,8 +148,8 @@
 
 ### Data Protection
 
-- [ ] Implement data encryption
-  - [ ] File encryption
+- [x] Implement data encryption
+  - [x] File encryption
   - [ ] Sensitive data encryption
 - [ ] Add security headers
   - [ ] CORS configuration
@@ -155,9 +167,9 @@
 
 ## 8. Storage & Blockchain
 
-- [ ] **Push Certified Project Metadata to Stellar Blockchain**
-- [ ] **Upload Stellar Metadata of Validated Projects**
-- [ ] **Setup Google Storage or Encrypted File Storage for Project Files**
+- [x] **Push Certified Project Metadata to Stellar Blockchain**
+- [x] **Upload Stellar Metadata of Validated Projects**
+- [x] **Setup Google Storage or Encrypted File Storage for Project Files**
 
 ## 9. Authentication
 
@@ -181,8 +193,8 @@
 
 ## 11. Documentation
 
-- [ ] Create API documentation
-- [ ] Write setup instructions
+- [x] Create API documentation
+- [x] Write setup instructions
 - [ ] Create user guides
 - [ ] Document security measures
 
