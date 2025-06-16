@@ -36,7 +36,7 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: #1a1a1a;
     --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;
@@ -63,6 +63,9 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
+
+    --card-background: #2a2a2a;
+    --card-border: #3a3a3a;
   }
 }
 
@@ -104,4 +107,14 @@ html.js-ready {
 html:not(.ready) .animate-fade-in {
   opacity: 0;
   filter: blur(10px);
+}
+
+/* Dark mode adjustments */
+.dark .bg-background {
+  background-color: var(--background);
+}
+
+.dark .bg-card {
+  background-color: var(--card-background);
+  border-color: var(--card-border);
 }
