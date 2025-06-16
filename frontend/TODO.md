@@ -8,7 +8,7 @@
 
 ### User Dashboard
 
-- [ ] Create "My Devices" page for operators to view submitted forms and their status (approved, rejected, or under revision)
+- [x] Create "My Devices" page for operators to view submitted forms and their status (approved, rejected, or under revision)
 
 ### File Upload System
 
@@ -51,15 +51,15 @@
 
   ### First Frontend Deployment
 
-- [ ] Deploy the validator form with complete user flow for backend handoff
-- [ ] Deploy the backoffice UI with mock data for backend handoff
-- [ ] Document the data structures and API expectations for backend devs
+- [x] Deploy the validator form with complete user flow for backend handoff
+- [x] Deploy the backoffice UI with mock data for backend handoff
+- [x] Document the data structures and API expectations for backend devs
 
 ## 2. Certificate System
 
 ### Certificate Generation
 
-- [ ] Create certificate template system
+- [x] Create certificate template system
   - [ ] Design certificate layout
   - [ ] Add dynamic content placeholders
   - [ ] Add QR code generation
@@ -70,12 +70,12 @@
 
 ### Certificate Views
 
-- [ ] Create public certificate view
-  - [ ] Add basic certificate display
+- [x] Create public certificate view
+  - [x] Add basic certificate display
   - [ ] Add verification system
   - [ ] Add sharing functionality
 - [ ] Create private certificate view
-  - [ ] Implement wallet-based authentication
+  - [x] Implement wallet-based authentication
   - [ ] Add detailed certificate information
   - [ ] Add download functionality
 
@@ -128,7 +128,7 @@
 
 ### Database Schema
 
-- [ ] Design database schema
+- [x] Design database schema
   - [ ] Validator form table
   - [ ] Certificate table
   - [ ] User/Operator table
