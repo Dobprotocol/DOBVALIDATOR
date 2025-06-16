@@ -79,7 +79,7 @@ export function Header() {
   const showWallet = walletConnected
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-gray-50 border-b">
-      <div className="flex items-center">
+      <div className="flex items-center gap-6">
         <a href="https://www.dobprotocol.com" target="_blank" rel="noopener noreferrer">
           <Image
             src="/images/dob-logo.png"
@@ -90,6 +90,9 @@ export function Header() {
             priority
           />
         </a>
+        {showWallet && (
+          <a href="/devices" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">My Devices</a>
+        )}
       </div>
       <div className="flex items-center justify-end">
         {showWallet && <WalletStatus />}

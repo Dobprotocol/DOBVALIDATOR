@@ -5,6 +5,7 @@ import { Header } from "@/components/ui/header"
 import { Toaster } from "@/components/ui/toaster"
 import { Suspense } from 'react'
 import { LoadingHandler } from '@/components/loading-handler'
+import { Footer } from "@/components/ui/footer"
 
 export const metadata: Metadata = {
   title: 'DOB Validator',
@@ -40,6 +41,7 @@ export default function RootLayout({
                 {children}
               </Suspense>
             </main>
+            <Footer />
             <Toaster />
           </div>
         </ThemeProvider>
