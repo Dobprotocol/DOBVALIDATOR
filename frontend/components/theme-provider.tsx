@@ -17,5 +17,5 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     return <>{children}</>
   }
 
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  return <NextThemesProvider defaultTheme="light" {...props}>{children}</NextThemesProvider>
 }
