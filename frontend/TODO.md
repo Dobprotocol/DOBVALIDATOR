@@ -204,3 +204,25 @@
 - [ ] Configure production environment
 - [ ] Set up monitoring
 - [ ] Configure backup system
+
+## 13. User Profile System
+
+### Profile Creation Flow
+
+- [ ] Create profile creation page
+  - [ ] Add form fields for name, company/project, and email
+  - [ ] Add privacy notice about data encryption
+  - [ ] Implement form validation
+  - [ ] Add wallet connection requirement
+- [ ] Implement profile data storage
+  - [ ] Create backend API for profile data
+  - [ ] Link profile data to wallet address
+  - [ ] Implement data encryption for sensitive information
+- [ ] Update user flow
+  - [ ] Modify wallet connection to check for existing profile
+  - [ ] Add profile creation step for new users
+  - [ ] Redirect to devices dashboard after profile creation
+- [ ] Create empty devices dashboard
+  - [ ] Add "Create New Device" button
+  - [ ] Show empty state for new users
+  - [ ] Implement device submission form redirection
