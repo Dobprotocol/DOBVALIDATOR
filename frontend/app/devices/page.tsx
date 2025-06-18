@@ -3,6 +3,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { useWallet } from '@/hooks/useWallet'
 
 const mockDevices = [
   {
@@ -39,41 +40,66 @@ const statusColor = {
 
 export default function DevicesPage() {
   const router = useRouter()
+  const { address } = useWallet()
+
+  const handleCreateDevice = () => {
+    router.push('/form')
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">My Devices</h1>
-        <Button onClick={() => router.push('/form')}>Create New Device</Button>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900">My Devices</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Manage your device submissions and track their status
+          </p>
+        </div>
+
+        <div className="mt-12">
+          <div className="bg-white shadow rounded-lg p-8 text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No devices</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Get started by creating a new device submission.
+            </p>
+            <div className="mt-6">
+              <button
+                onClick={handleCreateDevice}
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <svg
+                  className="-ml-1 mr-2 h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Create New Device
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Device Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Serial Number</TableHead>
-            <TableHead>Manufacturer</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Submitted</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {mockDevices.map((device, idx) => (
-            <TableRow key={idx}>
-              <TableCell>{device.deviceName}</TableCell>
-              <TableCell>{device.deviceType}</TableCell>
-              <TableCell>{device.serialNumber}</TableCell>
-              <TableCell>{device.manufacturer}</TableCell>
-              <TableCell>
-                <Badge variant={statusColor[device.status] || "secondary"}>
-                  {device.status.charAt(0).toUpperCase() + device.status.slice(1)}
-                </Badge>
-              </TableCell>
-              <TableCell>{device.submittedAt}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
     </div>
   )
 } 
