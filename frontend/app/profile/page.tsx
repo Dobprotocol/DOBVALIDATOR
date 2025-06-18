@@ -121,13 +121,13 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
+    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md mx-auto bg-card rounded-xl shadow-lg p-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div 
               onClick={handleImageClick}
-              className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-4 border-indigo-100 cursor-pointer group hover:border-indigo-300 transition-colors duration-200"
+              className="relative w-24 h-24 rounded-full overflow-hidden bg-muted border-4 border-muted-foreground/20 cursor-pointer group hover:border-primary/50 transition-colors duration-200"
             >
               {profileImage ? (
                 <Image
@@ -137,7 +137,7 @@ export default function ProfilePage() {
                   className="object-cover"
                 />
               ) : (
-                <UserCircleIcon className="w-full h-full text-gray-400" />
+                <UserCircleIcon className="w-full h-full text-muted-foreground" />
               )}
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-200 flex items-center justify-center">
                 <PhotoIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
@@ -152,17 +152,17 @@ export default function ProfilePage() {
             />
           </div>
           {errors.image && (
-            <p className="text-sm text-red-600 mt-2">{errors.image}</p>
+            <p className="text-sm text-destructive mt-2">{errors.image}</p>
           )}
-          <h2 className="text-3xl font-bold text-gray-900">Create Your Profile</h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <h2 className="text-3xl font-bold text-foreground">Create Your Profile</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
             Please provide your information to get started
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="name" className="block text-sm font-medium text-foreground">
               Full Name
             </label>
             <input
@@ -172,18 +172,18 @@ export default function ProfilePage() {
               required
               value={formData.name}
               onChange={handleChange}
-              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-                errors.name ? 'border-red-300' : 'border-gray-300'
+              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background border-input ${
+                errors.name ? 'border-destructive' : ''
               }`}
               placeholder="John Doe"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              <p className="mt-1 text-sm text-destructive">{errors.name}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="company" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="company" className="block text-sm font-medium text-foreground">
               Company/Project Name
             </label>
             <input
@@ -193,18 +193,18 @@ export default function ProfilePage() {
               required
               value={formData.company}
               onChange={handleChange}
-              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-                errors.company ? 'border-red-300' : 'border-gray-300'
+              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background border-input ${
+                errors.company ? 'border-destructive' : ''
               }`}
               placeholder="Acme Inc."
             />
             {errors.company && (
-              <p className="mt-1 text-sm text-red-600">{errors.company}</p>
+              <p className="mt-1 text-sm text-destructive">{errors.company}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground">
               Email Address
             </label>
             <input
@@ -214,36 +214,36 @@ export default function ProfilePage() {
               required
               value={formData.email}
               onChange={handleChange}
-              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-                errors.email ? 'border-red-300' : 'border-gray-300'
+              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background border-input ${
+                errors.email ? 'border-destructive' : ''
               }`}
               placeholder="john@example.com"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              <p className="mt-1 text-sm text-destructive">{errors.email}</p>
             )}
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-md">
-            <p className="text-sm text-blue-700">
+          <div className="bg-muted/50 p-4 rounded-md">
+            <p className="text-sm text-muted-foreground">
               Your personal information is fully encrypted and stored securely. We take your privacy seriously and will never share your data with third parties.
             </p>
           </div>
 
           {errors.submit && (
-            <div className="bg-red-50 p-4 rounded-md">
-              <p className="text-sm text-red-700">{errors.submit}</p>
+            <div className="bg-destructive/10 p-4 rounded-md">
+              <p className="text-sm text-destructive">{errors.submit}</p>
             </div>
           )}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors duration-200"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 transition-colors duration-200"
           >
             {isSubmitting ? (
               <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
