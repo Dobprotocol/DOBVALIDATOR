@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
@@ -18,6 +19,7 @@ export function StellarWallet() {
   const [publicKey, setPublicKey] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   // Load saved public key on mount
   useEffect(() => {
@@ -54,10 +56,17 @@ export function StellarWallet() {
         setPublicKey(publicKey)
         setIsOpen(false)
         setIsConnecting(false)
+        
+        // Dispatch event for other components to react to wallet connection
+        window.dispatchEvent(new Event('walletStateChange'))
+        
         toast({
           title: "Connected successfully",
           description: `Connected with ${wallet} wallet`,
         })
+
+        // Check if user has a profile
+        checkUserProfile(publicKey)
       } else if (messageEvent.type === 'onCancel') {
         setIsConnecting(false)
         console.log('Wallet connection cancelled by user')
@@ -71,6 +80,25 @@ export function StellarWallet() {
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
   }, [toast])
+
+  const checkUserProfile = async (address: string) => {
+    try {
+      const response = await fetch(`/api/profile?address=${address}`)
+      const hasProfile = response.ok
+
+      if (hasProfile) {
+        // If user has a profile, redirect to devices dashboard
+        router.push('/devices')
+      } else {
+        // If user doesn't have a profile, redirect to profile creation
+        router.push('/profile')
+      }
+    } catch (error) {
+      console.error('Error checking user profile:', error)
+      // On error, redirect to profile creation as a fallback
+      router.push('/profile')
+    }
+  }
 
   const handleConnect = () => {
     setIsConnecting(true)
@@ -106,11 +134,17 @@ export function StellarWallet() {
     setPublicKey(null)
     setIsOpen(false)
     
+    // Dispatch event for other components to react to wallet disconnection
+    window.dispatchEvent(new Event('walletStateChange'))
+    
     console.log('Wallet disconnected successfully')
     toast({
       title: "Disconnected",
       description: "Your wallet has been disconnected.",
     })
+
+    // Redirect to home page
+    router.push('/')
   }
 
   return (

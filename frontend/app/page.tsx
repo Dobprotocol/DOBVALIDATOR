@@ -1,39 +1,80 @@
 "use client"
+
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { StellarWallet } from '@/components/stellar-wallet'
 
 export default function Home() {
   const router = useRouter()
+
   useEffect(() => {
-    const checkAndRedirect = () => {
-      const wallet = typeof window !== 'undefined' ? localStorage.getItem('stellarWallet') : null
-      if (wallet) {
-        router.replace('/form')
+    const checkUserProfile = async () => {
+      const publicKey = localStorage.getItem('stellarPublicKey')
+      if (!publicKey) {
+        return
+      }
+
+      try {
+        // Check if user has a profile
+        const response = await fetch(`/api/profile?address=${publicKey}`)
+        const hasProfile = response.ok
+
+        if (hasProfile) {
+          // If user has a profile, redirect to devices dashboard
+          router.push('/devices')
+        } else {
+          // If user doesn't have a profile, redirect to profile creation
+          router.push('/profile')
+        }
+      } catch (error) {
+        console.error('Error checking user profile:', error)
+        // On error, redirect to profile creation as a fallback
+        router.push('/profile')
       }
     }
-    checkAndRedirect()
-    window.addEventListener('walletStateChange', checkAndRedirect)
-    window.addEventListener('storage', checkAndRedirect)
-    window.addEventListener('visibilitychange', checkAndRedirect)
-    window.addEventListener('focus', checkAndRedirect)
+
+    // Listen for wallet connection events
+    const handleWalletChange = () => {
+      checkUserProfile()
+    }
+
+    window.addEventListener('walletStateChange', handleWalletChange)
+    window.addEventListener('storage', handleWalletChange)
+    window.addEventListener('visibilitychange', handleWalletChange)
+    window.addEventListener('focus', handleWalletChange)
+
+    // Initial check
+    checkUserProfile()
+
     return () => {
-      window.removeEventListener('walletStateChange', checkAndRedirect)
-      window.removeEventListener('storage', checkAndRedirect)
-      window.removeEventListener('visibilitychange', checkAndRedirect)
-      window.removeEventListener('focus', checkAndRedirect)
+      window.removeEventListener('walletStateChange', handleWalletChange)
+      window.removeEventListener('storage', handleWalletChange)
+      window.removeEventListener('visibilitychange', handleWalletChange)
+      window.removeEventListener('focus', handleWalletChange)
     }
   }, [router])
+
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <h1 className="text-3xl font-bold mb-2">DOB Validator</h1>
-      <p className="text-gray-600 mb-8 text-center max-w-md">
-        Connect your wallet to begin your device validation and get investment-ready on our RWA platform.
-      </p>
-      <StellarWallet />
-      <p className="text-gray-500 text-xs mt-4 text-center max-w-xs">
-        Submit your documentation and unlock new funding opportunities.
-      </p>
-    </main>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Welcome to DOB Validator
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Connect your wallet to get started
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-6">
+              Please connect your wallet to access the validator system
+            </p>
+            <StellarWallet />
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
