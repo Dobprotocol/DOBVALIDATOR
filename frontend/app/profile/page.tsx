@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { UserCircleIcon } from '@heroicons/react/24/solid';
+import { UserCircleIcon, PhotoIcon } from '@heroicons/react/24/solid';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     company: '',
     email: '',
   });
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -48,6 +50,32 @@ export default function ProfilePage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, image: 'Please select an image file' }));
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, image: 'Image size should be less than 5MB' }));
+        return;
+      }
+
+      // Create a preview URL
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
+      setErrors(prev => ({ ...prev, image: '' }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -62,6 +90,7 @@ export default function ProfilePage() {
       localStorage.setItem('userProfile', JSON.stringify({
         ...formData,
         walletAddress,
+        profileImage, // Store the image URL temporarily
         createdAt: new Date().toISOString(),
       }));
 
@@ -96,10 +125,35 @@ export default function ProfilePage() {
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-4 border-indigo-100">
-              <UserCircleIcon className="w-full h-full text-gray-400" />
+            <div 
+              onClick={handleImageClick}
+              className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-4 border-indigo-100 cursor-pointer group hover:border-indigo-300 transition-colors duration-200"
+            >
+              {profileImage ? (
+                <Image
+                  src={profileImage}
+                  alt="Profile"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <UserCircleIcon className="w-full h-full text-gray-400" />
+              )}
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-200 flex items-center justify-center">
+                <PhotoIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              </div>
             </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              accept="image/*"
+              className="hidden"
+            />
           </div>
+          {errors.image && (
+            <p className="text-sm text-red-600 mt-2">{errors.image}</p>
+          )}
           <h2 className="text-3xl font-bold text-gray-900">Create Your Profile</h2>
           <p className="mt-2 text-sm text-gray-600">
             Please provide your information to get started
