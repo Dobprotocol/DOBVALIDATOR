@@ -97,28 +97,43 @@ export async function POST(request: NextRequest) {
 // Helper function to verify JWT token (used by other endpoints)
 export function verifyToken(token: string): { valid: boolean; payload?: any } {
   try {
+    console.log('🔍 Verifying JWT token...')
     const payload = jwt.verify(token, ***REMOVED***) as any
+    console.log('✅ JWT payload:', payload)
     
     // Check if session is still active
     const session = activeSessions.get(payload.walletAddress)
+    console.log('🔍 Session lookup:', session ? 'found' : 'not found')
+    
     if (!session || session.token !== token) {
+      console.log('❌ Session invalid or token mismatch')
       return { valid: false }
     }
     
+    console.log('✅ JWT verification successful')
     return { valid: true, payload }
   } catch (error) {
+    console.error('❌ JWT verification failed:', error)
     return { valid: false }
   }
 }
 
 // Helper function to get authenticated user from request
 export function getAuthenticatedUser(request: NextRequest): { valid: boolean; user?: any } {
+  console.log('🔍 Getting authenticated user from request...')
   const authHeader = request.headers.get('authorization')
+  console.log('🔍 Auth header:', authHeader ? 'present' : 'missing')
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ Invalid or missing authorization header')
     return { valid: false }
   }
   
   const token = authHeader.substring(7)
-  return verifyToken(token)
+  console.log('🔍 Extracted token:', token ? `${token.substring(0, 20)}...` : 'empty')
+  
+  const result = verifyToken(token)
+  console.log('🔍 Verification result:', result)
+  
+  return result
 } 
