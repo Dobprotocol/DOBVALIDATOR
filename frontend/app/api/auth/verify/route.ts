@@ -117,6 +117,14 @@ export function verifyToken(token: string): { valid: boolean; payload?: any } {
     const session = activeSessions.get(payload.walletAddress)
     console.log('🔍 Session lookup:', session ? 'found' : 'not found')
     
+    // In development, be more lenient - just check if JWT is valid
+    // In production, you should always verify the session
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Development mode: JWT verification successful')
+      return { valid: true, payload }
+    }
+    
+    // Production mode: strict session validation
     if (!session || session.token !== token) {
       console.log('❌ Session invalid or token mismatch')
       return { valid: false }
