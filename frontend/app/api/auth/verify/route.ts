@@ -19,10 +19,14 @@ const activeSessions = new Map<string, { token: string; expiresAt: number }>()
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Verify POST request received')
     const body = await request.json()
+    console.log('🔍 Request body:', body)
+    
     const validationResult = verificationSchema.safeParse(body)
     
     if (!validationResult.success) {
+      console.log('❌ Validation failed:', validationResult.error.format())
       return NextResponse.json(
         { error: 'Invalid request data', details: validationResult.error.format() },
         { status: 400 }
@@ -30,11 +34,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { walletAddress, signature, challenge } = validationResult.data
+    console.log('🔍 Validated data:', { walletAddress, signature: signature.substring(0, 20) + '...', challenge })
     
     // Verify the challenge and signature
+    console.log('🔍 Calling verifyChallenge...')
     const isValid = verifyChallenge(walletAddress, signature, challenge)
+    console.log('🔍 Challenge verification result:', isValid)
     
     if (!isValid) {
+      console.log('❌ Challenge verification failed')
       return NextResponse.json(
         { error: 'Invalid signature or expired challenge' },
         { status: 401 }
@@ -44,6 +52,8 @@ export async function POST(request: NextRequest) {
     // For development: accept mock signatures
     // In production, implement proper cryptographic verification
     const isMockSignature = signature.startsWith('mock_signature_')
+    console.log('🔍 Is mock signature:', isMockSignature)
+    
     if (!isMockSignature) {
       // TODO: Implement proper signature verification using Stellar SDK
       // const isValidSignature = verifyStellarSignature(walletAddress, signature, challenge)
@@ -55,6 +65,7 @@ export async function POST(request: NextRequest) {
       // }
     }
     
+    console.log('✅ Generating JWT token...')
     // Generate JWT token
     const token = jwt.sign(
       { 
@@ -78,6 +89,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    console.log('✅ Authentication successful, returning token')
     return NextResponse.json({
       success: true,
       token,
@@ -86,7 +98,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Error verifying signature:', error)
+    console.error('❌ Error verifying signature:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

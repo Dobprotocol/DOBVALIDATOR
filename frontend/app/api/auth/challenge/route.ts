@@ -55,22 +55,35 @@ export async function POST(request: NextRequest) {
 
 // Helper function to verify challenge (used by other endpoints)
 export function verifyChallenge(walletAddress: string, signature: string, challenge: string): boolean {
+  console.log('🔍 Verifying challenge...')
+  console.log('🔍 Wallet address:', walletAddress)
+  console.log('🔍 Challenge:', challenge)
+  console.log('🔍 Signature:', signature)
+  
   const storedChallenge = challenges.get(walletAddress)
+  console.log('🔍 Stored challenge:', storedChallenge)
   
   if (!storedChallenge) {
+    console.log('❌ No stored challenge found for wallet')
     return false
   }
   
   // Check if challenge is expired (5 minutes)
   if (Date.now() - storedChallenge.timestamp > 5 * 60 * 1000) {
+    console.log('❌ Challenge expired')
     challenges.delete(walletAddress)
     return false
   }
   
   // Check if challenge matches
   if (storedChallenge.challenge !== challenge) {
+    console.log('❌ Challenge mismatch')
+    console.log('❌ Expected:', storedChallenge.challenge)
+    console.log('❌ Received:', challenge)
     return false
   }
+  
+  console.log('✅ Challenge verification successful')
   
   // TODO: Verify signature cryptographically using Stellar SDK
   // For now, we'll accept any signature for the correct challenge
