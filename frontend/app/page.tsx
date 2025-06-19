@@ -3,7 +3,31 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { StellarWallet } from '@/components/stellar-wallet'
-import { isAuthenticated, getAuthToken } from '@/lib/auth'
+import { isAuthenticated, getAuthToken, removeAuthToken } from '@/lib/auth'
+
+// Helper function to validate JWT token structure
+function isValidJWT(token: string): boolean {
+  try {
+    // JWT tokens have 3 parts separated by dots
+    const parts = token.split('.')
+    if (parts.length !== 3) {
+      return false
+    }
+    
+    // Decode the payload (second part) to check expiration
+    const payload = JSON.parse(atob(parts[1]))
+    const now = Math.floor(Date.now() / 1000)
+    
+    // Check if token is expired
+    if (payload.exp && payload.exp < now) {
+      return false
+    }
+    
+    return true
+  } catch (error) {
+    return false
+  }
+}
 
 export default function Home() {
   const router = useRouter()
@@ -16,18 +40,25 @@ export default function Home() {
         return
       }
 
-      const token = getAuthToken()?.token
-      if (!token) {
+      const authData = getAuthToken()
+      if (!authData?.token) {
         console.log('No JWT token available, staying on home page')
         return
       }
 
+      // Validate JWT token structure and expiration
+      if (!isValidJWT(authData.token)) {
+        console.log('Invalid or expired JWT token, clearing auth data')
+        removeAuthToken()
+        return
+      }
+
       try {
-        console.log('Checking user profile with token...')
+        console.log('Checking user profile with valid token...')
         // Use authenticated request to check profile
         const response = await fetch('/api/profile', {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authData.token}`
           }
         })
 
@@ -41,6 +72,11 @@ export default function Home() {
           // If user doesn't have a profile, redirect to profile creation
           console.log('User has no profile, redirecting to profile creation')
           router.push('/profile')
+        } else if (response.status === 401) {
+          // Token is invalid, clear it
+          console.log('Token invalid (401), clearing auth data')
+          removeAuthToken()
+          return
         } else {
           console.error('Unexpected response status:', response.status)
           // Don't throw error, just stay on home page
