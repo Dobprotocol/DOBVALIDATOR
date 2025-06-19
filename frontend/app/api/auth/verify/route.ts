@@ -41,6 +41,20 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // For development: accept mock signatures
+    // In production, implement proper cryptographic verification
+    const isMockSignature = signature.startsWith('mock_signature_')
+    if (!isMockSignature) {
+      // TODO: Implement proper signature verification using Stellar SDK
+      // const isValidSignature = verifyStellarSignature(walletAddress, signature, challenge)
+      // if (!isValidSignature) {
+      //   return NextResponse.json(
+      //     { error: 'Invalid cryptographic signature' },
+      //     { status: 401 }
+      //   )
+      // }
+    }
+    
     // Generate JWT token
     const token = jwt.sign(
       { 
