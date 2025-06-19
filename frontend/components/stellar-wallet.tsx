@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
+import { 
+  authenticateWallet, 
+  isAuthenticated, 
+  logout as authLogout,
+  getAuthToken 
+} from "@/lib/auth"
 
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
@@ -18,15 +24,28 @@ export function StellarWallet() {
   const [isOpen, setIsOpen] = useState(false)
   const [publicKey, setPublicKey] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
-  // Load saved public key on mount
+  // Load saved public key and check authentication on mount
   useEffect(() => {
     const savedKey = localStorage.getItem('stellarPublicKey')
     if (savedKey) {
       setPublicKey(savedKey)
       console.log('Loaded saved wallet address:', savedKey)
+      
+      // Check if user is authenticated
+      if (isAuthenticated()) {
+        console.log('User is authenticated, checking profile...')
+        checkUserProfile()
+      } else {
+        console.log('User not authenticated, need to sign challenge...')
+        // User has wallet but no valid JWT - they need to re-authenticate
+        setPublicKey(null)
+        localStorage.removeItem('stellarPublicKey')
+        localStorage.removeItem('stellarWallet')
+      }
     }
   }, [])
 
@@ -57,16 +76,8 @@ export function StellarWallet() {
         setIsOpen(false)
         setIsConnecting(false)
         
-        // Dispatch event for other components to react to wallet connection
-        window.dispatchEvent(new Event('walletStateChange'))
-        
-        toast({
-          title: "Connected successfully",
-          description: `Connected with ${wallet} wallet`,
-        })
-
-        // Check if user has a profile
-        checkUserProfile(publicKey)
+        // Start authentication flow
+        startAuthenticationFlow(publicKey, wallet)
       } else if (messageEvent.type === 'onCancel') {
         setIsConnecting(false)
         console.log('Wallet connection cancelled by user')
@@ -81,17 +92,137 @@ export function StellarWallet() {
     return () => window.removeEventListener('message', handleMessage)
   }, [toast])
 
-  const checkUserProfile = async (address: string) => {
+  const startAuthenticationFlow = async (walletAddress: string, walletType: string) => {
+    setIsAuthenticating(true)
+    
     try {
-      const response = await fetch(`/api/profile?address=${address}`)
-      const hasProfile = response.ok
+      console.log('Starting authentication flow...')
+      
+      // Step 1: Request challenge
+      const challengeResponse = await fetch('/api/auth/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ walletAddress }),
+      })
 
-      if (hasProfile) {
-        // If user has a profile, redirect to devices dashboard
-        router.push('/devices')
-      } else {
-        // If user doesn't have a profile, redirect to profile creation
+      if (!challengeResponse.ok) {
+        throw new Error('Failed to get authentication challenge')
+      }
+
+      const { challenge } = await challengeResponse.json()
+      console.log('Received challenge:', challenge)
+
+      // Step 2: Request signature from wallet
+      const signature = await requestSignature(challenge, walletType)
+      console.log('Received signature:', signature)
+
+      // Step 3: Verify signature and get JWT
+      await authenticateWallet(walletAddress, signature, challenge)
+      
+      console.log('Authentication successful!')
+      toast({
+        title: "Authentication successful",
+        description: `Successfully authenticated with ${walletType} wallet`,
+      })
+
+      // Step 4: Check user profile
+      await checkUserProfile()
+      
+    } catch (error) {
+      console.error('Authentication failed:', error)
+      toast({
+        title: "Authentication failed",
+        description: error instanceof Error ? error.message : "Failed to authenticate wallet",
+        variant: "destructive"
+      })
+      
+      // Clear wallet data on authentication failure
+      localStorage.removeItem('stellarPublicKey')
+      localStorage.removeItem('stellarWallet')
+      setPublicKey(null)
+    } finally {
+      setIsAuthenticating(false)
+    }
+  }
+
+  const requestSignature = async (challenge: string, walletType: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      console.log('Requesting signature for challenge:', challenge)
+      
+      // Open Simple Signer for signature
+      const signWindow = window.open(
+        `${SIMPLE_SIGNER_URL}/sign`,
+        'Sign_Window',
+        'width=360, height=450'
+      )
+
+      const handleSignMessage = (e: MessageEvent) => {
+        if (e.origin !== SIMPLE_SIGNER_URL) return
+
+        const messageEvent = e.data
+
+        if (messageEvent.type === 'onSign') {
+          const signature = messageEvent.message.signature
+          console.log('Received signature:', signature)
+          window.removeEventListener('message', handleSignMessage)
+          resolve(signature)
+        } else if (messageEvent.type === 'onCancel') {
+          window.removeEventListener('message', handleSignMessage)
+          reject(new Error('Signature request cancelled'))
+        }
+      }
+
+      window.addEventListener('message', handleSignMessage)
+
+      // Configure signature request
+      const configureSignature = (e: MessageEvent) => {
+        if (
+          e.origin === SIMPLE_SIGNER_URL &&
+          e.data.type === 'onReady' &&
+          e.data.page === 'sign'
+        ) {
+          console.log('Simple Signer ready, requesting signature...')
+          signWindow?.postMessage(
+            { 
+              message: challenge,
+              wallets: [walletType]
+            },
+            SIMPLE_SIGNER_URL
+          )
+          window.removeEventListener('message', configureSignature)
+        }
+      }
+
+      window.addEventListener('message', configureSignature)
+
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        window.removeEventListener('message', handleSignMessage)
+        window.removeEventListener('message', configureSignature)
+        reject(new Error('Signature request timed out'))
+      }, 5 * 60 * 1000)
+    })
+  }
+
+  const checkUserProfile = async () => {
+    try {
+      // Use authenticated request to check profile
+      const response = await fetch('/api/profile', {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()?.token}`
+        }
+      })
+
+      if (response.ok) {
+        // User has a profile, redirect to devices dashboard
+        router.push('/dashboard')
+      } else if (response.status === 404) {
+        // User doesn't have a profile, redirect to profile creation
         router.push('/profile')
+      } else {
+        throw new Error('Failed to check profile')
       }
     } catch (error) {
       console.error('Error checking user profile:', error)
@@ -128,9 +259,8 @@ export function StellarWallet() {
   const handleDisconnect = () => {
     console.log('Disconnecting wallet:', publicKey)
     
-    // Clear all wallet-related data
-    localStorage.removeItem('stellarPublicKey')
-    localStorage.removeItem('stellarWallet')
+    // Clear all wallet-related data and authentication
+    authLogout()
     setPublicKey(null)
     setIsOpen(false)
     
@@ -152,8 +282,10 @@ export function StellarWallet() {
       <Button
         onClick={() => setIsOpen(true)}
         variant="outline"
+        disabled={isAuthenticating}
       >
-        {publicKey ? truncateAddress(publicKey) : "Connect Wallet"}
+        {isAuthenticating ? "Authenticating..." : 
+         publicKey ? truncateAddress(publicKey) : "Connect Wallet"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -177,9 +309,10 @@ export function StellarWallet() {
               <Button
                 onClick={handleConnect}
                 className="w-full"
-                disabled={isConnecting}
+                disabled={isConnecting || isAuthenticating}
               >
-                {isConnecting ? "Connecting..." : "Connect Wallet"}
+                {isConnecting ? "Connecting..." : 
+                 isAuthenticating ? "Authenticating..." : "Connect Wallet"}
               </Button>
             )}
           </div>
