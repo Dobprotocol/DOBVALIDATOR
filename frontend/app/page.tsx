@@ -3,28 +3,34 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { StellarWallet } from '@/components/stellar-wallet'
+import { isAuthenticated, getAuthToken } from '@/lib/auth'
 
 export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
     const checkUserProfile = async () => {
-      const publicKey = localStorage.getItem('stellarPublicKey')
-      if (!publicKey) {
+      // Check if user is authenticated
+      if (!isAuthenticated()) {
         return
       }
 
       try {
-        // Check if user has a profile
-        const response = await fetch(`/api/profile?address=${publicKey}`)
-        const hasProfile = response.ok
+        // Use authenticated request to check profile
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()?.token}`
+          }
+        })
 
-        if (hasProfile) {
+        if (response.ok) {
           // If user has a profile, redirect to devices dashboard
           router.push('/dashboard')
-        } else {
+        } else if (response.status === 404) {
           // If user doesn't have a profile, redirect to profile creation
           router.push('/profile')
+        } else {
+          throw new Error('Failed to check profile')
         }
       } catch (error) {
         console.error('Error checking user profile:', error)
