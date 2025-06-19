@@ -5,6 +5,21 @@ import { useRouter } from 'next/navigation'
 import { StellarWallet } from '@/components/stellar-wallet'
 import { isAuthenticated, getAuthToken, removeAuthToken } from '@/lib/auth'
 
+// Helper function to clear all localStorage data
+function clearAllLocalStorage() {
+  localStorage.removeItem('authToken')
+  localStorage.removeItem('stellarPublicKey')
+  localStorage.removeItem('stellarWallet')
+  localStorage.removeItem('userProfile')
+  console.log('🧹 Cleared all localStorage data')
+}
+
+// Make it available globally for debugging
+if (typeof window !== 'undefined') {
+  (window as any).clearAllLocalStorage = clearAllLocalStorage
+  console.log('🔧 Debug function available: window.clearAllLocalStorage()')
+}
+
 // Helper function to validate JWT token structure
 function isValidJWT(token: string): boolean {
   try {
@@ -49,7 +64,7 @@ export default function Home() {
       // Validate JWT token structure and expiration
       if (!isValidJWT(authData.token)) {
         console.log('Invalid or expired JWT token, clearing auth data')
-        removeAuthToken()
+        clearAllLocalStorage()
         return
       }
 
@@ -75,7 +90,12 @@ export default function Home() {
         } else if (response.status === 401) {
           // Token is invalid, clear it
           console.log('Token invalid (401), clearing auth data')
-          removeAuthToken()
+          clearAllLocalStorage()
+          return
+        } else if (response.status === 500) {
+          // Server error, likely invalid token on server side
+          console.log('Server error (500), clearing auth data')
+          clearAllLocalStorage()
           return
         } else {
           console.error('Unexpected response status:', response.status)
