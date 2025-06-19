@@ -91,7 +91,7 @@ export function Header() {
           />
         </a>
         {showWallet && (
-          <a href="/devices" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">My Devices</a>
+          <a href="/mockup-dashboard" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">My Devices</a>
         )}
       </div>
       <div className="flex items-center justify-end">
