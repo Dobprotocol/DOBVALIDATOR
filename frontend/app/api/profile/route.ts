@@ -17,23 +17,34 @@ const profiles = new Map<string, any>()
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Profile GET request received')
+    
     // Verify authentication
     const auth = getAuthenticatedUser(request)
+    console.log('🔍 Auth result:', { valid: auth.valid, user: auth.user })
+    
     if (!auth.valid) {
+      console.log('❌ Authentication failed')
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
+    console.log('✅ Authentication successful, checking profile for wallet:', auth.user.walletAddress)
+    
     const profile = profiles.get(auth.user.walletAddress)
+    console.log('🔍 Profile lookup result:', profile ? 'found' : 'not found')
+    
     if (!profile) {
+      console.log('❌ Profile not found, returning 404')
       return NextResponse.json(
         { error: 'Profile not found' },
         { status: 404 }
       )
     }
 
+    console.log('✅ Profile found, returning data')
     return NextResponse.json({
       success: true,
       profile: {
@@ -49,9 +60,10 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error retrieving profile:', error)
+    console.error('❌ Error in profile GET:', error)
+    console.error('❌ Error stack:', error.stack)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }
