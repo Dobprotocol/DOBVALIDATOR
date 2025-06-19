@@ -12,35 +12,50 @@ export default function Home() {
     const checkUserProfile = async () => {
       // Check if user is authenticated
       if (!isAuthenticated()) {
+        console.log('User not authenticated, staying on home page')
+        return
+      }
+
+      const token = getAuthToken()?.token
+      if (!token) {
+        console.log('No JWT token available, staying on home page')
         return
       }
 
       try {
+        console.log('Checking user profile with token...')
         // Use authenticated request to check profile
         const response = await fetch('/api/profile', {
           headers: {
-            'Authorization': `Bearer ${getAuthToken()?.token}`
+            'Authorization': `Bearer ${token}`
           }
         })
 
+        console.log('Profile check response status:', response.status)
+
         if (response.ok) {
           // If user has a profile, redirect to devices dashboard
+          console.log('User has profile, redirecting to dashboard')
           router.push('/dashboard')
         } else if (response.status === 404) {
           // If user doesn't have a profile, redirect to profile creation
+          console.log('User has no profile, redirecting to profile creation')
           router.push('/profile')
         } else {
-          throw new Error('Failed to check profile')
+          console.error('Unexpected response status:', response.status)
+          // Don't throw error, just stay on home page
+          return
         }
       } catch (error) {
         console.error('Error checking user profile:', error)
-        // On error, redirect to profile creation as a fallback
-        router.push('/profile')
+        // Don't redirect on error, just stay on home page
+        return
       }
     }
 
     // Listen for wallet connection events
     const handleWalletChange = () => {
+      console.log('Wallet state changed, checking profile...')
       checkUserProfile()
     }
 
