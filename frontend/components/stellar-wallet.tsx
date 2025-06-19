@@ -151,7 +151,27 @@ export function StellarWallet() {
     return new Promise((resolve, reject) => {
       console.log('Requesting signature for challenge:', challenge)
       
-      // Open Simple Signer for signature
+      // For now, we'll use a mock signature since Simple Signer expects XDR transactions
+      // In production, you would create a proper Stellar transaction
+      console.log('Using mock signature for development...')
+      
+      // Simulate signature request with timeout
+      setTimeout(() => {
+        // Mock signature - in production this would be a real signature
+        const mockSignature = `mock_signature_${Date.now()}_${Math.random().toString(36).substring(2)}`
+        console.log('Generated mock signature:', mockSignature)
+        resolve(mockSignature)
+      }, 2000) // 2 second delay to simulate signing process
+      
+      // TODO: Implement proper XDR transaction signing
+      // This would involve:
+      // 1. Creating a Stellar transaction with the challenge as memo
+      // 2. Converting to XDR format
+      // 3. Sending to Simple Signer for signing
+      // 4. Extracting the signature from the signed transaction
+      
+      /*
+      // Example of proper XDR transaction signing (for future implementation):
       const signWindow = window.open(
         `${SIMPLE_SIGNER_URL}/sign`,
         'Sign_Window',
@@ -164,10 +184,10 @@ export function StellarWallet() {
         const messageEvent = e.data
 
         if (messageEvent.type === 'onSign') {
-          const signature = messageEvent.message.signature
-          console.log('Received signature:', signature)
+          const signedXdr = messageEvent.message.signedXDR
+          console.log('Received signed XDR:', signedXdr)
           window.removeEventListener('message', handleSignMessage)
-          resolve(signature)
+          resolve(signedXdr)
         } else if (messageEvent.type === 'onCancel') {
           window.removeEventListener('message', handleSignMessage)
           reject(new Error('Signature request cancelled'))
@@ -184,9 +204,13 @@ export function StellarWallet() {
           e.data.page === 'sign'
         ) {
           console.log('Simple Signer ready, requesting signature...')
+          
+          // Create XDR transaction with challenge as memo
+          const xdrTransaction = createChallengeTransaction(challenge)
+          
           signWindow?.postMessage(
             { 
-              message: challenge,
+              xdr: xdrTransaction,
               wallets: [walletType]
             },
             SIMPLE_SIGNER_URL
@@ -196,13 +220,7 @@ export function StellarWallet() {
       }
 
       window.addEventListener('message', configureSignature)
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        window.removeEventListener('message', handleSignMessage)
-        window.removeEventListener('message', configureSignature)
-        reject(new Error('Signature request timed out'))
-      }, 5 * 60 * 1000)
+      */
     })
   }
 
