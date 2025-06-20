@@ -4,79 +4,121 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { LogOut } from 'lucide-react'
+import { LogOut, User } from 'lucide-react'
+import { isAuthenticated, getAuthToken } from '@/lib/auth'
 
 function truncateAddress(address: string): string {
   if (!address) return ''
   return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
 
-function WalletStatus() {
+export function Header() {
   const [publicKey, setPublicKey] = useState<string | null>(null)
+  const [hasProfile, setHasProfile] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuth, setIsAuth] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     const updateWallet = () => {
       const key = localStorage.getItem('stellarPublicKey')
+      const authToken = localStorage.getItem('authToken')
+      console.log('🔍 Header: Public key:', key ? key.substring(0, 10) + '...' : 'null')
+      console.log('🔍 Header: Auth token exists:', !!authToken)
       setPublicKey(key)
+      setIsAuth(!!authToken)
     }
+    
+    const checkProfile = async () => {
+      if (!isAuthenticated()) {
+        console.log('🔍 Header: Not authenticated')
+        setHasProfile(false)
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const authData = getAuthToken()
+        if (!authData?.token) {
+          console.log('🔍 Header: No auth token')
+          setHasProfile(false)
+          setIsLoading(false)
+          return
+        }
+
+        console.log('🔍 Header: Checking profile...')
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${authData.token}`
+          }
+        })
+
+        const hasProfileResult = response.ok
+        console.log('🔍 Header: Profile check result:', hasProfileResult)
+        setHasProfile(hasProfileResult)
+      } catch (error) {
+        console.error('Error checking profile:', error)
+        setHasProfile(false)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     updateWallet()
-    window.addEventListener('walletStateChange', updateWallet)
-    window.addEventListener('storage', updateWallet)
-    window.addEventListener('visibilitychange', updateWallet)
-    window.addEventListener('focus', updateWallet)
+    checkProfile()
+
+    // Listen for wallet state changes
+    const handleWalletChange = () => {
+      console.log('🔍 Header: Wallet state changed')
+      updateWallet()
+      checkProfile()
+    }
+
+    window.addEventListener('walletStateChange', handleWalletChange)
+    window.addEventListener('storage', handleWalletChange)
+    window.addEventListener('visibilitychange', handleWalletChange)
+    window.addEventListener('focus', handleWalletChange)
+    
     return () => {
-      window.removeEventListener('walletStateChange', updateWallet)
-      window.removeEventListener('storage', updateWallet)
-      window.removeEventListener('visibilitychange', updateWallet)
-      window.removeEventListener('focus', updateWallet)
+      window.removeEventListener('walletStateChange', handleWalletChange)
+      window.removeEventListener('storage', handleWalletChange)
+      window.removeEventListener('visibilitychange', handleWalletChange)
+      window.removeEventListener('focus', handleWalletChange)
     }
   }, [])
 
   const handleDisconnect = () => {
+    console.log('🔌 Header: Disconnecting wallet...')
+    // Call the global clear function to ensure everything is cleared
+    if (typeof window !== 'undefined' && (window as any).clearAllLocalStorage) {
+      (window as any).clearAllLocalStorage()
+    }
+    
     localStorage.removeItem('stellarPublicKey')
     localStorage.removeItem('stellarWallet')
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('userProfile')
+    sessionStorage.clear()
+    
     window.dispatchEvent(new Event('walletStateChange'))
     setPublicKey(null)
+    setHasProfile(false)
+    setIsAuth(false)
     router.push('/')
   }
 
-  if (!publicKey) return null
-  return (
-    <Button
-      variant="outline"
-      className="flex items-center gap-2 px-3 py-1 text-sm"
-      onClick={handleDisconnect}
-      title="Disconnect wallet"
-    >
-      {truncateAddress(publicKey)}
-      <LogOut size={16} className="ml-1" />
-    </Button>
-  )
-}
+  const handleEditProfile = () => {
+    router.push('/profile')
+  }
 
-export function Header() {
-  const [walletConnected, setWalletConnected] = useState(false)
+  console.log('🔍 Header: Render state:', {
+    publicKey: publicKey ? publicKey.substring(0, 10) + '...' : 'null',
+    hasProfile,
+    isLoading,
+    isAuth,
+    isAuthenticated: isAuthenticated()
+  })
 
-  useEffect(() => {
-    const updateWallet = () => {
-      setWalletConnected(!!localStorage.getItem('stellarWallet'))
-    }
-    updateWallet()
-    window.addEventListener('walletStateChange', updateWallet)
-    window.addEventListener('storage', updateWallet)
-    window.addEventListener('visibilitychange', updateWallet)
-    window.addEventListener('focus', updateWallet)
-    return () => {
-      window.removeEventListener('walletStateChange', updateWallet)
-      window.removeEventListener('storage', updateWallet)
-      window.removeEventListener('visibilitychange', updateWallet)
-      window.removeEventListener('focus', updateWallet)
-    }
-  }, [])
-
-  // Show wallet status in navbar whenever wallet is connected
-  const showWallet = walletConnected
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-gray-50 border-b">
       <div className="flex items-center gap-6">
@@ -90,12 +132,35 @@ export function Header() {
             priority
           />
         </a>
-        {showWallet && (
+        {isAuth && (
           <a href="/mockup-dashboard" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">My Devices</a>
         )}
       </div>
-      <div className="flex items-center justify-end">
-        {showWallet && <WalletStatus />}
+      <div className="flex items-center justify-end gap-2">
+        {isAuth && (
+          <>
+            {!isLoading && hasProfile && (
+              <Button
+                onClick={handleEditProfile}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                Edit Profile
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 px-3 py-1 text-sm"
+              onClick={handleDisconnect}
+              title="Disconnect wallet"
+            >
+              {publicKey ? truncateAddress(publicKey) : 'Disconnect'}
+              <LogOut size={16} className="ml-1" />
+            </Button>
+          </>
+        )}
       </div>
     </header>
   )
