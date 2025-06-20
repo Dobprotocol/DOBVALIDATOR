@@ -20,6 +20,16 @@ interface Submission {
   certificateId?: string
 }
 
+interface Draft {
+  id: string
+  deviceName: string
+  deviceType: string
+  manufacturer: string
+  submittedAt: string
+  updatedAt: string
+  status: 'draft'
+}
+
 const statusColor: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   approved: "default",
   "under review": "secondary",
@@ -32,14 +42,16 @@ export default function MockupDashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [drafts, setDrafts] = useState<Draft[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedRejection, setSelectedRejection] = useState<any>(null)
   const [selectedCertificate, setSelectedCertificate] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState<'submissions' | 'drafts'>('submissions')
 
-  // Fetch submissions from API
+  // Fetch submissions and drafts from API
   useEffect(() => {
-    const fetchSubmissions = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
@@ -50,28 +62,45 @@ export default function MockupDashboardPage() {
         }
 
         const tokenData = JSON.parse(authToken)
-        const response = await fetch('/api/submissions', {
+
+        // Fetch submissions
+        const submissionsResponse = await fetch('/api/submissions', {
           headers: {
             'Authorization': `Bearer ${tokenData.token}`
           }
         })
 
-        if (!response.ok) {
+        if (!submissionsResponse.ok) {
           throw new Error('Failed to fetch submissions')
         }
 
-        const data = await response.json()
-        if (data.success) {
-          setSubmissions(data.submissions)
+        const submissionsData = await submissionsResponse.json()
+        if (submissionsData.success) {
+          setSubmissions(submissionsData.submissions)
         } else {
-          throw new Error(data.error || 'Failed to fetch submissions')
+          throw new Error(submissionsData.error || 'Failed to fetch submissions')
         }
+
+        // Fetch drafts
+        const draftsResponse = await fetch('/api/drafts', {
+          headers: {
+            'Authorization': `Bearer ${tokenData.token}`
+          }
+        })
+
+        if (draftsResponse.ok) {
+          const draftsData = await draftsResponse.json()
+          if (draftsData.success) {
+            setDrafts(draftsData.drafts)
+          }
+        }
+
       } catch (err: any) {
-        console.error('Error fetching submissions:', err)
-        setError(err.message || 'Failed to fetch submissions')
+        console.error('Error fetching data:', err)
+        setError(err.message || 'Failed to fetch data')
         toast({
           title: "Error",
-          description: err.message || 'Failed to fetch submissions',
+          description: err.message || 'Failed to fetch data',
           variant: "destructive",
         })
       } finally {
@@ -79,7 +108,7 @@ export default function MockupDashboardPage() {
       }
     }
 
-    fetchSubmissions()
+    fetchData()
   }, [toast])
 
   const handleCreateDevice = () => {
@@ -87,7 +116,7 @@ export default function MockupDashboardPage() {
   }
 
   const handleEditDevice = (deviceId: string) => {
-    // For now, just navigate to form with a query parameter
+    // Navigate to form with edit parameter
     router.push(`/form?edit=${deviceId}`)
   }
 
@@ -153,96 +182,175 @@ export default function MockupDashboardPage() {
             </div>
           )}
 
-          {submissions.length === 0 && !error ? (
-            <div className="text-center py-12">
-              <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                  <FileText className="h-8 w-8 text-muted-foreground" />
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 bg-muted p-1 rounded-lg mb-8">
+            <button
+              onClick={() => setActiveTab('submissions')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'submissions'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Submissions ({submissions.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('drafts')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'drafts'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Drafts ({drafts.length})
+            </button>
+          </div>
+
+          {/* Submissions Tab */}
+          {activeTab === 'submissions' && (
+            <>
+              {submissions.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium text-foreground mb-2">No submissions yet</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Start by submitting your first device for validation. This will allow you to create investment pools and tokenize your device's revenue.
+                    </p>
+                    <Button
+                      onClick={handleCreateDevice}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Submit Your First Device
+                    </Button>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">No devices submitted yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  Start by submitting your first device for validation. This will allow you to create investment pools and tokenize your device's revenue.
-                </p>
-                <Button
-                  onClick={handleCreateDevice}
-                  className="inline-flex items-center gap-2"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  Submit Your First Device
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border bg-card rounded-lg shadow">
-                <thead>
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {submissions.map((submission) => (
-                    <tr key={submission.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{submission.deviceName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.deviceType}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.manufacturer}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(submission.submittedAt)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={statusColor[submission.status] || "secondary"} className="capitalize">
-                          {submission.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {submission.status === "approved" && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="gap-2"
-                            onClick={() => handleViewCertificate(submission)}
-                          >
-                            <Eye className="h-4 w-4" />
-                            View Certificate
-                          </Button>
-                        )}
-                        {submission.status === "rejected" && (
-                          <Button 
-                            size="sm" 
-                            variant="destructive" 
-                            className="gap-2"
-                            onClick={() => handleViewRejection(submission)}
-                          >
-                            <AlertCircle className="h-4 w-4" />
-                            Review Reason
-                          </Button>
-                        )}
-                        {submission.status === "draft" && (
-                          <Button 
-                            size="sm" 
-                            variant="secondary" 
-                            className="gap-2"
-                            onClick={() => handleEditDevice(submission.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </Button>
-                        )}
-                        {(submission.status === "under review" || submission.status === "pending") && (
-                          <Button size="sm" variant="ghost" className="gap-2" disabled>
-                            <FileText className="h-4 w-4" />
-                            In Review
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-border bg-card rounded-lg shadow">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {submissions.map((submission) => (
+                        <tr key={submission.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{submission.deviceName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.deviceType}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.manufacturer}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(submission.submittedAt)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={statusColor[submission.status] || "secondary"} className="capitalize">
+                              {submission.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            {submission.status === "approved" && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="gap-2"
+                                onClick={() => handleViewCertificate(submission)}
+                              >
+                                <Eye className="h-4 w-4" />
+                                View Certificate
+                              </Button>
+                            )}
+                            {submission.status === "rejected" && (
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                className="gap-2"
+                                onClick={() => handleViewRejection(submission)}
+                              >
+                                <AlertCircle className="h-4 w-4" />
+                                Review Reason
+                              </Button>
+                            )}
+                            {(submission.status === "under review" || submission.status === "pending") && (
+                              <Button size="sm" variant="ghost" className="gap-2" disabled>
+                                <FileText className="h-4 w-4" />
+                                In Review
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Drafts Tab */}
+          {activeTab === 'drafts' && (
+            <>
+              {drafts.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium text-foreground mb-2">No drafts yet</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Start creating a device submission and save it as a draft to continue later.
+                    </p>
+                    <Button
+                      onClick={handleCreateDevice}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Create New Device
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-border bg-card rounded-lg shadow">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Updated</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {drafts.map((draft) => (
+                        <tr key={draft.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{draft.deviceName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{draft.deviceType}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{draft.manufacturer}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(draft.updatedAt)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <Button 
+                              size="sm" 
+                              variant="secondary" 
+                              className="gap-2"
+                              onClick={() => handleEditDevice(draft.id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                              Continue Editing
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
 
