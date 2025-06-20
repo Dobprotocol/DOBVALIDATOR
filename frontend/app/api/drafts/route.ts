@@ -3,28 +3,20 @@ import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
 import { submissionStorage } from '@/lib/submission-storage'
 
-// Draft schema (same as submission but with draft status)
+// Draft schema (very flexible for partial data - drafts are works in progress)
 const draftSchema = z.object({
-  deviceName: z.string().min(1, "Device name is required"),
-  deviceType: z.string().min(1, "Device type is required"),
-  serialNumber: z.string().min(1, "Serial number is required"),
-  manufacturer: z.string().min(1, "Manufacturer is required"),
-  model: z.string().min(1, "Model is required"),
-  yearOfManufacture: z.string().min(4, "Year must be 4 digits"),
-  condition: z.string().min(1, "Condition is required"),
-  specifications: z.string().min(10, "Specifications must be at least 10 characters"),
-  purchasePrice: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Purchase price must be greater than 0"
-  }),
-  currentValue: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Current value must be greater than or equal to 0"
-  }),
-  expectedRevenue: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Expected revenue must be greater than or equal to 0"
-  }),
-  operationalCosts: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Operational costs must be greater than or equal to 0"
-  }),
+  deviceName: z.string().optional(),
+  deviceType: z.string().optional(),
+  serialNumber: z.string().optional(),
+  manufacturer: z.string().optional(),
+  model: z.string().optional(),
+  yearOfManufacture: z.string().optional(),
+  condition: z.string().optional(),
+  specifications: z.string().optional(),
+  purchasePrice: z.string().optional(),
+  currentValue: z.string().optional(),
+  expectedRevenue: z.string().optional(),
+  operationalCosts: z.string().optional(),
   files: z.array(z.object({
     filename: z.string(),
     path: z.string(),
@@ -50,6 +42,7 @@ export async function POST(request: NextRequest) {
     // Validate draft data
     const validationResult = draftSchema.safeParse(draftData)
     if (!validationResult.success) {
+      console.error('Draft validation failed:', validationResult.error.format())
       return NextResponse.json(
         { error: 'Invalid draft data', details: validationResult.error.format() },
         { status: 400 }
@@ -83,7 +76,18 @@ export async function POST(request: NextRequest) {
       }
 
       const updatedDraft = submissionStorage.update(draftId, {
-        ...validatedData,
+        deviceName: validatedData.deviceName || '',
+        deviceType: validatedData.deviceType || '',
+        serialNumber: validatedData.serialNumber || '',
+        manufacturer: validatedData.manufacturer || '',
+        model: validatedData.model || '',
+        yearOfManufacture: validatedData.yearOfManufacture || '',
+        condition: validatedData.condition || '',
+        specifications: validatedData.specifications || '',
+        purchasePrice: validatedData.purchasePrice || '',
+        currentValue: validatedData.currentValue || '',
+        expectedRevenue: validatedData.expectedRevenue || '',
+        operationalCosts: validatedData.operationalCosts || '',
         files: (validatedData.files?.filter(file => file.filename && file.path && file.documentType) || []) as Array<{
           filename: string
           path: string
@@ -108,18 +112,18 @@ export async function POST(request: NextRequest) {
       
       const draft = {
         id: draftId,
-        deviceName: validatedData.deviceName,
-        deviceType: validatedData.deviceType,
-        serialNumber: validatedData.serialNumber,
-        manufacturer: validatedData.manufacturer,
-        model: validatedData.model,
-        yearOfManufacture: validatedData.yearOfManufacture,
-        condition: validatedData.condition,
-        specifications: validatedData.specifications,
-        purchasePrice: validatedData.purchasePrice,
-        currentValue: validatedData.currentValue,
-        expectedRevenue: validatedData.expectedRevenue,
-        operationalCosts: validatedData.operationalCosts,
+        deviceName: validatedData.deviceName || '',
+        deviceType: validatedData.deviceType || '',
+        serialNumber: validatedData.serialNumber || '',
+        manufacturer: validatedData.manufacturer || '',
+        model: validatedData.model || '',
+        yearOfManufacture: validatedData.yearOfManufacture || '',
+        condition: validatedData.condition || '',
+        specifications: validatedData.specifications || '',
+        purchasePrice: validatedData.purchasePrice || '',
+        currentValue: validatedData.currentValue || '',
+        expectedRevenue: validatedData.expectedRevenue || '',
+        operationalCosts: validatedData.operationalCosts || '',
         operatorWallet: auth.user.walletAddress,
         status: 'draft' as const,
         submittedAt: new Date().toISOString(),
