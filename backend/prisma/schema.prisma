@@ -10,32 +10,257 @@ datasource db {
   url      = env("***REMOVED***")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// =====================
+// USER & AUTHENTICATION
+// =====================
 
-model Device {
+model User {
   id          String   @id @default(cuid())
-  name        String
-  description String?
-  status      Status   @default(PENDING)
+  walletAddress String @unique // Stellar wallet address
+  email       String?  @unique
+  name        String?
+  company     String?
+  role        Role     @default(OPERATOR)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Relations
+  profile     Profile?
+  submissions Submission[]
+  drafts      Draft[]
+  certificates Certificate[]
+
+  @@map("users")
 }
 
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  name          String
+  company       String?
+  email         String
+  walletAddress String   @unique // Stellar wallet address
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// =====================
+// SUBMISSIONS & DRAFTS
+// =====================
+
+model Submission {
+  id                String   @id @default(cuid())
+  deviceName        String
+  deviceType        String
+  serialNumber      String
+  manufacturer      String
+  model             String
+  yearOfManufacture String
+  condition         String
+  specifications    String
+  purchasePrice     String
+  currentValue      String
+  expectedRevenue   String
+  operationalCosts  String
+  status            SubmissionStatus @default(PENDING)
+  submittedAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  userId            String
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files             SubmissionFile[]
+  adminReview       AdminReview?
+  certificate       Certificate?
+
+  @@map("submissions")
+}
+
+model Draft {
+  id                String   @id @default(cuid())
+  deviceName        String   @default("")
+  deviceType        String   @default("")
+  serialNumber      String   @default("")
+  manufacturer      String   @default("")
+  model             String   @default("")
+  yearOfManufacture String   @default("")
+  condition         String   @default("")
+  specifications    String   @default("")
+  purchasePrice     String   @default("")
+  currentValue      String   @default("")
+  expectedRevenue   String   @default("")
+  operationalCosts  String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  userId            String
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files             DraftFile[]
+
+  @@map("drafts")
+}
+
+// =====================
+// FILE MANAGEMENT
+// =====================
+
+model SubmissionFile {
+  id           String   @id @default(cuid())
+  filename     String
+  path         String
+  size         Int
+  mimeType     String
+  documentType String
+  uploadedAt   DateTime @default(now())
+
+  // Relations
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("submission_files")
+}
+
+model DraftFile {
+  id           String   @id @default(cuid())
+  filename     String
+  path         String
+  size         Int
+  mimeType     String
+  documentType String
+  uploadedAt   DateTime @default(now())
+
+  // Relations
+  draftId      String
+  draft        Draft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@map("draft_files")
+}
+
+// =====================
+// ADMIN REVIEW SYSTEM
+// =====================
+
+model AdminReview {
+  id              String   @id @default(cuid())
+  notes           String?
+  technicalScore  Int?
+  regulatoryScore Int?
+  financialScore  Int?
+  environmentalScore Int?
+  overallScore    Int?
+  decision        AdminDecision?
+  decisionAt      DateTime?
+  reviewedAt      DateTime @default(now())
+
+  // Relations
+  submissionId    String   @unique
+  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("admin_reviews")
+}
+
+// =====================
+// CERTIFICATES
+// =====================
+
+model Certificate {
+  id              String   @id @default(cuid())
+  certificateHash String   @unique // Hash for blockchain verification
+  stellarTxHash   String?  // Stellar transaction hash
+  issuedAt        DateTime @default(now())
+  expiresAt       DateTime?
+  status          CertificateStatus @default(ACTIVE)
+
+  // Relations
+  submissionId    String   @unique
+  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
+}
+
+// =====================
+// AUTHENTICATION
+// =====================
+
+model AuthChallenge {
+  id        String   @id @default(cuid())
+  challenge String   @unique
+  walletAddress String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("auth_challenges")
+}
+
+model AuthSession {
+  id           String   @id @default(cuid())
+  token        String   @unique
+  walletAddress String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@map("auth_sessions")
+}
+
+// =====================
+// ENUMS
+// =====================
+
 enum Role {
-  USER
+  OPERATOR
   ADMIN
   VALIDATOR
 }
 
-enum Status {
+enum SubmissionStatus {
+  DRAFT
   PENDING
+  UNDER_REVIEW
   APPROVED
   REJECTED
-} 
+}
+
+enum AdminDecision {
+  APPROVED
+  REJECTED
+}
+
+enum CertificateStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+// =====================
+// INDEXES FOR PERFORMANCE
+// =====================
+
+// User indexes
+@@index([walletAddress], name: "idx_users_wallet_address")
+@@index([email], name: "idx_users_email")
+
+// Submission indexes
+@@index([userId], name: "idx_submissions_user_id")
+@@index([status], name: "idx_submissions_status")
+@@index([submittedAt], name: "idx_submissions_submitted_at")
+
+// Draft indexes
+@@index([userId], name: "idx_drafts_user_id")
+@@index([updatedAt], name: "idx_drafts_updated_at")
+
+// Certificate indexes
+@@index([certificateHash], name: "idx_certificates_hash")
+@@index([stellarTxHash], name: "idx_certificates_stellar_tx")
+
+// Auth indexes
+@@index([challenge], name: "idx_auth_challenges_challenge")
+@@index([token], name: "idx_auth_sessions_token")
+@@index([expiresAt], name: "idx_auth_expires_at") 
