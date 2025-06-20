@@ -25,3 +25,15 @@
 2025-06-20T00:05:29.299974Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/api/auth/verify/route.ts")}
 2025-06-20T00:05:29.299995Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
 2025-06-20T00:05:29.343616Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-20T00:07:48.198981Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/DOB_Validator_API.postman_collection.json")}
+2025-06-20T00:07:48.199000Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-20T00:07:50.198457Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/DOB_Validator_API.postman_collection.json")}
+2025-06-20T00:07:50.198468Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-20T00:07:50.251709Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-20T00:07:54.099009Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/test-auth-simple.js")}
+2025-06-20T00:07:54.099021Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-20T00:07:57.998879Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/test-auth-simple.js")}
+2025-06-20T00:07:57.998892Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-20T00:07:58.007550Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-20T00:08:01.298901Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/next.config.mjs")}
+2025-06-20T00:08:01.298912Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
