@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { UserCircleIcon, PhotoIcon } from '@heroicons/react/24/solid';
 import { AuthGuard } from '@/components/auth-guard';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -17,9 +19,30 @@ export default function ProfilePage() {
     company: '',
     email: '',
   });
+  const [originalFormData, setOriginalFormData] = useState({
+    name: '',
+    company: '',
+    email: '',
+  });
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [originalProfileImage, setOriginalProfileImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdated, setIsUpdated] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Check if form has changes
+  const hasFormChanges = () => {
+    if (!isEditMode) return true; // Always allow create mode
+    
+    const formChanged = 
+      formData.name !== originalFormData.name ||
+      formData.company !== originalFormData.company ||
+      formData.email !== originalFormData.email;
+    
+    const imageChanged = profileImage !== originalProfileImage;
+    
+    return formChanged || imageChanged;
+  };
 
   useEffect(() => {
     const checkProfileAndLoad = async () => {
@@ -54,14 +77,18 @@ export default function ProfilePage() {
           const profileData = await response.json();
           console.log('✅ Existing profile found:', profileData);
           
-          setFormData({
+          const loadedFormData = {
             name: profileData.profile.name || '',
             company: profileData.profile.company || '',
             email: profileData.profile.email || '',
-          });
+          };
+          
+          setFormData(loadedFormData);
+          setOriginalFormData(loadedFormData);
           
           if (profileData.profile.profileImage) {
             setProfileImage(profileData.profile.profileImage);
+            setOriginalProfileImage(profileData.profile.profileImage);
           }
           
           setIsEditMode(true);
@@ -134,7 +161,19 @@ export default function ProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // If already updated, redirect to dashboard
+    if (isUpdated) {
+      router.push('/mockup-dashboard');
+      return;
+    }
+    
+    console.log('🔍 Profile: Form submission started');
+    console.log('🔍 Profile: Form data:', formData);
+    console.log('🔍 Profile: Is edit mode:', isEditMode);
+    console.log('🔍 Profile: Wallet address:', walletAddress);
+    
     if (!validateForm()) {
+      console.log('❌ Profile: Form validation failed');
       return;
     }
 
@@ -149,9 +188,20 @@ export default function ProfilePage() {
 
       // Parse the token to get the wallet address
       const tokenData = JSON.parse(authToken);
+      console.log('🔍 Profile: Auth token parsed successfully');
       
       // Use PUT for updates, POST for creation
       const method = isEditMode ? 'PUT' : 'POST';
+      console.log('🔍 Profile: Using method:', method);
+      
+      const requestBody = {
+        name: formData.name,
+        company: formData.company,
+        email: formData.email,
+        profileImage: profileImage // This will be stored as a URL
+      };
+      
+      console.log('🔍 Profile: Request body:', requestBody);
       
       // Call the API to create or update the profile
       const response = await fetch('/api/profile', {
@@ -160,17 +210,15 @@ export default function ProfilePage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${tokenData.token}`
         },
-        body: JSON.stringify({
-          name: formData.name,
-          company: formData.company,
-          email: formData.email,
-          walletAddress: walletAddress,
-          profileImage: profileImage // This will be stored as a URL
-        })
+        body: JSON.stringify(requestBody)
       });
+
+      console.log('🔍 Profile: Response status:', response.status);
+      console.log('🔍 Profile: Response ok:', response.ok);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ Profile: API error:', errorData);
         throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} profile`);
       }
 
@@ -178,23 +226,44 @@ export default function ProfilePage() {
       console.log(`✅ Profile ${isEditMode ? 'updated' : 'created'} successfully:`, profileData);
 
       // Store profile data in localStorage for local access
-      localStorage.setItem('userProfile', JSON.stringify({
+      const localProfileData = {
         ...formData,
         walletAddress,
         profileImage,
         createdAt: profileData.profile?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         id: profileData.profile?.id
-      }));
+      };
+      
+      localStorage.setItem('userProfile', JSON.stringify(localProfileData));
+      console.log('✅ Profile: Local storage updated');
 
-      // Add a small delay to ensure profile is properly stored
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Show success toast notification
+      console.log('🔔 Profile: Attempting to show toast notification...');
+      try {
+        toast({
+          title: "Profile Updated Successfully!",
+          description: isEditMode 
+            ? "Your profile has been updated successfully."
+            : "Your profile has been created successfully.",
+        });
+        console.log('✅ Profile: Toast notification called successfully');
+      } catch (toastError) {
+        console.error('❌ Profile: Toast notification failed:', toastError);
+        // Fallback: show alert if toast fails
+        alert(isEditMode 
+          ? "Profile updated successfully!" 
+          : "Profile created successfully!"
+        );
+      }
 
-      // Redirect to appropriate dashboard
-      // For development, use mockup-dashboard; for production, use /dashboard
-      router.push('/mockup-dashboard');
+      // Set updated state to change button
+      setIsUpdated(true);
+
+      // Don't redirect automatically - let user click the button
+      console.log('✅ Profile: Update successful, button changed to "Go to Validation Dashboard"');
     } catch (error) {
-      console.error(`Error ${isEditMode ? 'updating' : 'saving'} profile:`, error);
+      console.error(`❌ Error ${isEditMode ? 'updating' : 'saving'} profile:`, error);
       setErrors({ submit: error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'save'} profile. Please try again.` });
     } finally {
       setIsSubmitting(false);
@@ -256,6 +325,8 @@ export default function ProfilePage() {
                 onChange={handleImageChange}
                 accept="image/*"
                 className="hidden"
+                aria-label="Upload profile image"
+                title="Upload profile image"
               />
             </div>
             {errors.image && (
@@ -350,19 +421,31 @@ export default function ProfilePage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 transition-colors duration-200"
+              disabled={isSubmitting || (isEditMode && !hasFormChanges() && !isUpdated)}
+              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium transition-all duration-300 ${
+                isUpdated 
+                  ? 'text-white bg-violet-600 hover:bg-violet-700 focus:ring-violet-500' 
+                  : isEditMode && !hasFormChanges()
+                  ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                  : isEditMode
+                  ? 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                  : 'text-primary-foreground bg-primary hover:bg-primary/90 focus:ring-primary'
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50`}
             >
               {isSubmitting ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   {isEditMode ? 'Updating Profile...' : 'Creating Profile...'}
                 </span>
               ) : (
-                isEditMode ? 'Update Profile' : 'Create Profile'
+                isUpdated 
+                  ? 'Go to Validation Dashboard' 
+                  : isEditMode 
+                  ? 'Update Profile' 
+                  : 'Create Profile'
               )}
             </button>
           </form>
