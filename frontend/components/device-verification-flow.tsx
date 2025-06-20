@@ -9,7 +9,11 @@ import { DeviceReview } from "@/components/steps/device-review"
 import { DeviceSuccess } from "@/components/steps/device-success"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { StellarWallet } from "@/components/stellar-wallet"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useDraft } from "@/hooks/use-draft"
+import { Button } from "@/components/ui/button"
+import { Save, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 export type DeviceData = {
   // Basic info
@@ -58,7 +62,33 @@ export function DeviceVerificationFlow() {
     deviceImages: [],
   })
   const [walletConnected, setWalletConnected] = useState(false)
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null)
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { saveDraft, loadDraft, loading: draftLoading } = useDraft()
+  const { toast } = useToast()
+
+  // Check for edit mode and load draft if needed
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (editId) {
+      setIsLoadingDraft(true)
+      loadDraft(editId).then((loadedData) => {
+        if (loadedData) {
+          setDeviceData(loadedData)
+          setCurrentDraftId(editId)
+          toast({
+            title: "Draft Loaded",
+            description: "Your draft has been loaded. Please re-upload any files.",
+          })
+        }
+        setIsLoadingDraft(false)
+      }).catch(() => {
+        setIsLoadingDraft(false)
+      })
+    }
+  }, [searchParams, loadDraft, toast])
 
   // Always start at step 1 and show welcome modal when wallet connects
   useEffect(() => {
@@ -87,6 +117,15 @@ export function DeviceVerificationFlow() {
     )
   }
 
+  if (isLoadingDraft) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading your draft...</p>
+      </div>
+    )
+  }
+
   const totalSteps = 6
 
   const updateDeviceData = (data: Partial<DeviceData>) => {
@@ -105,11 +144,41 @@ export function DeviceVerificationFlow() {
     }
   }
 
+  const handleSaveDraft = async () => {
+    try {
+      const savedDraft = await saveDraft(deviceData, currentDraftId || undefined)
+      if (!currentDraftId && savedDraft) {
+        setCurrentDraftId(savedDraft.id)
+      }
+    } catch (error) {
+      // Error is already handled in the hook
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mt-8 mb-12">
         <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
       </div>
+
+      {/* Draft Save Button */}
+      {currentStep < 5 && (
+        <div className="max-w-3xl mx-auto mb-6 flex justify-end">
+          <Button
+            onClick={handleSaveDraft}
+            disabled={draftLoading}
+            variant="outline"
+            className="gap-2"
+          >
+            {draftLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {currentDraftId ? 'Update Draft' : 'Save Draft'}
+          </Button>
+        </div>
+      )}
 
       <div className="max-w-3xl mx-auto">
         {currentStep === 1 && (
