@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
+// Required for API routes in Next.js
+export const dynamic = 'force-dynamic'
+
 // Challenge schema validation
 const challengeSchema = z.object({
   walletAddress: z.string().min(1, "Wallet address is required"),
@@ -11,10 +14,14 @@ const challenges = new Map<string, { challenge: string; timestamp: number }>()
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Challenge POST request received')
     const body = await request.json()
+    console.log('🔍 Challenge request body:', body)
+    
     const validationResult = challengeSchema.safeParse(body)
     
     if (!validationResult.success) {
+      console.log('❌ Challenge validation failed:', validationResult.error.format())
       return NextResponse.json(
         { error: 'Invalid request data', details: validationResult.error.format() },
         { status: 400 }
@@ -22,6 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { walletAddress } = validationResult.data
+    console.log('🔍 Generating challenge for wallet:', walletAddress)
     
     // Generate a unique challenge
     const challenge = `DOB_VALIDATOR_AUTH_${Date.now()}_${Math.random().toString(36).substring(2)}`
@@ -29,15 +37,19 @@ export async function POST(request: NextRequest) {
     
     // Store challenge with 5-minute expiration
     challenges.set(walletAddress, { challenge, timestamp })
+    console.log('✅ Challenge stored:', { challenge, timestamp })
+    console.log('🔍 Current challenges count:', challenges.size)
     
     // Clean up expired challenges
     const now = Date.now()
     for (const [addr, data] of challenges.entries()) {
       if (now - data.timestamp > 5 * 60 * 1000) { // 5 minutes
+        console.log('🧹 Cleaning up expired challenge for:', addr)
         challenges.delete(addr)
       }
     }
     
+    console.log('✅ Challenge generated successfully')
     return NextResponse.json({
       success: true,
       challenge,
@@ -45,7 +57,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Error generating challenge:', error)
+    console.error('❌ Error generating challenge:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -62,6 +74,7 @@ export function verifyChallenge(walletAddress: string, signature: string, challe
   
   const storedChallenge = challenges.get(walletAddress)
   console.log('🔍 Stored challenge:', storedChallenge)
+  console.log('🔍 All challenges:', Array.from(challenges.entries()))
   
   if (!storedChallenge) {
     console.log('❌ No stored challenge found for wallet')
@@ -91,6 +104,7 @@ export function verifyChallenge(walletAddress: string, signature: string, challe
   
   // Clean up used challenge
   challenges.delete(walletAddress)
+  console.log('🧹 Challenge cleaned up after verification')
   
   return true
 } 

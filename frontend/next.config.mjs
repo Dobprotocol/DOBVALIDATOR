@@ -6,7 +6,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'export',
   images: {
     unoptimized: true,
   },
@@ -23,9 +22,6 @@ const nextConfig = {
       ],
     });
     return config;
-  },
-  serverActions: {
-    bodySizeLimit: '10mb',
   },
   api: {
     bodyParser: {
