@@ -9,7 +9,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 5000 // 5 seconds instead of 1000000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -144,7 +144,7 @@ type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
   const id = genId()
-
+  
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
