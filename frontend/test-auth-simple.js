@@ -1,79 +1,90 @@
-// Simple authentication test script
-// Run this in the browser console to test the auth flow
-// Note: Server is running on port 3000 (standard Next.js port)
+// Simple authentication test script for Node.js
+// Tests the challenge-response authentication flow
 
-const API_BASE = 'http://localhost:3000' // Standard Next.js port
+const BASE_URL = 'http://localhost:3000'
 
 async function testAuthFlow() {
-  console.log('🧪 Testing authentication flow...')
+  console.log('🧪 Testing DOB Validator Authentication Flow')
+  console.log('=' .repeat(50))
+  
+  const walletAddress = 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN'
   
   try {
-    // Step 1: Get challenge
-    console.log('📝 Step 1: Getting challenge...')
-    const challengeResponse = await fetch(`${API_BASE}/api/auth/challenge`, {
+    // Step 1: Request challenge
+    console.log('\n📝 Step 1: Requesting authentication challenge...')
+    const challengeResponse = await fetch(`${BASE_URL}/api/auth/challenge`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        walletAddress: 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN'
-      })
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ walletAddress })
     })
     
     if (!challengeResponse.ok) {
-      throw new Error(`Challenge failed: ${challengeResponse.status}`)
+      throw new Error(`Challenge request failed: ${challengeResponse.status}`)
     }
     
     const challengeData = await challengeResponse.json()
-    console.log('✅ Challenge received:', challengeData.challenge)
+    console.log('✅ Challenge received:', challengeData)
     
-    // Step 2: Verify signature
-    console.log('🔐 Step 2: Verifying signature...')
-    const verifyResponse = await fetch(`${API_BASE}/api/auth/verify`, {
+    if (!challengeData.success || !challengeData.challenge) {
+      throw new Error('Invalid challenge response')
+    }
+    
+    // Step 2: Verify signature (using mock signature for testing)
+    console.log('\n🔐 Step 2: Verifying signature...')
+    const signature = 'mock_signature_test'
+    
+    const verifyResponse = await fetch(`${BASE_URL}/api/auth/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        walletAddress: 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN',
-        signature: 'mock_signature_test',
+        walletAddress,
+        signature,
         challenge: challengeData.challenge
       })
     })
     
-    if (!verifyResponse.ok) {
-      const errorData = await verifyResponse.json().catch(() => ({}))
-      throw new Error(`Verification failed: ${verifyResponse.status} - ${JSON.stringify(errorData)}`)
-    }
-    
     const verifyData = await verifyResponse.json()
-    console.log('✅ Verification successful:', verifyData.token ? 'Token received' : 'No token')
+    console.log('📊 Verify response status:', verifyResponse.status)
+    console.log('📊 Verify response data:', verifyData)
     
-    // Step 3: Test profile API
-    if (verifyData.token) {
-      console.log('👤 Step 3: Testing profile API...')
-      const profileResponse = await fetch(`${API_BASE}/api/profile`, {
+    if (verifyResponse.ok && verifyData.success) {
+      console.log('✅ Authentication successful!')
+      console.log('🎫 JWT Token received:', verifyData.token ? `${verifyData.token.substring(0, 50)}...` : 'none')
+      
+      // Step 3: Test protected endpoint
+      console.log('\n🔒 Step 3: Testing protected endpoint...')
+      const profileResponse = await fetch(`${BASE_URL}/api/profile`, {
         headers: {
           'Authorization': `Bearer ${verifyData.token}`
         }
       })
       
+      const profileData = await profileResponse.json()
       console.log('📊 Profile response status:', profileResponse.status)
+      console.log('📊 Profile response data:', profileData)
       
       if (profileResponse.ok) {
-        const profileData = await profileResponse.json()
-        console.log('✅ Profile found:', profileData)
-      } else if (profileResponse.status === 404) {
-        console.log('✅ Profile not found (expected for new user)')
+        console.log('✅ Protected endpoint access successful!')
       } else {
-        console.log('❌ Profile API error:', profileResponse.status)
+        console.log('❌ Protected endpoint access failed')
       }
+      
+    } else {
+      console.log('❌ Authentication failed')
+      console.log('❌ Error:', verifyData.error)
     }
     
-    console.log('🎉 Authentication flow test completed!')
-    
   } catch (error) {
-    console.error('❌ Test failed:', error)
+    console.error('❌ Test failed:', error.message)
   }
+  
+  console.log('\n' + '=' .repeat(50))
+  console.log('🧪 Test completed')
 }
 
-// Export for manual testing
-window.testAuthFlow = testAuthFlow
-console.log('🧪 Test function available: testAuthFlow()')
-console.log('🌐 API Base URL:', API_BASE) 
+// Run the test
+testAuthFlow() 

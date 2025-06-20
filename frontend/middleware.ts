@@ -19,17 +19,17 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Check if this is a protected API route
-  const isProtectedRoute = protectedApiRoutes.some(route => 
+  const isProtectedApiRoute = protectedApiRoutes.some(route => 
     pathname.startsWith(route)
   )
 
   // Check if this is a public API route
-  const isPublicRoute = publicApiRoutes.some(route => 
+  const isPublicApiRoute = publicApiRoutes.some(route => 
     pathname.startsWith(route)
   )
 
-  // If it's a protected route, check for authentication
-  if (isProtectedRoute) {
+  // Handle protected API routes
+  if (isProtectedApiRoute) {
     const authHeader = request.headers.get('authorization')
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -42,6 +42,9 @@ export function middleware(request: NextRequest) {
     // Note: JWT verification is handled in individual API routes
     // This middleware just ensures the token is present
   }
+
+  // Note: Frontend route protection is handled by the frontend components
+  // using localStorage for JWT tokens, not by middleware
 
   // If it's an API route but not in our lists, allow it (for now)
   // In production, you might want to be more restrictive

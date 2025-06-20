@@ -80,6 +80,11 @@ export const verifySignature = async (
   signature: string, 
   challenge: string
 ): Promise<AuthToken> => {
+  console.log('🔍 Verifying signature...')
+  console.log('🔍 Wallet address:', walletAddress)
+  console.log('🔍 Challenge:', challenge)
+  console.log('🔍 Signature:', signature.substring(0, 20) + '...')
+  
   const response = await fetch('/api/auth/verify', {
     method: 'POST',
     headers: {
@@ -88,11 +93,17 @@ export const verifySignature = async (
     body: JSON.stringify({ walletAddress, signature, challenge }),
   })
 
+  console.log('📊 Verify response status:', response.status)
+  
   if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    console.error('❌ Verification failed:', errorData)
     throw new Error('Failed to verify signature')
   }
 
   const data = await response.json()
+  console.log('✅ Verification successful:', data)
+  
   return {
     token: data.token,
     expiresIn: data.expiresIn,
@@ -114,9 +125,24 @@ export const authenticateWallet = async (walletAddress: string, signature: strin
 
 // Logout user
 export const logout = () => {
+  const authToken = getAuthToken()
+  
+  // Clear frontend storage
   removeAuthToken()
   localStorage.removeItem('stellarPublicKey')
   localStorage.removeItem('stellarWallet')
+  localStorage.removeItem('userProfile')
+  
+  // Clear backend session if we have wallet address
+  if (authToken?.walletAddress) {
+    // Note: In a real app, you'd call an API endpoint to clear the session
+    // For now, we'll just clear local storage
+    console.log('🚪 Logging out wallet:', authToken.walletAddress)
+  }
+  
+  // Clear session storage as well
+  sessionStorage.clear()
+  
   window.dispatchEvent(new Event('walletStateChange'))
 }
 

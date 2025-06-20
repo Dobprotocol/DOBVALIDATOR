@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
+import { storeProfile, getProfile, updateProfile, removeProfile } from '../../../lib/auth-storage'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -13,10 +14,8 @@ const profileSchema = z.object({
   phone: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  profileImage: z.string().optional(),
 })
-
-// Mock profiles storage (in production, use database)
-const profiles = new Map<string, any>()
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Authentication successful, checking profile for wallet:', auth.user.walletAddress)
     
-    const profile = profiles.get(auth.user.walletAddress)
+    const profile = getProfile(auth.user.walletAddress)
     console.log('🔍 Profile lookup result:', profile ? 'found' : 'not found')
     
     if (!profile) {
@@ -58,6 +57,7 @@ export async function GET(request: NextRequest) {
         phone: profile.phone,
         website: profile.website,
         bio: profile.bio,
+        profileImage: profile.profileImage,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
       }
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     const walletAddress = auth.user.walletAddress
     
     // Check if profile already exists
-    const existingProfile = profiles.get(walletAddress)
+    const existingProfile = getProfile(walletAddress)
     
     const profile = {
       walletAddress,
@@ -106,7 +106,11 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     }
 
-    profiles.set(walletAddress, profile)
+    if (existingProfile) {
+      updateProfile(walletAddress, profileData)
+    } else {
+      storeProfile(walletAddress, profileData)
+    }
 
     return NextResponse.json({
       success: true,
@@ -118,6 +122,7 @@ export async function POST(request: NextRequest) {
         phone: profile.phone,
         website: profile.website,
         bio: profile.bio,
+        profileImage: profile.profileImage,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
       },
@@ -149,7 +154,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const walletAddress = auth.user.walletAddress
-    const profile = profiles.get(walletAddress)
+    const profile = getProfile(walletAddress)
     
     if (!profile) {
       return NextResponse.json(
@@ -158,7 +163,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    profiles.delete(walletAddress)
+    removeProfile(walletAddress)
 
     return NextResponse.json({
       success: true,
@@ -166,6 +171,34 @@ export async function DELETE(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error deleting profile:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// Logout endpoint to clear profile data
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { action, walletAddress } = body
+    
+    if (action === 'logout' && walletAddress) {
+      removeProfile(walletAddress)
+      console.log('🚪 Profile cleared for logout:', walletAddress)
+      return NextResponse.json({
+        success: true,
+        message: 'Profile cleared for logout'
+      })
+    }
+    
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400 }
+    )
+  } catch (error) {
+    console.error('Error in logout:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

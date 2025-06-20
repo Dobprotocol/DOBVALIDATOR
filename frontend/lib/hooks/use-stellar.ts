@@ -1,40 +1,46 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getStellarSDK, isInitialized as sdkInitialized } from "@/lib/stellar-sdk"
+import { Network, BASE_FEE } from '@stellar/stellar-sdk'
 
 export function useStellar() {
   const [isInitialized, setIsInitialized] = useState(false)
-  const [sdk, setSdk] = useState<any>(null)
+  const [network, setNetwork] = useState<Network | null>(null)
+  const [baseFee, setBaseFee] = useState<string>('100')
 
   useEffect(() => {
     const initializeStellar = () => {
       try {
-        if (!sdkInitialized) {
-          console.error('Stellar SDK not initialized')
+        if (typeof window === 'undefined') {
           return
         }
 
-        const stellarSDK = getStellarSDK()
-        setSdk(stellarSDK)
+        // Set the network passphrase for testnet
+        Network.useTestNetwork()
+        // Set the base fee
+        BASE_FEE = '100'
+        
+        setNetwork(Network)
+        setBaseFee(BASE_FEE)
         setIsInitialized(true)
+        console.log('✅ Stellar SDK initialized in hook')
       } catch (error) {
-        console.error('Failed to initialize Stellar SDK:', error)
+        console.error('Failed to initialize Stellar SDK in hook:', error)
         setIsInitialized(false)
       }
     }
 
-    if (typeof window !== 'undefined') {
-      initializeStellar()
-    }
+    initializeStellar()
 
     return () => {
-      setSdk(null)
+      setNetwork(null)
+      setIsInitialized(false)
     }
   }, [])
 
   return {
-    sdk,
+    network,
+    baseFee,
     isInitialized
   }
 } 
