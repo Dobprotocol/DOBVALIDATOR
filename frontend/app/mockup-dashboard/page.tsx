@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { PlusCircle, FileText, Edit, Eye, AlertCircle } from "lucide-react"
 import { RejectionReviewModal } from "@/components/ui/rejection-review-modal"
 import { CertificateModal } from "@/components/ui/certificate-modal"
+import { AuthGuard } from "@/components/auth-guard"
 
 const mockDevices = [
   {
@@ -103,111 +104,113 @@ export default function MockupDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-foreground">My Devices</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Manage your device submissions and track their status
-          </p>
-        </div>
-        <div className="flex justify-end mt-8 mb-8">
-          <Button
-            onClick={handleCreateDevice}
-            className="inline-flex items-center gap-2 text-base py-3 px-6 rounded-lg font-semibold shadow-md"
-          >
-            <PlusCircle className="h-5 w-5" />
-            Validate New Device
-          </Button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-border bg-card rounded-lg shadow">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {mockDevices.map((device) => (
-                <tr key={device.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{device.deviceName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.deviceType}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.manufacturer}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.submittedAt}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={statusColor[device.status] || "secondary"} className="capitalize">
-                      {device.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    {device.status === "approved" && (
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="gap-2"
-                        onClick={() => handleViewCertificate(device)}
-                      >
-                        <Eye className="h-4 w-4" />
-                        View Certificate
-                      </Button>
-                    )}
-                    {device.status === "rejected" && (
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        className="gap-2"
-                        onClick={() => handleViewRejection(device)}
-                      >
-                        <AlertCircle className="h-4 w-4" />
-                        Review Reason
-                      </Button>
-                    )}
-                    {device.status === "draft" && (
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        className="gap-2"
-                        onClick={() => handleEditDevice(device.id)}
-                      >
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    )}
-                    {device.status === "under review" && (
-                      <Button size="sm" variant="ghost" className="gap-2" disabled>
-                        <FileText className="h-4 w-4" />
-                        In Review
-                      </Button>
-                    )}
-                  </td>
+    <AuthGuard>
+      <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-foreground">My Devices</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Manage your device submissions and track their status
+            </p>
+          </div>
+          <div className="flex justify-end mt-8 mb-8">
+            <Button
+              onClick={handleCreateDevice}
+              className="inline-flex items-center gap-2 text-base py-3 px-6 rounded-lg font-semibold shadow-md"
+            >
+              <PlusCircle className="h-5 w-5" />
+              Validate New Device
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border bg-card rounded-lg shadow">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {mockDevices.map((device) => (
+                  <tr key={device.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{device.deviceName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.deviceType}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.manufacturer}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.submittedAt}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Badge variant={statusColor[device.status] || "secondary"} className="capitalize">
+                        {device.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {device.status === "approved" && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-2"
+                          onClick={() => handleViewCertificate(device)}
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Certificate
+                        </Button>
+                      )}
+                      {device.status === "rejected" && (
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          className="gap-2"
+                          onClick={() => handleViewRejection(device)}
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                          Review Reason
+                        </Button>
+                      )}
+                      {device.status === "draft" && (
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          className="gap-2"
+                          onClick={() => handleEditDevice(device.id)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          Edit
+                        </Button>
+                      )}
+                      {device.status === "under review" && (
+                        <Button size="sm" variant="ghost" className="gap-2" disabled>
+                          <FileText className="h-4 w-4" />
+                          In Review
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {/* Modals */}
+        {selectedRejection && (
+          <RejectionReviewModal
+            isOpen={!!selectedRejection}
+            onClose={() => setSelectedRejection(null)}
+            deviceData={selectedRejection}
+          />
+        )}
+
+        {selectedCertificate && (
+          <CertificateModal
+            isOpen={!!selectedCertificate}
+            onClose={() => setSelectedCertificate(null)}
+            certificateData={selectedCertificate}
+          />
+        )}
       </div>
-
-      {/* Modals */}
-      {selectedRejection && (
-        <RejectionReviewModal
-          isOpen={!!selectedRejection}
-          onClose={() => setSelectedRejection(null)}
-          deviceData={selectedRejection}
-        />
-      )}
-
-      {selectedCertificate && (
-        <CertificateModal
-          isOpen={!!selectedCertificate}
-          onClose={() => setSelectedCertificate(null)}
-          certificateData={selectedCertificate}
-        />
-      )}
-    </div>
+    </AuthGuard>
   )
 } 

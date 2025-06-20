@@ -1,14 +1,11 @@
-import StellarSdk from 'stellar-sdk'
+import { Network, BASE_FEE } from '@stellar/stellar-sdk'
 
 // Create a singleton instance of the SDK
 class StellarSDKWrapper {
   private static instance: StellarSDKWrapper
-  private sdk: typeof StellarSdk
   private initialized: boolean = false
 
-  private constructor() {
-    this.sdk = StellarSdk
-  }
+  private constructor() {}
 
   public static getInstance(): StellarSDKWrapper {
     if (!StellarSDKWrapper.instance) {
@@ -23,10 +20,11 @@ class StellarSDKWrapper {
 
     try {
       // Set the network passphrase for testnet
-      this.sdk.Network.useTestNetwork()
+      Network.useTestNetwork()
       // Set the base fee
-      this.sdk.BASE_FEE = '100'
+      BASE_FEE = '100'
       this.initialized = true
+      console.log('✅ Stellar SDK initialized successfully')
       return true
     } catch (error) {
       console.error('Failed to initialize Stellar SDK:', error)
@@ -34,11 +32,18 @@ class StellarSDKWrapper {
     }
   }
 
-  public getSDK(): typeof StellarSdk {
+  public getNetwork(): Network {
     if (!this.initialized) {
       throw new Error('Stellar SDK not initialized')
     }
-    return this.sdk
+    return Network
+  }
+
+  public getBaseFee(): string {
+    if (!this.initialized) {
+      throw new Error('Stellar SDK not initialized')
+    }
+    return BASE_FEE
   }
 
   public isInitialized(): boolean {
@@ -52,9 +57,14 @@ const stellarSDK = StellarSDKWrapper.getInstance()
 // Initialize the SDK
 let isInitialized = false
 if (typeof window !== 'undefined') {
-  isInitialized = stellarSDK.initialize()
+  try {
+    isInitialized = stellarSDK.initialize()
+  } catch (error) {
+    console.error('Failed to initialize Stellar SDK on module load:', error)
+    isInitialized = false
+  }
 }
 
 // Export the SDK instance and initialization status
-export const getStellarSDK = () => stellarSDK.getSDK()
+export const getStellarSDK = () => stellarSDK
 export { isInitialized } 
