@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
+import { submissionStorage } from '@/lib/submission-storage'
 
 // Submission schema
 const submissionSchema = z.object({
@@ -32,7 +33,7 @@ const submissionSchema = z.object({
 })
 
 // Mock submissions storage (in production, use database)
-const submissions = new Map<string, any>()
+// const submissions = new Map<string, any>() // Removed - now using shared storage
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,11 +64,23 @@ export async function POST(request: NextRequest) {
     // Create submission record
     const submission = {
       id: submissionId,
-      ...submissionData,
+      deviceName: submissionData.deviceName,
+      deviceType: submissionData.deviceType,
+      serialNumber: submissionData.serialNumber,
+      manufacturer: submissionData.manufacturer,
+      model: submissionData.model,
+      yearOfManufacture: submissionData.yearOfManufacture,
+      condition: submissionData.condition,
+      specifications: submissionData.specifications,
+      purchasePrice: submissionData.purchasePrice,
+      currentValue: submissionData.currentValue,
+      expectedRevenue: submissionData.expectedRevenue,
+      operationalCosts: submissionData.operationalCosts,
       operatorWallet: auth.user.walletAddress,
-      status: 'pending',
+      status: 'pending' as const,
       submittedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      files: [],
       // Admin fields (only for admin users)
       adminNotes: null,
       adminScore: null,
@@ -76,16 +89,16 @@ export async function POST(request: NextRequest) {
       certificateId: null,
     }
     
-    // Store submission
-    submissions.set(submissionId, submission)
+    // Store submission using shared storage
+    const createdSubmission = submissionStorage.create(submission)
     
     return NextResponse.json({
       success: true,
       submission: {
-        id: submission.id,
-        deviceName: submission.deviceName,
-        status: submission.status,
-        submittedAt: submission.submittedAt
+        id: createdSubmission.id,
+        deviceName: createdSubmission.deviceName,
+        status: createdSubmission.status,
+        submittedAt: createdSubmission.submittedAt
       },
       message: 'Submission created successfully'
     })
@@ -116,24 +129,17 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
     
-    // Filter submissions by user's wallet
-    let userSubmissions = Array.from(submissions.values())
-      .filter(sub => sub.operatorWallet === auth.user.walletAddress)
-    
-    // Filter by status if provided
-    if (status) {
-      userSubmissions = userSubmissions.filter(sub => sub.status === status)
-    }
-    
-    // Sort by submission date (newest first)
-    userSubmissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-    
-    // Apply pagination
-    const paginatedSubmissions = userSubmissions.slice(offset, offset + limit)
+    // Get submissions using shared storage
+    const result = submissionStorage.getPaginated({
+      walletAddress: auth.user.walletAddress,
+      status: status || undefined,
+      limit,
+      offset
+    })
     
     return NextResponse.json({
       success: true,
-      submissions: paginatedSubmissions.map(sub => ({
+      submissions: result.submissions.map(sub => ({
         id: sub.id,
         deviceName: sub.deviceName,
         deviceType: sub.deviceType,
@@ -143,10 +149,10 @@ export async function GET(request: NextRequest) {
         certificateId: sub.certificateId
       })),
       pagination: {
-        total: userSubmissions.length,
+        total: result.total,
         limit,
         offset,
-        hasMore: offset + limit < userSubmissions.length
+        hasMore: result.hasMore
       }
     })
     
