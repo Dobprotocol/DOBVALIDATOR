@@ -1,96 +1,92 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
-import { PlusCircle, FileText, Edit, Eye, AlertCircle } from "lucide-react"
+import { PlusCircle, FileText, Edit, Eye, AlertCircle, Loader2 } from "lucide-react"
 import { RejectionReviewModal } from "@/components/ui/rejection-review-modal"
 import { CertificateModal } from "@/components/ui/certificate-modal"
 import { AuthGuard } from "@/components/auth-guard"
+import { useToast } from "@/hooks/use-toast"
 
-const mockDevices = [
-  {
-    id: 1,
-    deviceName: "Solar Inverter X1",
-    deviceType: "Inverter",
-    manufacturer: "SunPower",
-    submittedAt: "2024-06-01",
-    status: "approved",
-    // Certificate data
-    certificateData: {
-      deviceName: "Solar Inverter X1",
-      deviceType: "Inverter",
-      manufacturer: "SunPower",
-      validatedAt: "2024-06-15",
-      validator: "DOB Validation Team",
-      trufaScore: 92,
-      certificateId: "CERT-2024-001",
-      blockchainTx: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      validationCriteria: {
-        technical: true,
-        financial: true,
-        operational: true,
-        regulatory: true,
-      },
-      investmentGrade: "A+",
-      riskLevel: "Low",
-    }
-  },
-  {
-    id: 2,
-    deviceName: "Battery Pack B2",
-    deviceType: "Battery",
-    manufacturer: "PowerCell",
-    submittedAt: "2024-06-03",
-    status: "under review",
-  },
-  {
-    id: 3,
-    deviceName: "Wind Turbine W3",
-    deviceType: "Turbine",
-    manufacturer: "WindGen",
-    submittedAt: "2024-06-05",
-    status: "rejected",
-    // Rejection data
-    rejectionData: {
-      deviceName: "Wind Turbine W3",
-      deviceType: "Turbine",
-      manufacturer: "WindGen",
-      submittedAt: "2024-06-05",
-      rejectedAt: "2024-06-12",
-      rejectionReason: "Insufficient technical documentation and missing safety certifications",
-      reviewer: "DOB Validation Team",
-      reviewerNotes: "The submitted technical documentation does not meet our standards for wind turbine validation. Missing critical safety certifications and operational history. Please provide complete technical specifications, safety certifications, and at least 6 months of operational data before resubmitting.",
-    }
-  },
-  {
-    id: 4,
-    deviceName: "Draft Device",
-    deviceType: "Sensor",
-    manufacturer: "DraftTech",
-    submittedAt: "2024-06-10",
-    status: "draft",
-  },
-]
+interface Submission {
+  id: string
+  deviceName: string
+  deviceType: string
+  manufacturer: string
+  submittedAt: string
+  status: 'pending' | 'under review' | 'approved' | 'rejected' | 'draft'
+  certificateId?: string
+}
 
-const statusColor = {
-  approved: "success",
-  "under review": "warning",
+const statusColor: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  approved: "default",
+  "under review": "secondary",
   rejected: "destructive",
   draft: "secondary",
+  pending: "secondary",
 }
 
 export default function MockupDashboardPage() {
   const router = useRouter()
+  const { toast } = useToast()
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedRejection, setSelectedRejection] = useState<any>(null)
   const [selectedCertificate, setSelectedCertificate] = useState<any>(null)
+
+  // Fetch submissions from API
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          throw new Error('No authentication token found')
+        }
+
+        const tokenData = JSON.parse(authToken)
+        const response = await fetch('/api/submissions', {
+          headers: {
+            'Authorization': `Bearer ${tokenData.token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch submissions')
+        }
+
+        const data = await response.json()
+        if (data.success) {
+          setSubmissions(data.submissions)
+        } else {
+          throw new Error(data.error || 'Failed to fetch submissions')
+        }
+      } catch (err: any) {
+        console.error('Error fetching submissions:', err)
+        setError(err.message || 'Failed to fetch submissions')
+        toast({
+          title: "Error",
+          description: err.message || 'Failed to fetch submissions',
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSubmissions()
+  }, [toast])
 
   const handleCreateDevice = () => {
     router.push('/form')
   }
 
-  const handleEditDevice = (deviceId: number) => {
+  const handleEditDevice = (deviceId: string) => {
     // For now, just navigate to form with a query parameter
     router.push(`/form?edit=${deviceId}`)
   }
@@ -101,6 +97,34 @@ export default function MockupDashboardPage() {
 
   const handleViewCertificate = (device: any) => {
     setSelectedCertificate(device.certificateData)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  if (loading) {
+    return (
+      <AuthGuard>
+        <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-foreground">My Devices</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Loading your device submissions...
+              </p>
+            </div>
+            <div className="flex justify-center items-center mt-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+        </div>
+      </AuthGuard>
+    )
   }
 
   return (
@@ -122,76 +146,104 @@ export default function MockupDashboardPage() {
               Validate New Device
             </Button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border bg-card rounded-lg shadow">
-              <thead>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {mockDevices.map((device) => (
-                  <tr key={device.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{device.deviceName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.deviceType}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.manufacturer}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{device.submittedAt}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={statusColor[device.status] || "secondary"} className="capitalize">
-                        {device.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      {device.status === "approved" && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="gap-2"
-                          onClick={() => handleViewCertificate(device)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Certificate
-                        </Button>
-                      )}
-                      {device.status === "rejected" && (
-                        <Button 
-                          size="sm" 
-                          variant="destructive" 
-                          className="gap-2"
-                          onClick={() => handleViewRejection(device)}
-                        >
-                          <AlertCircle className="h-4 w-4" />
-                          Review Reason
-                        </Button>
-                      )}
-                      {device.status === "draft" && (
-                        <Button 
-                          size="sm" 
-                          variant="secondary" 
-                          className="gap-2"
-                          onClick={() => handleEditDevice(device.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                          Edit
-                        </Button>
-                      )}
-                      {device.status === "under review" && (
-                        <Button size="sm" variant="ghost" className="gap-2" disabled>
-                          <FileText className="h-4 w-4" />
-                          In Review
-                        </Button>
-                      )}
-                    </td>
+
+          {error && (
+            <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-destructive text-center">{error}</p>
+            </div>
+          )}
+
+          {submissions.length === 0 && !error ? (
+            <div className="text-center py-12">
+              <div className="max-w-md mx-auto">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">No devices submitted yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  Start by submitting your first device for validation. This will allow you to create investment pools and tokenize your device's revenue.
+                </p>
+                <Button
+                  onClick={handleCreateDevice}
+                  className="inline-flex items-center gap-2"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Submit Your First Device
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border bg-card rounded-lg shadow">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {submissions.map((submission) => (
+                    <tr key={submission.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{submission.deviceName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.deviceType}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.manufacturer}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(submission.submittedAt)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant={statusColor[submission.status] || "secondary"} className="capitalize">
+                          {submission.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {submission.status === "approved" && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="gap-2"
+                            onClick={() => handleViewCertificate(submission)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Certificate
+                          </Button>
+                        )}
+                        {submission.status === "rejected" && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            className="gap-2"
+                            onClick={() => handleViewRejection(submission)}
+                          >
+                            <AlertCircle className="h-4 w-4" />
+                            Review Reason
+                          </Button>
+                        )}
+                        {submission.status === "draft" && (
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="gap-2"
+                            onClick={() => handleEditDevice(submission.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                            Edit
+                          </Button>
+                        )}
+                        {(submission.status === "under review" || submission.status === "pending") && (
+                          <Button size="sm" variant="ghost" className="gap-2" disabled>
+                            <FileText className="h-4 w-4" />
+                            In Review
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Modals */}

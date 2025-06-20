@@ -6,6 +6,8 @@ import {
   STORAGE_CONFIG,
   StoredFile 
 } from '@/lib/fileStorage'
+import { getAuthenticatedUser } from '../auth/verify/route'
+import { submissionStorage } from '@/lib/submission-storage'
 
 // Define validation schemas
 const deviceSchema = z.object({
@@ -105,6 +107,15 @@ async function validateImageFiles(files: File[]) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const auth = getAuthenticatedUser(request)
+    if (!auth.valid) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
     const formData = await request.formData()
     const data = Object.fromEntries(formData.entries())
     
@@ -118,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedData = validationResult.data
-    const operatorId = data.operatorId as string
+    const operatorId = auth.user.walletAddress
     const storedFiles: StoredFile[] = []
 
     // Handle technical certification
@@ -177,10 +188,52 @@ export async function POST(request: NextRequest) {
       storedFiles.push(...results.filter(r => r.file).map(r => r.file!))
     }
 
-    // Return success response with stored file information
+    // Create submission record
+    const submissionId = `SUB_${Date.now()}_${Math.random().toString(36).substring(2)}`
+    const submission = {
+      id: submissionId,
+      deviceName: validatedData.deviceName,
+      deviceType: validatedData.deviceType,
+      serialNumber: validatedData.serialNumber,
+      manufacturer: validatedData.manufacturer,
+      model: validatedData.model,
+      yearOfManufacture: validatedData.yearOfManufacture,
+      condition: validatedData.condition,
+      specifications: validatedData.specifications,
+      purchasePrice: validatedData.purchasePrice,
+      currentValue: validatedData.currentValue,
+      expectedRevenue: validatedData.expectedRevenue,
+      operationalCosts: validatedData.operationalCosts,
+      operatorWallet: auth.user.walletAddress,
+      status: 'pending' as const,
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      files: storedFiles.map(file => ({
+        filename: file.filename,
+        path: file.path,
+        documentType: file.metadata.documentType
+      })),
+      // Admin fields (only for admin users)
+      adminNotes: null,
+      adminScore: null,
+      adminDecision: null,
+      adminDecisionAt: null,
+      certificateId: null,
+    }
+
+    // Store the submission
+    const createdSubmission = submissionStorage.create(submission)
+
+    // Return success response with submission information
     return NextResponse.json({
       success: true,
       message: 'Form submitted successfully',
+      submission: {
+        id: createdSubmission.id,
+        deviceName: createdSubmission.deviceName,
+        status: createdSubmission.status,
+        submittedAt: createdSubmission.submittedAt
+      },
       data: {
         ...validatedData,
         files: storedFiles.map(file => ({
