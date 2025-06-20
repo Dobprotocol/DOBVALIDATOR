@@ -71,22 +71,31 @@ export function useDraft() {
         })
       })
 
+      const requestBody = {
+        draftId,
+        ...deviceData,
+        files
+      }
+
+      console.log('Saving draft with data:', requestBody)
+
       const response = await fetch('/api/drafts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${tokenData.token}`
         },
-        body: JSON.stringify({
-          draftId,
-          ...deviceData,
-          files
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
 
       if (!response.ok) {
+        console.error('Draft API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: data
+        })
         throw new Error(data.error || 'Failed to save draft')
       }
 
