@@ -3,6 +3,9 @@ import { z } from 'zod'
 import jwt from 'jsonwebtoken'
 import { verifyChallenge } from '../challenge/route'
 
+// Required for API routes in Next.js
+export const dynamic = 'force-dynamic'
+
 // Verification schema validation
 const verificationSchema = z.object({
   walletAddress: z.string().min(1, "Wallet address is required"),
