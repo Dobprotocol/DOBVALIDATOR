@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
 
+// Required for API routes in Next.js
+export const dynamic = 'force-dynamic'
+
 // Profile schema validation
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
