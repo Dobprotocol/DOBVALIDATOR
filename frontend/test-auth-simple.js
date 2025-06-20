@@ -1,8 +1,8 @@
 // Simple authentication test script
 // Run this in the browser console to test the auth flow
-// Note: Server is running on port 3001, not 3000
+// Note: Server is running on port 3000 (standard Next.js port)
 
-const API_BASE = 'http://localhost:3001' // Updated port
+const API_BASE = 'http://localhost:3000' // Standard Next.js port
 
 async function testAuthFlow() {
   console.log('🧪 Testing authentication flow...')
