@@ -12,7 +12,8 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
-    "db:seed": "ts-node scripts/setup-database.ts"
+    "db:seed": "ts-node scripts/setup-database.ts",
+    "db:test": "ts-node scripts/test-database.ts"
   },
   "dependencies": {
     "@dob-validator/shared": "workspace:*",
