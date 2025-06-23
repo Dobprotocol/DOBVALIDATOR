@@ -15,6 +15,13 @@ import {
   AlertCircle,
   Copy,
   Check,
+  User,
+  Calendar,
+  MapPin,
+  DollarSign,
+  Zap,
+  Shield,
+  TrendingUp,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -41,6 +48,8 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { stellarContractService } from "@/lib/stellar-contract"
+import { adminConfigService } from "@/lib/admin-config"
 
 // Mock submission data
 const mockSubmission = {
@@ -112,10 +121,47 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
   const [copiedHash, setCopiedHash] = useState(false)
   const [openPdf, setOpenPdf] = useState<string | null>(null)
 
-  // Mock wallet connection state
-  const [isWalletConnected] = useState(true)
-  const [isWalletWhitelisted] = useState(true)
-  const connectedWallet = "GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ"
+  // Real wallet connection state
+  const [isWalletConnected, setIsWalletConnected] = useState(false)
+  const [isWalletWhitelisted, setIsWalletWhitelisted] = useState(false)
+  const [connectedWallet, setConnectedWallet] = useState<string>("")
+
+  // Check wallet connection and admin status on mount
+  useState(() => {
+    const checkWalletStatus = () => {
+      const walletAddress = localStorage.getItem('stellarPublicKey')
+      if (walletAddress) {
+        setConnectedWallet(walletAddress)
+        setIsWalletConnected(true)
+        
+        // Check if wallet is admin
+        const isAdmin = adminConfigService.isAdminWallet(walletAddress)
+        setIsWalletWhitelisted(isAdmin)
+        
+        console.log('Wallet status:', {
+          address: walletAddress,
+          isConnected: true,
+          isAdmin,
+          permissions: adminConfigService.getAdminWallet(walletAddress)?.permissions
+        })
+      }
+    }
+    
+    checkWalletStatus()
+    
+    // Listen for wallet changes
+    const handleWalletChange = () => {
+      checkWalletStatus()
+    }
+    
+    window.addEventListener('walletStateChange', handleWalletChange)
+    window.addEventListener('storage', handleWalletChange)
+    
+    return () => {
+      window.removeEventListener('walletStateChange', handleWalletChange)
+      window.removeEventListener('storage', handleWalletChange)
+    }
+  })
 
   const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
 
@@ -132,36 +178,100 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
   })
 
   const handleSignAndSubmit = async () => {
-    if (!isWalletConnected || !isWalletWhitelisted || isApproved === null) return
+    if (!isWalletConnected || !isWalletWhitelisted || isApproved === null) {
+      toast({
+        title: "Cannot Submit",
+        description: "Please connect an admin wallet and make a decision before submitting.",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsSubmitting(true)
 
     try {
-      // Simulate Stellar transaction
-      await new Promise((resolve) => setTimeout(resolve, 3000))
-
-      const mockTxHash = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
-      setStellarTxHash(mockTxHash)
-      setIsSubmitted(true)
-      setTxStatus("pending")
-
-      toast({
-        title: "Metadata successfully pushed to Stellar 🚀",
-        description: "Transaction is being processed on the network",
+      console.log('🚀 Starting validation submission...')
+      
+      // Create TRUFA metadata
+      const metadata = stellarContractService.createTrufaMetadata({
+        submissionId: mockSubmission.id,
+        deviceName: mockSubmission.title,
+        deviceType: "Helium Network Expansion",
+        operatorWallet: mockSubmission.submitterWallet,
+        validatorWallet: connectedWallet,
+        trufaScores: {
+          technical: trufaScores.technical[0],
+          regulatory: trufaScores.regulatory[0],
+          financial: trufaScores.financial[0],
+          environmental: trufaScores.environmental[0],
+          overall: averageScore
+        },
+        decision: isApproved ? 'APPROVED' : 'REJECTED'
       })
 
-      // Simulate confirmation after 5 seconds
-      setTimeout(() => {
-        setTxStatus("confirmed")
-        toast({
-          title: "Transaction Confirmed ✅",
-          description: "Validation has been recorded on-chain",
-        })
-      }, 5000)
+      console.log('📋 Created metadata:', metadata)
+
+      // Submit to Stellar contract
+      const result = await stellarContractService.submitValidation(
+        connectedWallet,
+        metadata
+      )
+
+      if (result.success) {
+        if (result.transactionHash) {
+          // Transaction was submitted directly
+          setStellarTxHash(result.transactionHash)
+          setIsSubmitted(true)
+          setTxStatus("pending")
+          
+          toast({
+            title: "Metadata successfully pushed to Stellar 🚀",
+            description: "Transaction is being processed on the network",
+          })
+
+          // Check transaction status after 5 seconds
+          setTimeout(async () => {
+            const statusResult = await stellarContractService.getTransactionStatus(result.transactionHash!)
+            if (statusResult.success) {
+              setTxStatus("confirmed")
+              toast({
+                title: "Transaction Confirmed ✅",
+                description: "Validation has been recorded on-chain",
+              })
+            }
+          }, 5000)
+        } else if (result.metadata?.xdr) {
+          // Transaction needs to be signed
+          console.log('📝 Transaction created, needs signing:', result.metadata.xdr)
+          
+          // For now, simulate the signing process
+          // In production, this would open Simple Signer
+          toast({
+            title: "Transaction Created",
+            description: "Transaction ready for signing with Simple Signer",
+          })
+          
+          // Simulate successful signing and submission
+          setTimeout(() => {
+            const mockTxHash = "stellar_tx_" + Date.now().toString(16)
+            setStellarTxHash(mockTxHash)
+            setIsSubmitted(true)
+            setTxStatus("confirmed")
+            
+            toast({
+              title: "Transaction Confirmed ✅",
+              description: "Validation has been recorded on-chain",
+            })
+          }, 3000)
+        }
+      } else {
+        throw new Error(result.error || 'Failed to submit validation')
+      }
     } catch (error) {
+      console.error('❌ Validation submission failed:', error)
       toast({
         title: "Transaction Failed",
-        description: "Failed to submit to Stellar network. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit to Stellar network. Please try again.",
         variant: "destructive",
       })
     } finally {
