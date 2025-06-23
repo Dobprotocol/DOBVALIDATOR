@@ -1,5 +1,207 @@
 # DOB Validator System TODO
 
+## 🎯 **URGENT TASKS - 2-3 DAY SPRINT**
+
+### **DAY 1: Core Smart Contract Integration ✅ COMPLETED**
+
+#### **✅ Priority 1: Stellar Contract Service (4-6 hours) - DONE**
+
+- [x] **Create Stellar Contract Service** (`frontend/lib/stellar-contract.ts`)
+- [x] **Implement contract address**: `CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN`
+- [x] **Add contract interaction methods** (invoke, query)
+- [x] **Implement metadata payload structure** for validation records
+- [x] **Add transaction signing and submission logic**
+
+#### **✅ Priority 2: Admin Wallet Authentication (2-3 hours) - DONE**
+
+- [x] **Create admin wallet whitelist configuration** (`frontend/lib/admin-config.ts`)
+- [x] **Update backoffice authentication** to verify admin wallets
+- [x] **Add admin role validation middleware**
+- [x] **Implement permission-based access control**
+
+#### **✅ Priority 3: Backoffice Integration (3-4 hours) - DONE**
+
+- [x] **Replace mock transaction** in `submission-review.tsx` with real contract call
+- [x] **Implement metadata payload construction**
+- [x] **Add transaction status tracking**
+- [x] **Add real wallet connection state management**
+
+### **DAY 2: Database & Real Data Integration**
+
+#### **Priority 1: Database Setup (2-3 hours)**
+
+- [ ] **Run Prisma migrations** on backend
+- [ ] **Replace in-memory storage** with database calls
+- [ ] **Test database connectivity**
+- [ ] **Migrate existing data** (if any)
+
+#### **Priority 2: Real API Integration (3-4 hours)**
+
+- [ ] **Connect frontend to real backend**
+- [ ] **Replace mock submission data** with database queries
+- [ ] **Implement real file upload** to backend
+- [ ] **Add proper error handling** for database operations
+
+#### **Priority 3: Submission Inbox (2-3 hours)**
+
+- [ ] **Build real submission inbox** in backoffice
+- [ ] **Connect to database submissions**
+- [ ] **Add basic filtering and pagination**
+- [ ] **Add submission status tracking**
+
+### **DAY 3: Testing & Polish**
+
+#### **Priority 1: End-to-End Testing (3-4 hours)**
+
+- [ ] **Test complete user submission flow**
+- [ ] **Test admin review and approval flow**
+- [ ] **Test smart contract integration**
+- [ ] **Test database operations**
+- [ ] **Fix any critical bugs**
+
+#### **Priority 2: Certificate Generation (2-3 hours)**
+
+- [ ] **Implement basic PDF certificate generation**
+- [ ] **Add certificate download functionality**
+- [ ] **Test certificate verification**
+- [ ] **Add certificate metadata to blockchain**
+
+#### **Priority 3: Production Readiness (2-3 hours)**
+
+- [ ] **Environment configuration**
+- [ ] **Basic security hardening**
+- [ ] **Documentation updates**
+- [ ] **Deployment preparation**
+
+---
+
+## 🧪 **IMMEDIATE TESTING TASKS**
+
+### **Priority 1: Stellar Contract Integration Testing**
+
+- [ ] **Test admin wallet connection** in backoffice
+- [ ] **Test TRUFA metadata generation** with sample data
+- [ ] **Test transaction creation** and XDR generation
+- [ ] **Test admin permission verification**
+- [ ] **Test metadata payload structure**
+
+### **Priority 2: Backoffice Flow Testing**
+
+- [ ] **Test submission review component** with real wallet
+- [ ] **Test approval/rejection flow**
+- [ ] **Test TRUFA scoring system**
+- [ ] **Test transaction status tracking**
+
+---
+
+## 📊 **COMPLETED FEATURES**
+
+### **✅ Authentication System**
+
+- [x] **Challenge-Response Authentication**: Implemented secure wallet signature verification
+- [x] **JWT Token Management**: Added JWT-based session management with 7-day expiration
+- [x] **Middleware Protection**: Created Next.js middleware for route protection
+- [x] **Authentication Utilities**: Built comprehensive auth helpers for frontend integration
+- [x] **Simple Signer Integration**: Full integration with popular Stellar wallet interface
+
+### **✅ API Endpoints**
+
+- [x] **`/api/auth/challenge`**: Generate authentication challenges
+- [x] **`/api/auth/verify`**: Verify wallet signatures and issue JWT tokens
+- [x] **`/api/profile`**: Complete CRUD operations for user profiles
+- [x] **`/api/submissions`**: Device submission management with pagination
+- [x] **`/api/certificates/generate`**: Certificate generation endpoint
+- [x] **`/api/certificates/verify/[id]`**: Public certificate verification
+
+### **✅ Stellar Integration**
+
+- [x] **StellarContractService**: Complete contract interaction service
+- [x] **TRUFA Metadata Structure**: Defined blockchain metadata format
+- [x] **Admin Wallet Management**: Role-based admin authentication
+- [x] **Transaction Creation**: XDR transaction generation for signing
+- [x] **Metadata Submission**: Contract interaction for validation records
+
+### **✅ Security Features**
+
+- [x] **Wallet Signature Verification**: Cryptographic proof of wallet ownership
+- [x] **JWT Token Validation**: Secure session management
+- [x] **Route Protection**: Middleware-based API security
+- [x] **Input Validation**: Comprehensive schema validation with Zod
+- [x] **Challenge Expiration**: 5-minute challenge timeout for security
+- [x] **Admin Permission System**: Role-based access control
+
+---
+
+## 🔄 **NEXT STEPS FOR API DEVELOPMENT**
+
+1. **Database Integration**: Replace in-memory storage with PostgreSQL
+2. **Real Contract Integration**: Connect to actual Stellar smart contract
+3. **PDF Generation**: Implement actual certificate PDF generation
+4. **Admin Endpoints**: Create admin-specific API endpoints
+5. **Rate Limiting**: Add API rate limiting for production
+6. **Email Integration**: Add email notification endpoints
+7. **Production Security**: Add comprehensive logging and monitoring
+
+---
+
+## 📚 **Documentation**
+
+- [x] **Authentication Documentation**: Complete guide for backend integration
+- [x] **API Documentation**: Comprehensive endpoint documentation
+- [x] **Security Guidelines**: Production security checklist
+- [x] **Troubleshooting Guide**: Common issues and solutions
+- [ ] **Stellar Integration Guide**: Smart contract interaction documentation
+- [ ] **Admin User Manual**: Backoffice operation guide
+
+---
+
+## 🚀 **DEPLOYMENT CHECKLIST**
+
+### **Environment Setup**
+
+- [ ] **Production Database**: Configure PostgreSQL
+- [ ] **Stellar Network**: Configure production Stellar network
+- [ ] **Admin Wallets**: Configure production admin wallet addresses
+- [ ] **Environment Variables**: Set up all required env vars
+
+### **Security Hardening**
+
+- [ ] **Rate Limiting**: Implement API rate limiting
+- [ ] **CORS Configuration**: Set up proper CORS
+- [ ] **Security Headers**: Add security headers
+- [ ] **SSL/TLS**: Configure HTTPS
+- [ ] **Input Sanitization**: Add comprehensive input validation
+
+### **Monitoring & Logging**
+
+- [ ] **Error Logging**: Implement comprehensive error logging
+- [ ] **Performance Monitoring**: Add performance tracking
+- [ ] **Transaction Monitoring**: Monitor Stellar transactions
+- [ ] **User Activity Tracking**: Track user interactions
+
+---
+
+## 🎯 **CURRENT STATUS**
+
+**✅ COMPLETED (Day 1)**
+
+- Stellar Smart Contract Integration Service
+- Admin Wallet Authentication System
+- Backoffice Integration with Real Contract Calls
+- TRUFA Metadata Structure and Generation
+
+**🔄 IN PROGRESS (Day 2)**
+
+- Database Integration
+- Real API Integration
+- Submission Inbox Development
+
+**⏳ PENDING (Day 3)**
+
+- End-to-End Testing
+- Certificate Generation
+- Production Readiness
+
 ## 0. General & Data Model
 
 - [x] **Design TRUFA JSON Schema for Validation Payloads**
