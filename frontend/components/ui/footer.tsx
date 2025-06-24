@@ -57,6 +57,7 @@ export function Footer() {
           flex items-center justify-between px-4 py-4 
           bg-background/80 border-t backdrop-blur-sm
           transition-all duration-300 ease-in-out
+          pointer-events-auto
           ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
         `}
       >

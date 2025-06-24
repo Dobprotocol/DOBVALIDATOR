@@ -75,6 +75,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    height: 200vh;
+    overflow-x: hidden;
+  }
+  
+  html {
+    height: 200vh;
+    overflow-x: hidden;
   }
 }
 
@@ -117,6 +124,48 @@ html:not(.ready) .animate-fade-in {
 .dark .bg-card {
   background-color: var(--card-background);
   border-color: var(--card-border);
+}
+
+/* Spline Background Effects */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) scale(1.2);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.spline-background {
+  animation: float 6s ease-in-out infinite;
+}
+
+.spline-content {
+  /* backdrop-filter: blur(5px); */
+  /* -webkit-backdrop-filter: blur(5px); */
+}
+
+.spline-content h1 {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.spline-content p {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Smooth parallax effect */
+.parallax-bg {
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
 /* Toast animations */

@@ -750,8 +750,8 @@ export default function Home() {
       
       {/* Main content container */}
       <div className="relative z-10 w-full">
-        {/* Hero section */}
-        <section className="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        {/* Hero section - fixed and centered, but not covering footer */}
+        <section className="fixed top-0 left-0 right-0 bottom-16 flex flex-col items-center justify-center">
           <div className="text-center max-w-2xl">
             <div className="spline-content rounded-2xl p-8">
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
@@ -764,7 +764,7 @@ export default function Home() {
                 <div className="w-full flex justify-center">
                   <div className="w-auto">
                     <div className="inline-block">
-                      <div className="[&>button]:text-lg [&>button]:py-4 [&>button]:px-10 [&>button]:rounded-xl [&>button]:font-semibold [&>button]:shadow-lg">
+                      <div className="[&>button]:text-lg [&>button]:py-4 [&>button]:px-10 [&>button]:rounded-xl [&>button]:font-semibold [&>button]:shadow-lg pointer-events-auto">
                         <StellarWallet />
                       </div>
                     </div>
@@ -773,75 +773,6 @@ export default function Home() {
               </div>
               <p className="mt-16 text-lg text-muted-foreground">
                 Submit your documentation and unlock new funding opportunities.
-              </p>
-            </div>
-          </div>
-        </section>
-        
-        {/* Additional content to make page scrollable */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto space-y-16">
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">About DOB Protocol</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                The DOB Protocol enables real-world asset tokenization and validation through blockchain technology.
-                Our platform provides a secure and transparent way to validate physical assets and make them investment-ready.
-              </p>
-            </div>
-            
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">How It Works</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Connect your wallet, submit device documentation, and get your assets validated for investment opportunities.
-                Our validation process ensures that your real-world assets meet the highest standards for blockchain investment.
-              </p>
-            </div>
-            
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">Benefits</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Unlock new funding opportunities and increase the value of your real-world assets through blockchain validation.
-                Access global investment markets and benefit from increased liquidity and transparency.
-              </p>
-            </div>
-            
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">Get Started</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Ready to validate your assets? Connect your wallet above to begin the process.
-                Our team will guide you through every step of the validation process.
-              </p>
-            </div>
-            
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">Technology</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Built on cutting-edge blockchain technology, our platform ensures security, transparency, and efficiency.
-                We use advanced validation algorithms and secure smart contracts to protect your assets.
-              </p>
-            </div>
-            
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">Security</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Your assets and data are protected by enterprise-grade security measures.
-                We implement multi-layer encryption and secure validation protocols to ensure your safety.
-              </p>
-            </div>
-            
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">Additional Content</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                This section ensures the page has enough content to be scrollable.
-                The document element should now properly reflect the full content height.
-              </p>
-            </div>
-            
-            <div className="spline-content rounded-2xl p-8">
-              <h2 className="text-3xl font-bold text-foreground">More Content</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Additional content to make sure the page is definitely scrollable.
-                This should fix the scroll height issue we were seeing.
               </p>
             </div>
           </div>
