@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { LogOut, User } from 'lucide-react'
 import { isAuthenticated, getAuthToken } from '@/lib/auth'
+import { apiService } from '@/lib/api-service'
 
 function truncateAddress(address: string): string {
   if (!address) return ''
@@ -47,15 +48,15 @@ export function Header() {
         }
 
         console.log('🔍 Header: Checking profile...')
-        const response = await fetch('/api/profile', {
-          headers: {
-            'Authorization': `Bearer ${authData.token}`
-          }
-        })
-
-        const hasProfileResult = response.ok
-        console.log('🔍 Header: Profile check result:', hasProfileResult)
-        setHasProfile(hasProfileResult)
+        try {
+          const profileResponse = await apiService.getProfile()
+          const hasProfileResult = profileResponse.success
+          console.log('🔍 Header: Profile check result:', hasProfileResult)
+          setHasProfile(hasProfileResult)
+        } catch (error) {
+          console.log('🔍 Header: No profile found')
+          setHasProfile(false)
+        }
       } catch (error) {
         console.error('Error checking profile:', error)
         setHasProfile(false)
@@ -124,7 +125,7 @@ export function Header() {
       <div className="flex items-center gap-6">
         <a href="https://www.dobprotocol.com" target="_blank" rel="noopener noreferrer">
           <Image
-            src="/images/dob-logo.png"
+            src="/images/dob imagotipo.svg"
             alt="DOB Protocol"
             width={120}
             height={40}

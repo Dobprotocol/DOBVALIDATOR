@@ -1,4 +1,5 @@
 // Authentication utilities for the frontend
+import { apiService } from './api-service'
 
 export interface AuthToken {
   token: string
@@ -58,20 +59,16 @@ export const getAuthHeader = (): { Authorization: string } | {} => {
 
 // Request a challenge for wallet signature
 export const requestChallenge = async (walletAddress: string): Promise<ChallengeResponse> => {
-  const response = await fetch('/api/auth/challenge', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ walletAddress }),
-  })
-
-  if (!response.ok) {
+  try {
+    const response = await apiService.generateChallenge(walletAddress)
+    return {
+      challenge: response.challenge,
+      message: 'Please sign this challenge with your wallet to authenticate'
+    }
+  } catch (error) {
+    console.error('Failed to request challenge:', error)
     throw new Error('Failed to request challenge')
   }
-
-  const data = await response.json()
-  return data
 }
 
 // Verify wallet signature and get JWT token
@@ -85,29 +82,18 @@ export const verifySignature = async (
   console.log('🔍 Challenge:', challenge)
   console.log('🔍 Signature:', signature.substring(0, 20) + '...')
   
-  const response = await fetch('/api/auth/verify', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ walletAddress, signature, challenge }),
-  })
-
-  console.log('📊 Verify response status:', response.status)
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    console.error('❌ Verification failed:', errorData)
+  try {
+    const response = await apiService.verifySignature(walletAddress, signature, challenge)
+    console.log('✅ Verification successful:', response)
+    
+    return {
+      token: response.token,
+      expiresIn: '7d', // Default expiration
+      walletAddress
+    }
+  } catch (error) {
+    console.error('❌ Verification failed:', error)
     throw new Error('Failed to verify signature')
-  }
-
-  const data = await response.json()
-  console.log('✅ Verification successful:', data)
-  
-  return {
-    token: data.token,
-    expiresIn: data.expiresIn,
-    walletAddress
   }
 }
 
