@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   ArrowLeft,
   CheckCircle,
@@ -50,39 +50,15 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { stellarContractService } from "@/lib/stellar-contract"
 import { adminConfigService } from "@/lib/admin-config"
-
-// Mock submission data
-const mockSubmission = {
-  id: "PROJ-001",
-  title: "Helium Chile Expansion",
-  submitter: "HeliumTech Solutions",
-  submittedAt: "2024-01-15T10:30:00Z",
-  status: "pending",
-  priority: "high",
-  description:
-    "Expansion of Helium network infrastructure across Chile with focus on rural connectivity and IoT device deployment.",
-  documents: [
-    { name: "technical-specs.pdf", size: "2.4 MB", type: "pdf" },
-    { name: "financial-model.xlsx", size: "1.8 MB", type: "excel" },
-    { name: "environmental-impact.pdf", size: "3.2 MB", type: "pdf" },
-    { name: "regulatory-compliance.pdf", size: "1.5 MB", type: "pdf" },
-  ],
-  extractedMetadata: {
-    deviceCount: 1250,
-    projectedRevenue: "$2.4M",
-    deploymentTimeframe: "18 months",
-    coverageArea: "45,000 km²",
-    energyConsumption: "125 kWh/month",
-    regulatoryStatus: "Pre-approved",
-  },
-  submitterWallet: "GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ",
-}
+import { apiService, Submission } from "@/lib/api-service"
+import { useSearchParams } from "next/navigation"
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "under-review": "bg-blue-100 text-blue-800 border-blue-200",
-  certified: "bg-green-100 text-green-800 border-green-200",
-  declined: "bg-red-100 text-red-800 border-red-200",
+  "under review": "bg-blue-100 text-blue-800 border-blue-200",
+  approved: "bg-green-100 text-green-800 border-green-200",
+  rejected: "bg-red-100 text-red-800 border-red-200",
+  draft: "bg-gray-100 text-gray-800 border-gray-200",
 }
 
 interface SubmissionReviewProps {
@@ -104,8 +80,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-export function SubmissionReview({ submissionId = "PROJ-001", onBack }: SubmissionReviewProps) {
+export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps) {
   const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const [submission, setSubmission] = useState<Submission | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [trufaScores, setTrufaScores] = useState({
     technical: [75],
     regulatory: [80],
@@ -126,8 +106,71 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
   const [isWalletWhitelisted, setIsWalletWhitelisted] = useState(false)
   const [connectedWallet, setConnectedWallet] = useState<string>("")
 
+  // Get submission ID from URL params or props
+  const currentSubmissionId = submissionId || searchParams.get('id') || ""
+
+  // Fetch submission data
+  useEffect(() => {
+    const fetchSubmission = async () => {
+      if (!currentSubmissionId) {
+        setError('No submission ID provided')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+
+        if (!apiService.isAuthenticated()) {
+          setError('Authentication required')
+          return
+        }
+
+        const response = await apiService.getSubmission(currentSubmissionId)
+        
+        if (response.success && response.data) {
+          setSubmission(response.data)
+          // Initialize TRUFA scores from existing admin score if available
+          if (response.data.adminScore) {
+            const score = response.data.adminScore
+            setTrufaScores({
+              technical: [score],
+              regulatory: [score],
+              financial: [score],
+              environmental: [score],
+            })
+          }
+          // Load existing admin notes
+          if (response.data.adminNotes) {
+            setReviewerNotes(response.data.adminNotes)
+          }
+        } else {
+          setError(response.error || 'Failed to fetch submission')
+          toast({
+            title: "Error",
+            description: response.error || 'Failed to fetch submission',
+            variant: "destructive",
+          })
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        setError(errorMessage)
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSubmission()
+  }, [currentSubmissionId, toast])
+
   // Check wallet connection and admin status on mount
-  useState(() => {
+  useEffect(() => {
     const checkWalletStatus = () => {
       const walletAddress = localStorage.getItem('stellarPublicKey')
       if (walletAddress) {
@@ -161,7 +204,7 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
       window.removeEventListener('walletStateChange', handleWalletChange)
       window.removeEventListener('storage', handleWalletChange)
     }
-  })
+  }, [])
 
   const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
 
@@ -178,7 +221,7 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
   })
 
   const handleSignAndSubmit = async () => {
-    if (!isWalletConnected || !isWalletWhitelisted || isApproved === null) {
+    if (!isWalletConnected || !isWalletWhitelisted || isApproved === null || !submission) {
       toast({
         title: "Cannot Submit",
         description: "Please connect an admin wallet and make a decision before submitting.",
@@ -192,12 +235,25 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
     try {
       console.log('🚀 Starting validation submission...')
       
+      // Update submission with admin decision
+      const updateResponse = await apiService.updateSubmission(submission.id, {
+        adminScore: averageScore,
+        adminNotes: reviewerNotes,
+        adminDecision: isApproved ? 'approved' : 'rejected',
+        adminDecisionAt: new Date().toISOString(),
+        status: isApproved ? 'approved' : 'rejected'
+      })
+
+      if (!updateResponse.success) {
+        throw new Error(updateResponse.error || 'Failed to update submission')
+      }
+
       // Create TRUFA metadata
       const metadata = stellarContractService.createTrufaMetadata({
-        submissionId: mockSubmission.id,
-        deviceName: mockSubmission.title,
-        deviceType: "Helium Network Expansion",
-        operatorWallet: mockSubmission.submitterWallet,
+        submissionId: submission.id,
+        deviceName: submission.deviceName,
+        deviceType: submission.deviceType,
+        operatorWallet: submission.operatorWallet,
         validatorWallet: connectedWallet,
         trufaScores: {
           technical: trufaScores.technical[0],
@@ -208,70 +264,52 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
         },
         decision: isApproved ? 'APPROVED' : 'REJECTED'
       })
-
       console.log('📋 Created metadata:', metadata)
 
-      // Submit to Stellar contract
-      const result = await stellarContractService.submitValidation(
-        connectedWallet,
+      // Get admin secret from secure storage (for demo, prompt; in prod, use wallet integration)
+      let adminSecret = localStorage.getItem('stellarSecretKey')
+      if (!adminSecret) {
+        adminSecret = prompt('Enter your admin Stellar secret key to sign the transaction:') || ''
+      }
+      if (!adminSecret) {
+        toast({
+          title: "Missing Secret Key",
+          description: "Admin secret key is required to sign the transaction.",
+          variant: "destructive",
+        })
+        setIsSubmitting(false)
+        return
+      }
+
+      // Submit to Soroban contract
+      const result = await stellarContractService.submitValidationToSoroban({
+        adminSecret,
+        adminPublic: connectedWallet,
         metadata
-      )
+      })
 
       if (result.success) {
         if (result.transactionHash) {
-          // Transaction was submitted directly
           setStellarTxHash(result.transactionHash)
           setIsSubmitted(true)
           setTxStatus("pending")
-          
           toast({
             title: "Metadata successfully pushed to Stellar 🚀",
             description: "Transaction is being processed on the network",
           })
-
-          // Check transaction status after 5 seconds
-          setTimeout(async () => {
-            const statusResult = await stellarContractService.getTransactionStatus(result.transactionHash!)
-            if (statusResult.success) {
-              setTxStatus("confirmed")
-              toast({
-                title: "Transaction Confirmed ✅",
-                description: "Validation has been recorded on-chain",
-              })
-            }
-          }, 5000)
-        } else if (result.metadata?.xdr) {
-          // Transaction needs to be signed
-          console.log('📝 Transaction created, needs signing:', result.metadata.xdr)
-          
-          // For now, simulate the signing process
-          // In production, this would open Simple Signer
-          toast({
-            title: "Transaction Created",
-            description: "Transaction ready for signing with Simple Signer",
-          })
-          
-          // Simulate successful signing and submission
-          setTimeout(() => {
-            const mockTxHash = "stellar_tx_" + Date.now().toString(16)
-            setStellarTxHash(mockTxHash)
-            setIsSubmitted(true)
-            setTxStatus("confirmed")
-            
-            toast({
-              title: "Transaction Confirmed ✅",
-              description: "Validation has been recorded on-chain",
-            })
-          }, 3000)
+          // Optionally, poll for confirmation
         }
       } else {
-        throw new Error(result.error || 'Failed to submit validation')
+        toast({
+          title: "Contract Submission Failed",
+          description: result.error || 'Unknown error',
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      console.error('❌ Validation submission failed:', error)
       toast({
-        title: "Transaction Failed",
-        description: error instanceof Error ? error.message : "Failed to submit to Stellar network. Please try again.",
+        title: "Submission Error",
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       })
     } finally {
@@ -310,6 +348,38 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading submission details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !submission) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-6 py-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error || 'Submission not found'}
+            </AlertDescription>
+          </Alert>
+          {onBack && (
+            <Button variant="outline" className="mt-4" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Inbox
+            </Button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Toaster />
@@ -326,9 +396,9 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
             )}
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{mockSubmission.title}</h1>
-                <Badge className={statusColors[mockSubmission.status as keyof typeof statusColors]}>
-                  {mockSubmission.status.replace("-", " ")}
+                <h1 className="text-2xl font-bold">{submission.deviceName}</h1>
+                <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
+                  {submission.status.replace("-", " ")}
                 </Badge>
                 <Badge variant="outline" className="gap-1">
                   <Star className="h-3 w-3" />
@@ -336,8 +406,8 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                {mockSubmission.id} • Submitted by {mockSubmission.submitter} on{" "}
-                {new Date(mockSubmission.submittedAt).toLocaleDateString()}
+                {submission.id} • Submitted by {submission.operatorWallet.slice(0, 8)}...{submission.operatorWallet.slice(-8)} on{" "}
+                {new Date(submission.submittedAt).toLocaleDateString()}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -366,10 +436,71 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
             {/* Project Description */}
             <Card>
               <CardHeader>
-                <CardTitle>Project Overview</CardTitle>
+                <CardTitle>Device Overview</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed">{mockSubmission.description}</p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Device Type</Label>
+                    <p className="font-medium">{submission.deviceType}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Manufacturer</Label>
+                    <p className="font-medium">{submission.manufacturer}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Model</Label>
+                    <p className="font-medium">{submission.model}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Serial Number</Label>
+                    <p className="font-medium">{submission.serialNumber}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Year of Manufacture</Label>
+                    <p className="font-medium">{submission.yearOfManufacture}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Condition</Label>
+                    <p className="font-medium">{submission.condition}</p>
+                  </div>
+                </div>
+                <Separator className="my-4" />
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Specifications</Label>
+                  <p className="text-sm leading-relaxed mt-1">{submission.specifications}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Financial Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Financial Information
+                </CardTitle>
+                <CardDescription>Device financial metrics and projections</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Purchase Price</Label>
+                    <p className="font-medium">${Number(submission.purchasePrice).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Current Value</Label>
+                    <p className="font-medium">${Number(submission.currentValue).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Expected Revenue</Label>
+                    <p className="font-medium">${Number(submission.expectedRevenue).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Operational Costs</Label>
+                    <p className="font-medium">${Number(submission.operationalCosts).toLocaleString()}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -380,65 +511,40 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
                   <FileText className="h-5 w-5" />
                   Documentation
                 </CardTitle>
-                <CardDescription>Review submitted project documents</CardDescription>
+                <CardDescription>Review submitted device documents</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {mockSubmission.documents.map((doc, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span className="truncate">{doc.name}</span>
-                      {doc.type === "pdf" ? (
-                        <Button variant="ghost" size="sm" onClick={() => setOpenPdf(doc.name)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      ) : (
+                {submission.files.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {submission.files.map((file, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <span className="truncate">{file.filename}</span>
                         <Button variant="ghost" size="sm" asChild>
                           <a
-                            href={`/${doc.name}`}
+                            href={`/uploads/${file.path}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title={`View ${doc.name}`}
+                            title={`View ${file.filename}`}
                           >
                             <Eye className="h-4 w-4" />
                           </a>
                         </Button>
-                      )}
-                      <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={`/${doc.name}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={`Download ${doc.name}`}
-                        >
-                          <Download className="h-4 w-4" />
-                        </a>
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={`/uploads/${file.path}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Download ${file.filename}`}
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
                         </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Auto-extracted Metadata */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Extracted Metadata
-                </CardTitle>
-                <CardDescription>Automatically extracted project metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {Object.entries(mockSubmission.extractedMetadata).map(([key, value]) => (
-                    <div key={key} className="space-y-1">
-                      <Label className="text-xs font-medium text-muted-foreground">
-                        {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
-                      </Label>
-                      <p className="font-medium">{value}</p>
-                    </div>
-                  ))}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No documents uploaded</p>
+                )}
               </CardContent>
             </Card>
 
@@ -569,8 +675,8 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       {isApproved
-                        ? "Project approved for certification. Ready to sign and submit to Stellar."
-                        : "Project rejected. This decision will be recorded on-chain."}
+                        ? "Device approved for certification. Ready to sign and submit to Stellar."
+                        : "Device rejected. This decision will be recorded on-chain."}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -580,44 +686,66 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
             {/* Wallet Status & Signing */}
             <Card>
               <CardHeader>
-                <CardTitle>Stellar Submission</CardTitle>
-                <CardDescription>Sign and submit validation to blockchain</CardDescription>
+                <CardTitle>Wallet Status</CardTitle>
+                <CardDescription>Admin wallet connection and signing</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Connection Status</span>
+                    <Badge variant={isWalletConnected ? "default" : "secondary"}>
+                      {isWalletConnected ? "Connected" : "Disconnected"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Admin Status</span>
+                    <Badge variant={isWalletWhitelisted ? "default" : "secondary"}>
+                      {isWalletWhitelisted ? "Admin" : "Not Admin"}
+                    </Badge>
+                  </div>
+                  {connectedWallet && (
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {connectedWallet.slice(0, 8)}...{connectedWallet.slice(-8)}
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleSignAndSubmit}
+                  disabled={!canSign}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-4 w-4 mr-2" />
+                      Sign & Submit to Stellar
+                    </>
+                  )}
+                </Button>
+
                 {!isWalletConnected && (
                   <Alert>
-                    <Wallet className="h-4 w-4" />
-                    <AlertDescription>Connect your validator wallet to sign transactions</AlertDescription>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Please connect an admin wallet to sign and submit this validation.
+                    </AlertDescription>
                   </Alert>
                 )}
 
                 {isWalletConnected && !isWalletWhitelisted && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>Your wallet is not authorized for validation signing</AlertDescription>
+                    <AlertDescription>
+                      Connected wallet is not authorized as an admin. Please connect an admin wallet.
+                    </AlertDescription>
                   </Alert>
                 )}
-
-                {isWalletConnected && (
-                  <div className="space-y-2">
-                    <Label className="text-sm">Connected Wallet</Label>
-                    <div className="p-2 bg-muted rounded text-xs font-mono break-all">{connectedWallet}</div>
-                  </div>
-                )}
-
-                <Button onClick={handleSignAndSubmit} disabled={!canSign || isSubmitting} className="w-full" size="lg">
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Signing & Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Wallet className="h-4 w-4 mr-2" />
-                      Sign & Submit to Stellar
-                    </>
-                  )}
-                </Button>
               </CardContent>
             </Card>
 
@@ -625,43 +753,48 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
             {isSubmitted && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {txStatus === "confirmed" ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    )}
-                    Transaction Status
-                  </CardTitle>
+                  <CardTitle>Transaction Status</CardTitle>
+                  <CardDescription>Stellar blockchain transaction details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm">Stellar Transaction Hash</Label>
+                    <Label className="text-sm">Transaction Hash</Label>
                     <div className="flex items-center gap-2">
-                      <div className="p-2 bg-muted rounded text-xs font-mono break-all flex-1">{stellarTxHash}</div>
-                      <Button variant="ghost" size="sm" onClick={copyTxHash}>
+                      <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+                        {stellarTxHash}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={copyTxHash}
+                        className="shrink-0"
+                      >
                         {copiedHash ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                      <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={`https://stellar.expert/explorer/public/tx/${stellarTxHash}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
                       </Button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`h-2 w-2 rounded-full ${txStatus === "confirmed" ? "bg-green-500" : "bg-yellow-500"}`}
-                    />
-                    <span className="text-sm">
-                      {txStatus === "confirmed" ? "Confirmed on-chain" : "Awaiting confirmation"}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Status</span>
+                    <Badge variant={txStatus === "confirmed" ? "default" : "secondary"}>
+                      {txStatus === "confirmed" ? "Confirmed" : "Pending"}
+                    </Badge>
                   </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    asChild
+                  >
+                    <a
+                      href={`https://stellar.expert/explorer/testnet/tx/${stellarTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View on Stellar Expert
+                    </a>
+                  </Button>
 
                   {txStatus === "confirmed" && (
                     <Button variant="outline" className="w-full">
@@ -675,21 +808,6 @@ export function SubmissionReview({ submissionId = "PROJ-001", onBack }: Submissi
           </div>
         </div>
       </div>
-
-      <Dialog open={!!openPdf} onOpenChange={() => setOpenPdf(null)}>
-        <DialogContent className="max-w-3xl w-full h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Preview: {openPdf}</DialogTitle>
-          </DialogHeader>
-          {openPdf && (
-            <iframe
-              src={`/${openPdf}`}
-              title={openPdf}
-              className="w-full h-[70vh] border rounded"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

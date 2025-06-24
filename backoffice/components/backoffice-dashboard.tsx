@@ -19,6 +19,8 @@ import {
   MessageSquare,
   Star,
   LogOut,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -67,60 +69,16 @@ import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-
-// Mock data
-const mockSubmissions = [
-  {
-    id: "PROJ-001",
-    title: "Solar Farm Development",
-    submitter: "GreenTech Solutions",
-    submittedAt: "2024-01-15T10:30:00Z",
-    status: "pending",
-    priority: "high",
-    documents: ["environmental-impact.pdf", "technical-specs.pdf", "financial-model.xlsx", "compliance.pdf"],
-    trufaScore: null,
-    validator: null,
-  },
-  {
-    id: "PROJ-002",
-    title: "Wind Energy Project",
-    submitter: "EcoWind Corp",
-    submittedAt: "2024-01-14T14:20:00Z",
-    status: "under-review",
-    priority: "medium",
-    documents: ["project-proposal.pdf", "site-analysis.pdf"],
-    trufaScore: 85,
-    validator: "validator1.stellar",
-  },
-  {
-    id: "PROJ-003",
-    title: "Hydroelectric Plant",
-    submitter: "AquaPower Inc",
-    submittedAt: "2024-01-13T09:15:00Z",
-    status: "certified",
-    priority: "high",
-    documents: ["feasibility-study.pdf", "environmental-clearance.pdf"],
-    trufaScore: 92,
-    validator: "validator2.stellar",
-  },
-  {
-    id: "PROJ-004",
-    title: "Geothermal Project",
-    submitter: "ThermalTech Ltd",
-    submittedAt: "2024-01-12T16:45:00Z",
-    status: "declined",
-    priority: "low",
-    documents: ["initial-proposal.pdf"],
-    trufaScore: 45,
-    validator: "validator1.stellar",
-  },
-]
+import { apiService, Submission } from "@/lib/api-service"
+import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "under-review": "bg-blue-100 text-blue-800 border-blue-200",
-  certified: "bg-green-100 text-green-800 border-green-200",
-  declined: "bg-red-100 text-red-800 border-red-200",
+  "under review": "bg-blue-100 text-blue-800 border-blue-200",
+  approved: "bg-green-100 text-green-800 border-green-200",
+  rejected: "bg-red-100 text-red-800 border-red-200",
+  draft: "bg-gray-100 text-gray-800 border-gray-200",
 }
 
 const priorityColors = {
@@ -132,6 +90,7 @@ const priorityColors = {
 function AppSidebar() {
   const [activeSection, setActiveSection] = useState("inbox")
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [pendingCount, setPendingCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -150,6 +109,20 @@ function AppSidebar() {
     return () => window.removeEventListener('walletStateChange', handleWalletStateChange)
   }, [])
 
+  // Fetch pending count for badge
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      if (apiService.isAuthenticated()) {
+        const response = await apiService.getSubmissions({ status: 'pending' })
+        if (response.success && response.data) {
+          setPendingCount(response.data.pagination.total)
+        }
+      }
+    }
+
+    fetchPendingCount()
+  }, [])
+
   const truncateAddress = (address: string) => {
     if (!address) return ''
     return `${address.slice(0, 4)}...${address.slice(-4)}`
@@ -162,6 +135,7 @@ function AppSidebar() {
       console.log('Clearing localStorage...')
       localStorage.removeItem('stellarPublicKey')
       localStorage.removeItem('stellarWallet')
+      localStorage.removeItem('authToken')
       
       console.log('Removing cookie...')
       document.cookie = 'stellarPublicKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
@@ -181,7 +155,7 @@ function AppSidebar() {
       id: "inbox",
       title: "Inbox",
       icon: Inbox,
-      badge: mockSubmissions.filter((s) => s.status === "pending").length,
+      badge: pendingCount,
     },
     {
       id: "validation-tools",
@@ -240,61 +214,141 @@ function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Wallet</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="px-2 py-1">
+              {walletAddress ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Wallet className="h-4 w-4" />
+                    <span className="font-mono">{truncateAddress(walletAddress)}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDisconnect}
+                    className="w-full"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No wallet connected
+                </div>
+              )}
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start">
-                  <Wallet className="h-4 w-4 mr-2" />
-                  <span>{walletAddress ? truncateAddress(walletAddress) : "Connect Wallet"}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Connected Wallet</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {walletAddress}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDisconnect}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Disconnect</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="px-2 py-1">
+          <div className="text-xs text-muted-foreground">
+            DOB Protocol v1.0
+          </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   )
 }
 
 function InboxSection() {
+  const { toast } = useToast()
   const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
-
-  const filteredSubmissions = mockSubmissions.filter((submission) => {
-    const matchesStatus = statusFilter === "all" || submission.status === statusFilter
-    const matchesSearch =
-      submission.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.submitter.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesStatus && matchesSearch
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({
+    total: 0,
+    limit: 10,
+    offset: 0,
+    hasMore: false
   })
+
+  // Fetch submissions
+  const fetchSubmissions = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      if (!apiService.isAuthenticated()) {
+        setError('Authentication required')
+        return
+      }
+
+      const response = await apiService.getSubmissions({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        limit: pagination.limit,
+        offset: pagination.offset
+      })
+
+      if (response.success && response.data) {
+        setSubmissions(response.data.submissions)
+        setPagination(response.data.pagination)
+      } else {
+        setError(response.error || 'Failed to fetch submissions')
+        toast({
+          title: "Error",
+          description: response.error || 'Failed to fetch submissions',
+          variant: "destructive",
+        })
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSubmissions()
+  }, [statusFilter, pagination.offset])
+
+  // Filter submissions by search query
+  const filteredSubmissions = submissions.filter((submission) => {
+    const matchesSearch =
+      submission.deviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      submission.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      submission.deviceType.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesSearch
+  })
+
+  const handleStatusFilterChange = (newStatus: string) => {
+    setStatusFilter(newStatus)
+    setPagination(prev => ({ ...prev, offset: 0 }))
+  }
+
+  const handleLoadMore = () => {
+    if (pagination.hasMore) {
+      setPagination(prev => ({ ...prev, offset: prev.offset + prev.limit }))
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Project Inbox</h1>
+          <p className="text-muted-foreground">Manage incoming project submissions</p>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -316,25 +370,28 @@ function InboxSection() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search projects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search submissions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
+        <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="under-review">Under Review</SelectItem>
-            <SelectItem value="certified">Certified</SelectItem>
-            <SelectItem value="declined">Declined</SelectItem>
+            <SelectItem value="under review">Under Review</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -343,70 +400,84 @@ function InboxSection() {
         <CardHeader>
           <CardTitle>Submissions</CardTitle>
           <CardDescription>
-            {filteredSubmissions.length} of {mockSubmissions.length} submissions
+            {loading ? 'Loading...' : `${filteredSubmissions.length} of ${pagination.total} submissions`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Project ID</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Submitter</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>TRUFA Score</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSubmissions.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell className="font-mono text-sm">{submission.id}</TableCell>
-                  <TableCell className="font-medium">{submission.title}</TableCell>
-                  <TableCell>{submission.submitter}</TableCell>
-                  <TableCell>
-                    <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
-                      {submission.status.replace("-", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={priorityColors[submission.priority as keyof typeof priorityColors]}
-                    >
-                      {submission.priority}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {submission.trufaScore ? (
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-500" />
-                        {submission.trufaScore}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(submission.submittedAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex items-center gap-1"
-                      onClick={() => window.location.href = `/submission-review?id=${submission.id}`}
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>Review</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading submissions...</span>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project ID</TableHead>
+                    <TableHead>Device Name</TableHead>
+                    <TableHead>Manufacturer</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>TRUFA Score</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSubmissions.map((submission) => (
+                    <TableRow key={submission.id}>
+                      <TableCell className="font-mono text-sm">{submission.id}</TableCell>
+                      <TableCell className="font-medium">{submission.deviceName}</TableCell>
+                      <TableCell>{submission.manufacturer}</TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
+                          {submission.status.replace("-", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {submission.deviceType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {submission.adminScore ? (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 text-yellow-500" />
+                            {submission.adminScore}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(submission.submittedAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center gap-1"
+                          onClick={() => window.location.href = `/submission-review?id=${submission.id}`}
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span>Review</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {pagination.hasMore && (
+                <div className="flex justify-center mt-4">
+                  <Button variant="outline" onClick={handleLoadMore}>
+                    Load More
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -414,7 +485,10 @@ function InboxSection() {
 }
 
 function ValidationToolsSection() {
-  const [selectedProject, setSelectedProject] = useState(mockSubmissions[0])
+  const { toast } = useToast()
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [selectedProject, setSelectedProject] = useState<Submission | null>(null)
+  const [loading, setLoading] = useState(true)
   const [trufaScores, setTrufaScores] = useState({
     technical: [75],
     regulatory: [80],
@@ -423,7 +497,62 @@ function ValidationToolsSection() {
   })
   const [comments, setComments] = useState("")
 
+  // Fetch pending and under review submissions
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        setLoading(true)
+        
+        if (!apiService.isAuthenticated()) {
+          toast({
+            title: "Authentication Required",
+            description: "Please connect your wallet to access validation tools",
+            variant: "destructive",
+          })
+          return
+        }
+
+        const response = await apiService.getSubmissions({
+          status: 'pending'
+        })
+
+        if (response.success && response.data) {
+          const pendingSubmissions = response.data.submissions
+          setSubmissions(pendingSubmissions)
+          if (pendingSubmissions.length > 0) {
+            setSelectedProject(pendingSubmissions[0])
+          }
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch submissions",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSubmissions()
+  }, [toast])
+
   const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Validation Tools</h1>
+          <p className="text-muted-foreground">TRUFA scoring and project validation</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading validation tools...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -439,68 +568,61 @@ function ValidationToolsSection() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Select
-              value={selectedProject.id}
-              onValueChange={(value) =>
-                setSelectedProject(mockSubmissions.find((s) => s.id === value) || mockSubmissions[0])
-              }
+              value={selectedProject?.id || ""}
+              onValueChange={(value) => {
+                const project = submissions.find((s) => s.id === value)
+                setSelectedProject(project || null)
+              }}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select a project" />
               </SelectTrigger>
               <SelectContent>
-                {mockSubmissions
-                  .filter((s) => s.status === "pending" || s.status === "under-review")
-                  .map((submission) => (
-                    <SelectItem key={submission.id} value={submission.id}>
-                      {submission.title}
-                    </SelectItem>
-                  ))}
+                {submissions.map((submission) => (
+                  <SelectItem key={submission.id} value={submission.id}>
+                    {submission.deviceName}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Project Details</Label>
-              <div className="text-sm space-y-1">
-                <p>
-                  <span className="font-medium">ID:</span> {selectedProject.id}
-                </p>
-                <p>
-                  <span className="font-medium">Submitter:</span> {selectedProject.submitter}
-                </p>
-                <p>
-                  <span className="font-medium">Status:</span>
-                  <Badge className={`ml-2 ${statusColors[selectedProject.status as keyof typeof statusColors]}`}>
-                    {selectedProject.status.replace("-", " ")}
-                  </Badge>
-                </p>
+            {selectedProject && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Project Details</Label>
+                <div className="text-sm space-y-1">
+                  <p>
+                    <span className="font-medium">ID:</span> {selectedProject.id}
+                  </p>
+                  <p>
+                    <span className="font-medium">Device:</span> {selectedProject.deviceName}
+                  </p>
+                  <p>
+                    <span className="font-medium">Manufacturer:</span> {selectedProject.manufacturer}
+                  </p>
+                  <p>
+                    <span className="font-medium">Status:</span>
+                    <Badge className={`ml-2 ${statusColors[selectedProject.status as keyof typeof statusColors]}`}>
+                      {selectedProject.status.replace("-", " ")}
+                    </Badge>
+                  </p>
+                </div>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Documents</Label>
-              <div className="space-y-1">
-                {selectedProject.documents.map((doc, index) => (
-                  <div key={index} className="flex items-center justify-between text-sm">
-                    <span className="truncate">{doc}</span>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>TRUFA Scoring</CardTitle>
-            <CardDescription>Evaluate project across key criteria</CardDescription>
+            <CardDescription>Evaluate the selected project across key criteria</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Technical Feasibility ({trufaScores.technical[0]})</Label>
+                <div className="flex justify-between">
+                  <Label className="text-sm">Technical Feasibility</Label>
+                  <span className="text-sm font-medium">{trufaScores.technical[0]}</span>
+                </div>
                 <Slider
                   value={trufaScores.technical}
                   onValueChange={(value) => setTrufaScores((prev) => ({ ...prev, technical: value }))}
@@ -511,7 +633,10 @@ function ValidationToolsSection() {
               </div>
 
               <div className="space-y-2">
-                <Label>Regulatory Compliance ({trufaScores.regulatory[0]})</Label>
+                <div className="flex justify-between">
+                  <Label className="text-sm">Regulatory Compliance</Label>
+                  <span className="text-sm font-medium">{trufaScores.regulatory[0]}</span>
+                </div>
                 <Slider
                   value={trufaScores.regulatory}
                   onValueChange={(value) => setTrufaScores((prev) => ({ ...prev, regulatory: value }))}
@@ -522,7 +647,10 @@ function ValidationToolsSection() {
               </div>
 
               <div className="space-y-2">
-                <Label>Financial Viability ({trufaScores.financial[0]})</Label>
+                <div className="flex justify-between">
+                  <Label className="text-sm">Financial Viability</Label>
+                  <span className="text-sm font-medium">{trufaScores.financial[0]}</span>
+                </div>
                 <Slider
                   value={trufaScores.financial}
                   onValueChange={(value) => setTrufaScores((prev) => ({ ...prev, financial: value }))}
@@ -533,7 +661,10 @@ function ValidationToolsSection() {
               </div>
 
               <div className="space-y-2">
-                <Label>Environmental Impact ({trufaScores.environmental[0]})</Label>
+                <div className="flex justify-between">
+                  <Label className="text-sm">Environmental Impact</Label>
+                  <span className="text-sm font-medium">{trufaScores.environmental[0]}</span>
+                </div>
                 <Slider
                   value={trufaScores.environmental}
                   onValueChange={(value) => setTrufaScores((prev) => ({ ...prev, environmental: value }))}
@@ -546,36 +677,32 @@ function ValidationToolsSection() {
 
             <Separator />
 
-            <div className="flex items-center justify-between">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-[hsl(var(--primary))]">{averageScore}</div>
+              <p className="text-sm text-muted-foreground">Overall TRUFA Score</p>
+            </div>
+
+            <div className="space-y-4">
               <div>
-                <Label className="text-lg font-semibold">Overall TRUFA Score</Label>
-                <p className="text-sm text-muted-foreground">Average of all criteria</p>
+                <Label className="text-sm font-medium">Review Comments</Label>
+                <Textarea
+                  placeholder="Add your review comments and observations..."
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  rows={4}
+                />
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-blue-600">{averageScore}</div>
-                <div className="text-sm text-muted-foreground">out of 100</div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1">
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+                <Button className="flex-1">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Approve
+                </Button>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Validation Comments</Label>
-              <Textarea
-                placeholder="Add your validation notes and comments..."
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                rows={4}
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <Button className="flex-1" size="lg">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Approve & Certify
-              </Button>
-              <Button variant="destructive" className="flex-1" size="lg">
-                <XCircle className="h-4 w-4 mr-2" />
-                Decline
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -587,131 +714,127 @@ function ValidationToolsSection() {
 function SettingsSection() {
   const { theme, setTheme } = useTheme()
   const [notifications, setNotifications] = useState(true)
-  const [autoValidation, setAutoValidation] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Configure dashboard preferences and validation parameters</p>
+        <p className="text-muted-foreground">Configure your backoffice preferences</p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="validation">Validation</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>Customize the look and feel of the backoffice</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="theme">Theme</Label>
+              <Select value={theme} onValueChange={setTheme}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="general" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance</CardTitle>
-              <CardDescription>Customize the dashboard appearance</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Theme</Label>
-                  <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
-                </div>
-                <Select value={theme} onValueChange={setTheme}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications for new submissions</p>
-                </div>
-                <Switch checked={notifications} onCheckedChange={setNotifications} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="validation" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Validation Parameters</CardTitle>
-              <CardDescription>Configure TRUFA scoring and validation rules</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Minimum TRUFA Score</Label>
-                  <Input type="number" placeholder="70" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Auto-certification Threshold</Label>
-                  <Input type="number" placeholder="90" />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Auto-validation</Label>
-                  <p className="text-sm text-muted-foreground">Automatically validate high-scoring submissions</p>
-                </div>
-                <Switch checked={autoValidation} onCheckedChange={setAutoValidation} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Wallet & Security</CardTitle>
-              <CardDescription>Manage validator wallet and security settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Connected Wallet</Label>
-                <div className="flex items-center gap-2 p-3 border rounded-lg">
-                  <Wallet className="h-4 w-4" />
-                  <span className="font-mono text-sm">validator1.stellar</span>
-                  <Badge variant="secondary" className="ml-auto">
-                    Connected
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Validator Permissions</Label>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2 border rounded">
-                    <span className="text-sm">Issue Certifications</span>
-                    <Badge variant="secondary">Enabled</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 border rounded">
-                    <span className="text-sm">Access Archived Data</span>
-                    <Badge variant="secondary">Enabled</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 border rounded">
-                    <span className="text-sm">Modify Settings</span>
-                    <Badge variant="secondary">Enabled</Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+            <CardDescription>Manage your notification preferences</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notifications">Email Notifications</Label>
+              <Switch
+                id="notifications"
+                checked={notifications}
+                onCheckedChange={setNotifications}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="auto-refresh">Auto-refresh Dashboard</Label>
+              <Switch
+                id="auto-refresh"
+                checked={autoRefresh}
+                onCheckedChange={setAutoRefresh}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
 
 function ArchivedSection() {
-  const archivedSubmissions = mockSubmissions.filter((s) => s.status === "certified" || s.status === "declined")
+  const { toast } = useToast()
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch completed submissions (approved/rejected)
+  useEffect(() => {
+    const fetchArchivedSubmissions = async () => {
+      try {
+        setLoading(true)
+        
+        if (!apiService.isAuthenticated()) {
+          toast({
+            title: "Authentication Required",
+            description: "Please connect your wallet to access archived submissions",
+            variant: "destructive",
+          })
+          return
+        }
+
+        // Fetch both approved and rejected submissions
+        const [approvedResponse, rejectedResponse] = await Promise.all([
+          apiService.getSubmissions({ status: 'approved' }),
+          apiService.getSubmissions({ status: 'rejected' })
+        ])
+
+        const archivedSubmissions = [
+          ...(approvedResponse.success ? approvedResponse.data?.submissions || [] : []),
+          ...(rejectedResponse.success ? rejectedResponse.data?.submissions || [] : [])
+        ]
+
+        setSubmissions(archivedSubmissions)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch archived submissions",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchArchivedSubmissions()
+  }, [toast])
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Archived Projects</h1>
+          <p className="text-muted-foreground">Historical submissions and audit logs</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading archived submissions...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -723,14 +846,14 @@ function ArchivedSection() {
       <Card>
         <CardHeader>
           <CardTitle>Completed Validations</CardTitle>
-          <CardDescription>{archivedSubmissions.length} completed validations</CardDescription>
+          <CardDescription>{submissions.length} completed validations</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Project ID</TableHead>
-                <TableHead>Title</TableHead>
+                <TableHead>Device Name</TableHead>
                 <TableHead>Final Status</TableHead>
                 <TableHead>TRUFA Score</TableHead>
                 <TableHead>Validator</TableHead>
@@ -738,24 +861,33 @@ function ArchivedSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {archivedSubmissions.map((submission) => (
+              {submissions.map((submission) => (
                 <TableRow key={submission.id}>
                   <TableCell className="font-mono text-sm">{submission.id}</TableCell>
-                  <TableCell className="font-medium">{submission.title}</TableCell>
+                  <TableCell className="font-medium">{submission.deviceName}</TableCell>
                   <TableCell>
                     <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
                       {submission.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      {submission.trufaScore}
-                    </div>
+                    {submission.adminScore ? (
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        {submission.adminScore}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{submission.validator}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {submission.adminDecisionAt ? 'Admin' : '—'}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(submission.submittedAt).toLocaleDateString()}
+                    {submission.adminDecisionAt 
+                      ? new Date(submission.adminDecisionAt).toLocaleDateString()
+                      : new Date(submission.submittedAt).toLocaleDateString()
+                    }
                   </TableCell>
                 </TableRow>
               ))}
@@ -785,29 +917,19 @@ function MainContent() {
     }
   }
 
-  return <main className="flex-1 p-6 overflow-auto">{renderContent()}</main>
+  return (
+    <div className="flex-1 p-6">
+      {renderContent()}
+    </div>
+  )
 }
 
 export function BackOfficeDashboard() {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen">
         <AppSidebar />
-        <div className="flex flex-col flex-1">
-          <header className="flex items-center gap-4 border-b bg-background px-6 py-3">
-            <SidebarTrigger />
-            <div className="flex items-center gap-4 ml-auto">
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Badge variant="outline" className="gap-1">
-                <div className="h-2 w-2 bg-green-500 rounded-full" />
-                Online
-              </Badge>
-            </div>
-          </header>
-          <MainContent />
-        </div>
+        <MainContent />
       </div>
     </SidebarProvider>
   )
