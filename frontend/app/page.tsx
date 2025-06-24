@@ -12,7 +12,6 @@ function clearAllLocalStorage() {
   localStorage.removeItem('stellarPublicKey')
   localStorage.removeItem('stellarWallet')
   localStorage.removeItem('userProfile')
-  console.log('🧹 Cleared all localStorage data')
 }
 
 // Helper function to validate JWT token structure
@@ -54,7 +53,6 @@ export default function Home() {
   // Function to create the spline-viewer element
   const createSplineViewer = () => {
     if (splineViewerRef.current && customElements.get('spline-viewer')) {
-      console.log('Creating spline-viewer element...')
       const container = splineViewerRef.current
       container.innerHTML = ''
       
@@ -73,8 +71,6 @@ export default function Home() {
       splineViewer.style.minWidth = '100px'
       splineViewer.style.minHeight = '100px'
       
-      console.log('Spline viewer element created, adding event listeners...')
-      
       // Add error handling
       splineViewer.addEventListener('error', (error) => {
         console.error('Spline viewer error:', error)
@@ -83,46 +79,14 @@ export default function Home() {
       
       // Add load event listener
       splineViewer.addEventListener('load', () => {
-        console.log('🎉 Spline viewer load event fired!')
         setSplineReady(true)
-        
-        // Test access after a short delay to ensure Spline is initialized
-        setTimeout(() => {
-          console.log('Testing Spline viewer after load...')
-          console.log('Spline viewer element:', splineViewer)
-          console.log('Spline viewer properties:', Object.getOwnPropertyNames(splineViewer))
-          
-          if (splineViewer && typeof splineViewer.triggerEvent === 'function') {
-            console.log('✅ Spline viewer ready with triggerEvent method')
-            // Update the ref to point to the actual spline-viewer element
-            splineViewerRef.current = splineViewer
-            testSplineAccess()
-          } else {
-            console.log('⚠️ Spline viewer loaded but triggerEvent method not available')
-            console.log('Available methods:', Object.getOwnPropertyNames(splineViewer))
-            splineViewerRef.current = splineViewer
-            testSplineAccess() // Still test to see what's available
-          }
-        }, 2000)
+        splineViewerRef.current = splineViewer
       })
       
       // Add the element to the container
       container.appendChild(splineViewer)
-      console.log('Spline viewer element added to container')
-      
-      // Also try to trigger load manually after a delay
-      setTimeout(() => {
-        if (!splineReady) {
-          console.log('Manual load check - trying to trigger load event...')
-          const loadEvent = new Event('load')
-          splineViewer.dispatchEvent(loadEvent)
-        }
-      }, 5000)
       
     } else {
-      console.log('Container or custom element not ready, retrying...')
-      console.log('Container exists:', !!splineViewerRef.current)
-      console.log('Custom element defined:', !!customElements.get('spline-viewer'))
       setTimeout(createSplineViewer, 1000)
     }
   }
@@ -133,14 +97,11 @@ export default function Home() {
       // Check if script is already loaded
       const existingScript = document.querySelector('script[src*="spline-viewer"]')
       if (!existingScript) {
-        console.log('Loading Spline viewer script...')
         const script = document.createElement('script')
         script.type = 'module'
         script.src = 'https://unpkg.com/@splinetool/viewer@1.10.13/build/spline-viewer.js'
         script.async = true
         script.onload = () => {
-          console.log('Spline viewer script loaded successfully')
-          // Create the spline-viewer element after script loads
           createSplineViewer()
         }
         script.onerror = () => {
@@ -148,8 +109,6 @@ export default function Home() {
         }
         document.head.appendChild(script)
       } else {
-        console.log('Spline viewer script already exists')
-        // Script already exists, try to create the viewer
         setTimeout(createSplineViewer, 1000)
       }
     }
@@ -157,23 +116,6 @@ export default function Home() {
 
   // Check page dimensions on load
   useEffect(() => {
-    const checkPageDimensions = () => {
-      console.log('📏 Page dimensions check:')
-      console.log('Document height:', document.documentElement.scrollHeight)
-      console.log('Window height:', window.innerHeight)
-      console.log('Body height:', document.body.scrollHeight)
-      console.log('Scrollable height:', document.documentElement.scrollHeight - window.innerHeight)
-      console.log('Is scrollable:', document.documentElement.scrollHeight > window.innerHeight)
-    }
-    
-    // Check immediately
-    checkPageDimensions()
-    
-    // Check after a delay to ensure content is rendered
-    setTimeout(checkPageDimensions, 1000)
-    setTimeout(checkPageDimensions, 3000)
-    
-    // Force document element to reflect content height
     const forceDocumentHeight = () => {
       const bodyHeight = document.body.scrollHeight
       const windowHeight = window.innerHeight
@@ -182,7 +124,6 @@ export default function Home() {
         // Force the document element to have the proper height
         document.documentElement.style.height = `${bodyHeight}px`
         document.documentElement.style.minHeight = `${bodyHeight}px`
-        console.log('🔧 Forced document height to:', bodyHeight)
       }
     }
     
@@ -190,112 +131,6 @@ export default function Home() {
     setTimeout(forceDocumentHeight, 500)
     setTimeout(forceDocumentHeight, 2000)
   }, [])
-
-  // Test function to check Spline accessibility
-  const testSplineAccess = () => {
-    if (splineViewerRef.current) {
-      try {
-        console.log('Testing Spline viewer with available methods...')
-        
-        // Check if the Spline viewer has the _spline property (the actual Spline instance)
-        if (splineViewerRef.current._spline) {
-          console.log('✅ Found _spline instance:', splineViewerRef.current._spline)
-          
-          // Try to access the Spline instance methods
-          const splineInstance = splineViewerRef.current._spline
-          console.log('Spline instance methods:', Object.getOwnPropertyNames(splineInstance))
-          
-          // Try to trigger scroll using _onScroll method
-          if (typeof splineInstance._onScroll === 'function') {
-            splineInstance._onScroll(0.5) // Test with 50% scroll
-            console.log('✅ Sent scroll event via _spline._onScroll')
-          } else {
-            console.log('⚠️ _spline._onScroll not available')
-          }
-          
-          // Try to use the event manager
-          if (splineInstance._eventManager) {
-            console.log('✅ Found _eventManager:', splineInstance._eventManager)
-            console.log('Event manager methods:', Object.getOwnPropertyNames(splineInstance._eventManager))
-            
-            // Try trigger method
-            if (typeof splineInstance._eventManager.trigger === 'function') {
-              splineInstance._eventManager.trigger('scroll', { value: 0.5 })
-              console.log('✅ Sent scroll event via _eventManager.trigger')
-            }
-            
-            // Try emit method
-            if (typeof splineInstance._eventManager.emit === 'function') {
-              splineInstance._eventManager.emit('scroll', { value: 0.5 })
-              console.log('✅ Sent scroll event via _eventManager.emit')
-            }
-            
-            // Note: publish method is not available based on test results
-            console.log('ℹ️ publish method not available on _eventManager')
-          }
-          
-          // Try animation controls if available
-          if (splineInstance._animationControls) {
-            console.log('✅ Found _animationControls:', splineInstance._animationControls)
-            console.log('Animation controls methods:', Object.getOwnPropertyNames(splineInstance._animationControls))
-            
-            try {
-              if (typeof splineInstance._animationControls.setScrollProgress === 'function') {
-                splineInstance._animationControls.setScrollProgress(0.5)
-                console.log('✅ Sent scroll via _animationControls.setScrollProgress')
-              }
-              
-              if (typeof splineInstance._animationControls.trigger === 'function') {
-                splineInstance._animationControls.trigger('scroll', { value: 0.5 })
-                console.log('✅ Sent scroll via _animationControls.trigger')
-              }
-              
-              if (typeof splineInstance._animationControls.play === 'function') {
-                splineInstance._animationControls.play()
-                console.log('✅ Triggered animation play')
-              }
-            } catch (e) {
-              console.log('❌ Error with animation controls:', e)
-            }
-          }
-          
-          // Try to trigger render to see if that helps
-          if (typeof splineInstance.requestRender === 'function') {
-            splineInstance.requestRender()
-            console.log('✅ Requested render')
-          }
-          
-        } else {
-          console.log('⚠️ _spline instance not available')
-        }
-        
-        // Try using the onLoaded callback
-        if (typeof splineViewerRef.current.onLoaded === 'function') {
-          console.log('✅ onLoaded method available')
-        }
-        
-        // Try using the onInteract callback
-        if (typeof splineViewerRef.current.onInteract === 'function') {
-          console.log('✅ onInteract method available')
-          // Test onInteract with different event names
-          const testEvents = ['scroll', 'scrollProgress', 'scrollY']
-          for (const eventName of testEvents) {
-            try {
-              splineViewerRef.current.onInteract(eventName, { value: 0.5 })
-              console.log(`✅ Tested onInteract with ${eventName}`)
-            } catch (e) {
-              console.log(`❌ onInteract failed for ${eventName}:`, e)
-            }
-          }
-        }
-        
-      } catch (error) {
-        console.log('Error testing Spline viewer:', error)
-      }
-    } else {
-      console.log('Spline viewer ref is null')
-    }
-  }
 
   // Helper function to safely trigger Spline events
   const triggerSplineEvent = (eventName: string, data: any) => {
@@ -305,85 +140,50 @@ export default function Home() {
         if (splineViewerRef.current._spline) {
           const splineInstance = splineViewerRef.current._spline
           
-          // Try _onScroll for scroll events with different data formats
+          // Try _onScroll for scroll events
           if (eventName === 'scroll' && typeof splineInstance._onScroll === 'function') {
-            // Try different data formats
-            const scrollValues = [
-              data.value || 0,
-              data.scrollY || 0,
-              data.progress || 0
-            ]
-            
-            for (const value of scrollValues) {
-              try {
-                splineInstance._onScroll(value)
-                console.log(`✅ Sent scroll via _onScroll: ${value}`)
-              } catch (e) {
-                // Continue to next value
-              }
-            }
+            const scrollValue = data.value || data.scrollY || data.progress || 0
+            splineInstance._onScroll(scrollValue)
           }
           
           // Try animation controls if available
           if (splineInstance._animationControls) {
-            try {
-              if (typeof splineInstance._animationControls.setScrollProgress === 'function') {
-                splineInstance._animationControls.setScrollProgress(data.value || 0)
-                console.log('✅ Sent scroll via _animationControls.setScrollProgress')
-              }
-              
-              if (typeof splineInstance._animationControls.trigger === 'function') {
-                splineInstance._animationControls.trigger('scroll', data)
-                console.log('✅ Sent scroll via _animationControls.trigger')
-              }
-            } catch (e) {
-              // Continue to next method
+            if (typeof splineInstance._animationControls.setScrollProgress === 'function') {
+              splineInstance._animationControls.setScrollProgress(data.value || 0)
+            }
+            
+            if (typeof splineInstance._animationControls.trigger === 'function') {
+              splineInstance._animationControls.trigger('scroll', data)
             }
           }
           
           // Try requestRender for any event
           if (typeof splineInstance.requestRender === 'function') {
             splineInstance.requestRender()
-            console.log('✅ Requested render')
           }
         }
         
-        // Try using the onInteract method (this is working based on test results)
+        // Try using the onInteract method
         if (typeof splineViewerRef.current.onInteract === 'function') {
-          // Try different event names that might work
-          const eventNames = [
-            eventName,
-            'scroll',
-            'scrollProgress',
-            'scrollY',
-            'onScroll'
-          ]
+          const eventNames = [eventName, 'scroll', 'scrollProgress', 'scrollY', 'onScroll']
           
           for (const name of eventNames) {
             try {
               splineViewerRef.current.onInteract(name, data)
-              console.log(`✅ Sent event via onInteract: ${name}`, data)
+              return true
             } catch (e) {
               // Continue to next event name
             }
           }
-          return true
         }
         
-        console.log(`Could not send ${eventName} trigger - no suitable method found`)
         return false
       } catch (error) {
-        console.log(`Could not send ${eventName} trigger to Spline scene:`, error)
+        console.error(`Error triggering Spline event ${eventName}:`, error)
         return false
       }
-    } else {
-      if (!splineReady) {
-        console.log('Spline viewer not ready yet')
-      } else {
-        console.log('Spline viewer ready but no suitable trigger method available')
-      }
-      return false
     }
+    return false
   }
 
   useEffect(() => {
@@ -399,51 +199,26 @@ export default function Home() {
     }
 
     const handleScroll = (event: WheelEvent) => {
-      // Don't prevent default scrolling - let the page scroll normally
-      // Just capture the scroll event to trigger Spline animations
+      event.preventDefault()
       
-      // Calculate scroll progress based on actual page scroll
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       const scrollHeight = document.documentElement.scrollHeight - window.innerHeight
       const newProgress = scrollHeight > 0 ? Math.min(1, scrollTop / scrollHeight) : 0
       
-      // Debug scroll dimensions
-      if (scrollHeight === 0) {
-        console.log('⚠️ Scroll height is 0 - page not scrollable')
-        console.log('Document height:', document.documentElement.scrollHeight)
-        console.log('Window height:', window.innerHeight)
-        console.log('Body height:', document.body.scrollHeight)
-      }
-      
       setScrollProgress(newProgress)
       setLastScrollEvent(`Wheel Scroll: ${(newProgress * 100).toFixed(1)}%`)
       
-      // Only send events if Spline is ready
+      // Send scroll event to Spline
       if (splineReady) {
-        // Send scroll trigger to Spline scene
-        const eventData = { 
+        triggerSplineEvent('scroll', {
           value: newProgress,
           scrollY: scrollTop,
-          scrollHeight: scrollHeight,
-          direction: event.deltaY > 0 ? 'down' : 'up'
-        }
-        
-        const success = triggerSplineEvent('scroll', eventData)
-        
-        console.log('Wheel scroll event captured:', { 
-          progress: newProgress, 
-          scrollTop, 
-          scrollHeight,
-          delta: event.deltaY,
-          eventSent: success
+          scrollHeight: scrollHeight
         })
-      } else {
-        console.log('Spline viewer not ready yet')
       }
     }
 
     const handlePageScroll = () => {
-      // Capture actual page scroll events (this is the main scroll handler)
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       const scrollHeight = document.documentElement.scrollHeight - window.innerHeight
       const newProgress = scrollHeight > 0 ? Math.min(1, scrollTop / scrollHeight) : 0
@@ -451,56 +226,34 @@ export default function Home() {
       setScrollProgress(newProgress)
       setLastScrollEvent(`Page Scroll: ${(newProgress * 100).toFixed(1)}%`)
       
-      // Only send events if Spline is ready
+      // Send scroll event to Spline
       if (splineReady) {
-        // Send scroll trigger to Spline scene
-        const success = triggerSplineEvent('scroll', { 
+        triggerSplineEvent('scroll', {
           value: newProgress,
           scrollY: scrollTop,
           scrollHeight: scrollHeight
         })
-        
-        console.log('Page scroll captured:', { 
-          progress: newProgress, 
-          scrollTop, 
-          scrollHeight,
-          eventSent: success
-        })
-      } else {
-        console.log('Spline viewer not ready yet')
       }
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Don't prevent default key behavior - let normal scrolling happen
-      // Just capture the event to trigger Spline animations
-      
-      if (event.key === 'ArrowDown' || event.key === 'PageDown' || 
-          event.key === 'ArrowUp' || event.key === 'PageUp') {
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault()
         
-        // Get current scroll position
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop
         const scrollHeight = document.documentElement.scrollHeight - window.innerHeight
         const newProgress = scrollHeight > 0 ? Math.min(1, scrollTop / scrollHeight) : 0
         
         setScrollProgress(newProgress)
+        setLastScrollEvent(`Key Scroll: ${(newProgress * 100).toFixed(1)}%`)
         
-        // Only send events if Spline is ready
+        // Send scroll event to Spline
         if (splineReady) {
-          const success = triggerSplineEvent('scroll', {
+          triggerSplineEvent('scroll', {
             value: newProgress,
             scrollY: scrollTop,
-            scrollHeight: scrollHeight,
-            direction: event.key === 'ArrowDown' || event.key === 'PageDown' ? 'down' : 'up'
+            scrollHeight: scrollHeight
           })
-          
-          console.log('Key scroll captured:', { 
-            progress: newProgress, 
-            key: event.key,
-            eventSent: success
-          })
-        } else {
-          console.log('Spline viewer not ready yet')
         }
       }
     }
@@ -516,26 +269,17 @@ export default function Home() {
       
       // Only send events if Spline is ready
       if (splineReady) {
-        const success = triggerSplineEvent('scroll', {
+        triggerSplineEvent('scroll', {
           value: newProgress,
           scrollY: scrollTop,
           scrollHeight: scrollHeight
         })
-        
-        console.log('All scroll captured:', { 
-          progress: newProgress, 
-          scrollTop, 
-          scrollHeight,
-          eventSent: success
-        })
-      } else {
-        console.log('Spline viewer not ready yet')
       }
     }
 
     // Listen for messages from Spline
     const handleMessage = (event: MessageEvent) => {
-      console.log('Received message from Spline:', event.data)
+      // Handle any messages from Spline if needed
     }
 
     window.addEventListener('mousemove', handleMouseMove)
@@ -562,15 +306,12 @@ export default function Home() {
   // Effect to handle scroll events when Spline becomes ready
   useEffect(() => {
     if (splineReady) {
-      console.log('🎉 Spline viewer is now ready! Testing current scroll position...')
-      
       // Test the current scroll position when Spline becomes ready
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       const scrollHeight = document.documentElement.scrollHeight - window.innerHeight
       const currentProgress = scrollHeight > 0 ? Math.min(1, scrollTop / scrollHeight) : 0
       
       if (currentProgress > 0) {
-        console.log('Sending initial scroll position to Spline:', currentProgress)
         triggerSplineEvent('scroll', {
           value: currentProgress,
           scrollY: scrollTop,
@@ -584,39 +325,33 @@ export default function Home() {
     const checkUserProfile = async () => {
       // Prevent multiple simultaneous profile checks
       if (isCheckingProfile.current) {
-        console.log('🔒 Profile check already in progress, skipping...')
         return
       }
 
       // Prevent redirects if we've already redirected
       if (hasRedirected.current) {
-        console.log('🔄 Already redirected, skipping profile check...')
         return
       }
 
       // Prevent too frequent checks (debounce)
       const now = Date.now()
       if (now - lastCheckTime.current < 2000) { // 2 second debounce
-        console.log('⏱️ Profile check too frequent, skipping...')
         return
       }
       lastCheckTime.current = now
 
       // Check if user is authenticated
       if (!isAuthenticated()) {
-        console.log('User not authenticated, staying on home page')
         return
       }
 
       const authData = getAuthToken()
       if (!authData?.token) {
-        console.log('No JWT token available, staying on home page')
         return
       }
 
       // Validate JWT token structure and expiration
       if (!isValidJWT(authData.token)) {
-        console.log('Invalid or expired JWT token, clearing auth data')
         clearAllLocalStorage()
         return
       }
@@ -624,7 +359,6 @@ export default function Home() {
       isCheckingProfile.current = true
 
       try {
-        console.log('Checking user profile with valid token...')
         // Use authenticated request to check profile
         const response = await fetch('/api/profile', {
           headers: {
@@ -632,33 +366,20 @@ export default function Home() {
           }
         })
 
-        console.log('Profile check response status:', response.status)
-
         if (response.ok) {
           // If user has a profile, redirect to mockup dashboard for development
-          console.log('User has profile, redirecting to mockup dashboard')
           hasRedirected.current = true
-          console.log('🚀 About to redirect to /mockup-dashboard')
           window.location.href = '/mockup-dashboard'
-          console.log('✅ Redirect command executed')
         } else if (response.status === 404) {
           // If user doesn't have a profile, redirect to profile creation
-          console.log('User has no profile, redirecting to profile creation')
           hasRedirected.current = true
-          console.log('🚀 About to redirect to /profile')
           window.location.href = '/profile'
-          console.log('✅ Redirect command executed')
         } else if (response.status === 401) {
           // Token is invalid, clear it
-          console.log('Token invalid (401), clearing auth data')
           clearAllLocalStorage()
         } else if (response.status === 500) {
           // Server error, likely invalid token on server side
-          console.log('Server error (500), clearing auth data')
           clearAllLocalStorage()
-        } else {
-          console.error('Unexpected response status:', response.status)
-          // Don't throw error, just stay on home page
         }
       } catch (error) {
         console.error('Error checking user profile:', error)
@@ -670,14 +391,12 @@ export default function Home() {
 
     // Listen for wallet state changes
     const handleWalletChange = () => {
-      console.log('Wallet state changed, checking profile...')
       // Reset redirect flag when wallet state changes
       hasRedirected.current = false
       // Only check profile if user is authenticated
       if (isAuthenticated()) {
         checkUserProfile()
       } else {
-        console.log('No authentication, skipping profile check')
         // Clear any existing redirect flags when not authenticated
         hasRedirected.current = false
       }
@@ -686,12 +405,10 @@ export default function Home() {
     // Subscribe to wallet state changes
     const unsubscribe = walletStateManager.subscribe((state) => {
       if (state.isAuthenticated && isAuthenticated()) {
-        console.log('Wallet authenticated, checking profile...')
         // Reset redirect flag when wallet authenticates
         hasRedirected.current = false
         checkUserProfile()
       } else {
-        console.log('Wallet not authenticated, clearing redirect flags')
         hasRedirected.current = false
       }
     })
