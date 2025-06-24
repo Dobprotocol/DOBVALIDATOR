@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
 import { submissionStorage } from '@/lib/submission-storage'
+import { adminConfigService } from '@/lib/admin-config'
 
 // Submission schema
 const submissionSchema = z.object({
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get user's submissions
+// Get user's submissions or all if admin
 export async function GET(request: NextRequest) {
   try {
     // Verify authentication
@@ -128,15 +129,27 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
-    
-    // Get submissions using shared storage
-    const result = submissionStorage.getPaginated({
-      walletAddress: auth.user.walletAddress,
-      status: status || undefined,
-      limit,
-      offset
-    })
-    
+
+    // Check if user is admin
+    const isAdmin = adminConfigService.isAdminWallet(auth.user.walletAddress)
+    let result
+    if (isAdmin) {
+      // Admin: return all submissions (optionally filtered)
+      result = submissionStorage.getPaginated({
+        status: status || undefined,
+        limit,
+        offset
+      })
+    } else {
+      // Regular user: only their own submissions
+      result = submissionStorage.getPaginated({
+        walletAddress: auth.user.walletAddress,
+        status: status || undefined,
+        limit,
+        offset
+      })
+    }
+
     return NextResponse.json({
       success: true,
       submissions: result.submissions.map(sub => ({
@@ -155,7 +168,6 @@ export async function GET(request: NextRequest) {
         hasMore: result.hasMore
       }
     })
-    
   } catch (error) {
     console.error('Error retrieving submissions:', error)
     return NextResponse.json(

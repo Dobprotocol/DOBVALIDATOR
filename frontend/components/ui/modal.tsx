@@ -29,7 +29,7 @@ export function Modal({ title, description, children, onClose, showCloseButton =
         )}
 
         <div className="flex items-center mb-4">
-          <img src="/images/dob-logo.png" alt="DOB Logo" className="w-10 h-10 mr-4" />
+          <img src="/images/dob imagotipo.svg" alt="DOB Logo" className="w-10 h-10 mr-4" />
           <div>
             <h2 className="text-xl font-medium">{title}</h2>
             {description && <p className="text-sm text-white/80 mt-1">{description}</p>}
