@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:stellar": "node test-stellar-contract-real.js",
+    "test:stellar:mock": "node test-stellar-integration.js",
+    "test:stellar:real": "node run-stellar-test.js"
   },
   "dependencies": {
     "@dob-validator/shared": "workspace:*",
@@ -45,6 +48,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
+    "dotenv": "^16.4.5",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
     "jsonwebtoken": "^9.0.2",
@@ -59,6 +63,8 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
     "sonner": "^1.7.1",
+    "soroban-client": "^1.0.1",
+    "stellar-sdk": "^13.3.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
