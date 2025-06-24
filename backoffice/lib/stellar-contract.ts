@@ -1,16 +1,17 @@
-import { 
-  TransactionBuilder, 
-  Account, 
-  Networks, 
-  Operation, 
-  Asset, 
-  Memo,
+import {
+  Server,
+  Keypair,
+  Networks,
   BASE_FEE,
-  Transaction
-} from '@stellar/stellar-sdk'
+  Contract,
+  TransactionBuilder,
+  nativeToScVal,
+  xdr
+} from 'soroban-client'
 
 // Contract configuration
 const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
+const SOROBAN_RPC = 'https://soroban-testnet.stellar.org:443'
 const NETWORK_PASSPHRASE = Networks.TESTNET
 
 // TRUFA Metadata structure for blockchain storage
@@ -42,6 +43,14 @@ export interface ContractResult {
 }
 
 class StellarContractService {
+  server: Server
+  contract: Contract
+
+  constructor() {
+    this.server = new Server(SOROBAN_RPC, { allowHttp: false })
+    this.contract = new Contract(CONTRACT_ADDRESS)
+  }
+
   /**
    * Initialize the contract service
    */
@@ -58,22 +67,7 @@ class StellarContractService {
   /**
    * Create metadata payload for TRUFA validation
    */
-  createTrufaMetadata(data: {
-    submissionId: string
-    deviceName: string
-    deviceType: string
-    operatorWallet: string
-    validatorWallet: string
-    trufaScores: {
-      technical: number
-      regulatory: number
-      financial: number
-      environmental: number
-      overall: number
-    }
-    decision: 'APPROVED' | 'REJECTED'
-    certificateHash?: string
-  }): TrufaMetadata {
+  createTrufaMetadata(data: Omit<TrufaMetadata, 'decisionAt' | 'metadataHash'>): TrufaMetadata {
     const metadata: TrufaMetadata = {
       ...data,
       decisionAt: new Date().toISOString(),
@@ -98,86 +92,70 @@ class StellarContractService {
   }
 
   /**
-   * Create a transaction for validation submission
-   * This creates a transaction that stores metadata in the memo field
-   * In production, this would interact with the actual smart contract
+   * Submit validation metadata to the Soroban contract
+   * Tries both symbol and bytes for deviceId
+   * Logs all contract interactions for auditability
    */
-  async createValidationTransaction(
-    adminWalletAddress: string,
-    metadata: TrufaMetadata,
-    sequenceNumber: string = '0'
-  ): Promise<Transaction> {
+  async submitValidationToSoroban({
+    adminSecret,
+    adminPublic,
+    metadata
+  }: {
+    adminSecret: string
+    adminPublic: string
+    metadata: TrufaMetadata
+  }): Promise<ContractResult> {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [SorobanContract] Attempting contract call`);
+    console.log(`  Admin wallet: ${adminPublic}`);
+    console.log(`  Submission ID: ${metadata.submissionId}`);
+    console.log('  Metadata:', metadata);
     try {
-      console.log('🔧 Creating validation transaction...')
-      
-      // Create transaction with metadata in memo
-      const transaction = new TransactionBuilder(
-        new Account(adminWalletAddress, sequenceNumber),
-        {
-          fee: BASE_FEE,
-          networkPassphrase: NETWORK_PASSPHRASE
-        }
-      )
-      .addOperation(
-        Operation.manageData({
-          name: 'dob_validation',
-          value: JSON.stringify(metadata)
-        })
-      )
-      .addMemo(Memo.text(`DOB_VALIDATION_${metadata.submissionId}`))
-      .setTimeout(30)
-      .build()
-
-      console.log('✅ Validation transaction created')
-      return transaction
-
-    } catch (error) {
-      console.error('❌ Failed to create validation transaction:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Submit validation metadata to the blockchain
-   */
-  async submitValidation(
-    adminWalletAddress: string,
-    metadata: TrufaMetadata,
-    signedXDR?: string
-  ): Promise<ContractResult> {
-    try {
-      console.log('🚀 Submitting validation to Stellar network...')
-      console.log('📋 Metadata:', metadata)
-
-      // If we have a signed XDR, we can't submit it directly without Server
-      // For now, we'll return the transaction for signing
-      if (signedXDR) {
-        console.log('📤 Signed XDR received, would submit to network in production')
+      const adminKeypair = Keypair.fromSecret(adminSecret)
+      const account = await this.server.getAccount(adminPublic)
+      // Try symbol type for deviceId
+      const deviceIdSymbol = nativeToScVal(metadata.submissionId, { type: 'symbol' })
+      const txSymbol = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE
+      })
+        .addOperation(this.contract.callOperation('submit_validation', deviceIdSymbol, nativeToScVal(JSON.stringify(metadata), { type: 'string' })))
+        .setTimeout(30)
+        .build()
+      txSymbol.sign(adminKeypair)
+      try {
+        const response = await this.server.sendTransaction(txSymbol)
+        console.log(`[${new Date().toISOString()}] [SorobanContract] SUCCESS (symbol)`);
+        console.log(`  Tx hash: ${response.hash}`);
         return {
           success: true,
-          transactionHash: 'mock_transaction_hash_' + Date.now(),
-          metadata: {
-            status: 'SUCCESS',
-            ledger: 'mock_ledger'
-          }
+          transactionHash: response.hash,
+          metadata: response
+        }
+      } catch (e) {
+        console.warn(`[${new Date().toISOString()}] [SorobanContract] Symbol call failed, trying bytes. Error:`, e)
+        // If symbol fails, try bytes
+        const deviceIdBytes = nativeToScVal(metadata.submissionId, { type: 'bytes' })
+        const txBytes = new TransactionBuilder(account, {
+          fee: BASE_FEE,
+          networkPassphrase: NETWORK_PASSPHRASE
+        })
+          .addOperation(this.contract.callOperation('submit_validation', deviceIdBytes, nativeToScVal(JSON.stringify(metadata), { type: 'string' })))
+          .setTimeout(30)
+          .build()
+        txBytes.sign(adminKeypair)
+        const responseBytes = await this.server.sendTransaction(txBytes)
+        console.log(`[${new Date().toISOString()}] [SorobanContract] SUCCESS (bytes)`);
+        console.log(`  Tx hash: ${responseBytes.hash}`);
+        return {
+          success: true,
+          transactionHash: responseBytes.hash,
+          metadata: responseBytes
         }
       }
-
-      // Create and return transaction for signing
-      const transaction = await this.createValidationTransaction(adminWalletAddress, metadata)
-      
-      return {
-        success: true,
-        metadata: {
-          xdr: transaction.toXDR(),
-          network: NETWORK_PASSPHRASE,
-          description: 'DOB Validator - Submit TRUFA Validation',
-          contractAddress: CONTRACT_ADDRESS
-        }
-      }
-
     } catch (error) {
-      console.error('❌ Failed to submit validation:', error)
+      console.error(`[${new Date().toISOString()}] [SorobanContract] ERROR`);
+      console.error(error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
