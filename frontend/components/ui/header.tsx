@@ -24,15 +24,12 @@ export function Header() {
     const updateWallet = () => {
       const key = localStorage.getItem('stellarPublicKey')
       const authToken = localStorage.getItem('authToken')
-      console.log('🔍 Header: Public key:', key ? key.substring(0, 10) + '...' : 'null')
-      console.log('🔍 Header: Auth token exists:', !!authToken)
       setPublicKey(key)
       setIsAuth(!!authToken)
     }
     
     const checkProfile = async () => {
       if (!isAuthenticated()) {
-        console.log('🔍 Header: Not authenticated')
         setHasProfile(false)
         setIsLoading(false)
         return
@@ -41,20 +38,16 @@ export function Header() {
       try {
         const authData = getAuthToken()
         if (!authData?.token) {
-          console.log('🔍 Header: No auth token')
           setHasProfile(false)
           setIsLoading(false)
           return
         }
 
-        console.log('🔍 Header: Checking profile...')
         try {
           const profileResponse = await apiService.getProfile()
           const hasProfileResult = profileResponse.success
-          console.log('🔍 Header: Profile check result:', hasProfileResult)
           setHasProfile(hasProfileResult)
         } catch (error) {
-          console.log('🔍 Header: No profile found')
           setHasProfile(false)
         }
       } catch (error) {
@@ -70,7 +63,6 @@ export function Header() {
 
     // Listen for wallet state changes
     const handleWalletChange = () => {
-      console.log('🔍 Header: Wallet state changed')
       updateWallet()
       checkProfile()
     }
@@ -89,7 +81,6 @@ export function Header() {
   }, [])
 
   const handleDisconnect = () => {
-    console.log('🔌 Header: Disconnecting wallet...')
     // Call the global clear function to ensure everything is cleared
     if (typeof window !== 'undefined' && (window as any).clearAllLocalStorage) {
       (window as any).clearAllLocalStorage()
@@ -111,14 +102,6 @@ export function Header() {
   const handleEditProfile = () => {
     router.push('/profile')
   }
-
-  console.log('🔍 Header: Render state:', {
-    publicKey: publicKey ? publicKey.substring(0, 10) + '...' : 'null',
-    hasProfile,
-    isLoading,
-    isAuth,
-    isAuthenticated: isAuthenticated()
-  })
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-background/80 backdrop-blur-sm border-b h-16">
