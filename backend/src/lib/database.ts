@@ -219,13 +219,34 @@ export const submissionService = {
 
   // Update submission
   async update(id: string, data: any) {
+    const { adminNotes, ...submissionData } = data
+    
+    // If adminNotes are provided, create or update AdminReview
+    if (adminNotes !== undefined) {
+      await prisma.adminReview.upsert({
+        where: { submissionId: id },
+        update: { notes: adminNotes },
+        create: {
+          submissionId: id,
+          notes: adminNotes
+        }
+      })
+    }
+
     return prisma.submission.update({
       where: { id },
-      data: { ...data, updatedAt: new Date() },
+      data: { ...submissionData, updatedAt: new Date() },
       include: {
         files: true,
         adminReview: true,
-        certificate: true
+        certificate: true,
+        user: {
+          select: {
+            walletAddress: true,
+            name: true,
+            email: true
+          }
+        }
       }
     })
   },
