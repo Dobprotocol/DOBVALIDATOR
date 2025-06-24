@@ -471,7 +471,7 @@ export default function Home() {
         <section className="fixed top-0 left-0 right-0 bottom-16 flex flex-col items-center justify-center">
           <div className="text-center max-w-2xl">
             <div className="spline-content rounded-2xl p-8">
-              <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+              <h1 className="text-4xl font-bold tracking-tight text-black dark:text-foreground sm:text-5xl">
                 DOB Validator
               </h1>
               <p className="mt-6 text-lg text-muted-foreground">
@@ -481,7 +481,7 @@ export default function Home() {
                 <div className="w-full flex justify-center">
                   <div className="w-auto">
                     <div className="inline-block">
-                      <div className="[&>button]:text-lg [&>button]:py-4 [&>button]:px-10 [&>button]:rounded-xl [&>button]:font-semibold [&>button]:shadow-lg pointer-events-auto">
+                      <div className="[&>button]:text-lg [&>button]:py-4 [&>button]:px-10 [&>button]:rounded-xl [&>button]:font-semibold [&>button]:shadow-lg [&>button]:text-black [&>button]:dark:text-foreground [&>button]:border-2 [&>button]:border-black [&>button]:dark:border-foreground pointer-events-auto">
                         <StellarWallet />
                       </div>
                     </div>
