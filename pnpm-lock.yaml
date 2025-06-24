@@ -365,6 +365,9 @@ importers:
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.5.0
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.1.0)
@@ -407,6 +410,12 @@ importers:
       sonner:
         specifier: ^1.7.1
         version: 1.7.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      soroban-client:
+        specifier: ^1.0.1
+        version: 1.0.1
+      stellar-sdk:
+        specifier: ^13.3.0
+        version: 13.3.0
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.6.0
@@ -3645,6 +3654,10 @@ packages:
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
+  soroban-client@1.0.1:
+    resolution: {integrity: sha512-GdLgMuJ/riVnLvjEXFi7NqSwAZXsT6H55vITq5c+v15rTlbzGXvW2v/yA+K1zOXMFh0JAZ1IR+6S4CJMQXOcPA==}
+    deprecated: '⚠️ This package is now deprecated: transition to @stellar/stellar-sdk@latest, instead! 🚚 All future updates and bug fixes will happen there. Please refer to the migration guide for details on porting your codebase: https://github.com/stellar/js-soroban-client/tree/main/docs/migration.md'
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -3663,6 +3676,10 @@ packages:
   statuses@2.0.1:
     resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
     engines: {node: '>= 0.8'}
+
+  stellar-base@10.0.0:
+    resolution: {integrity: sha512-WQhxGXQLSwwmIxWbZqv0HcJtlSOiaUgv7yKCCEwP+OoYDHKBjPjQiZWyAkuEY+mRFX9L+hnejLaBorc3P2rk0g==}
+    deprecated: ⚠️ This package has moved to @stellar/stellar-base! 🚚
 
   stellar-sdk@13.3.0:
     resolution: {integrity: sha512-jAA3+U7oAUueldoS4kuEhcym+DigElWq9isPxt7tjMrE7kTJ2vvY29waavUb2FSfQIWwGbuwAJTYddy2BeyJsw==}
@@ -7209,6 +7226,16 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+  soroban-client@1.0.1:
+    dependencies:
+      axios: 1.9.0
+      bignumber.js: 9.3.0
+      buffer: 6.0.3
+      stellar-base: 10.0.0
+      urijs: 1.19.11
+    transitivePeerDependencies:
+      - debug
+
   source-map-js@1.2.1: {}
 
   source-map-support@0.5.21:
@@ -7223,6 +7250,17 @@ snapshots:
       whatwg-url: 7.1.0
 
   statuses@2.0.1: {}
+
+  stellar-base@10.0.0:
+    dependencies:
+      '@stellar/js-xdr': 3.1.2
+      base32.js: 0.1.0
+      bignumber.js: 9.3.0
+      buffer: 6.0.3
+      sha.js: 2.4.11
+      tweetnacl: 1.0.3
+    optionalDependencies:
+      sodium-native: 4.3.3
 
   stellar-sdk@13.3.0:
     dependencies:

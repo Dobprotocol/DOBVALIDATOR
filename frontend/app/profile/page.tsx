@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { UserCircleIcon, PhotoIcon } from '@heroicons/react/24/solid';
 import { AuthGuard } from '@/components/auth-guard';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Camera, Save, ArrowLeft, User } from 'lucide-react';
+import { apiService } from '@/lib/api-service';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -66,42 +72,27 @@ export default function ProfilePage() {
         const tokenData = JSON.parse(authToken);
         
         // Check if profile already exists
-        const response = await fetch('/api/profile', {
-          headers: {
-            'Authorization': `Bearer ${tokenData.token}`
-          }
-        });
-
-        if (response.ok) {
-          // Profile exists, load it for editing
-          const profileData = await response.json();
-          console.log('✅ Existing profile found:', profileData);
-          
-          const loadedFormData = {
-            name: profileData.profile.name || '',
-            company: profileData.profile.company || '',
-            email: profileData.profile.email || '',
-          };
-          
-          setFormData(loadedFormData);
-          setOriginalFormData(loadedFormData);
-          
-          if (profileData.profile.profileImage) {
-            setProfileImage(profileData.profile.profileImage);
-            setOriginalProfileImage(profileData.profile.profileImage);
-          }
-          
-          setIsEditMode(true);
-        } else if (response.status === 404) {
-          // No profile exists, stay in create mode
-          console.log('ℹ️ No existing profile found, creating new one');
-          setIsEditMode(false);
-        } else {
-          throw new Error('Failed to check profile status');
+        const profileResponse = await apiService.getProfile();
+        console.log('✅ Existing profile found:', profileResponse);
+        
+        const loadedFormData = {
+          name: profileResponse.profile.name || '',
+          company: profileResponse.profile.company || '',
+          email: profileResponse.profile.email || '',
+        };
+        
+        setFormData(loadedFormData);
+        setOriginalFormData(loadedFormData);
+        
+        if (profileResponse.profile.profileImage) {
+          setProfileImage(profileResponse.profile.profileImage);
+          setOriginalProfileImage(profileResponse.profile.profileImage);
         }
+        
+        setIsEditMode(true);
       } catch (error) {
-        console.error('❌ Error checking profile:', error);
-        // On error, assume no profile exists and stay in create mode
+        // No profile exists, stay in create mode
+        console.log('ℹ️ No existing profile found, creating new one');
         setIsEditMode(false);
       } finally {
         setIsLoading(false);
@@ -204,35 +195,22 @@ export default function ProfilePage() {
       console.log('🔍 Profile: Request body:', requestBody);
       
       // Call the API to create or update the profile
-      const response = await fetch('/api/profile', {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenData.token}`
-        },
-        body: JSON.stringify(requestBody)
+      const profileResponse = await apiService.createProfile({
+        name: formData.name,
+        company: formData.company,
+        email: formData.email
       });
 
-      console.log('🔍 Profile: Response status:', response.status);
-      console.log('🔍 Profile: Response ok:', response.ok);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Profile: API error:', errorData);
-        throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} profile`);
-      }
-
-      const profileData = await response.json();
-      console.log(`✅ Profile ${isEditMode ? 'updated' : 'created'} successfully:`, profileData);
+      console.log(`✅ Profile ${isEditMode ? 'updated' : 'created'} successfully:`, profileResponse);
 
       // Store profile data in localStorage for local access
       const localProfileData = {
         ...formData,
         walletAddress,
         profileImage,
-        createdAt: profileData.profile?.createdAt || new Date().toISOString(),
+        createdAt: profileResponse.profile?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        id: profileData.profile?.id
+        id: profileResponse.profile?.id
       };
       
       localStorage.setItem('userProfile', JSON.stringify(localProfileData));

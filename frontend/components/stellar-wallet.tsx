@@ -26,7 +26,8 @@ import {
   Memo,
   BASE_FEE 
 } from '@stellar/stellar-sdk'
-import { Settings } from 'lucide-react'
+import { Settings, Wallet, LogOut, Loader2 } from 'lucide-react'
+import { apiService } from '@/lib/api-service'
 
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
@@ -123,19 +124,9 @@ export function StellarWallet() {
       
       // Step 1: Request challenge
       console.log('📝 Step 1: Requesting challenge...')
-      const challengeResponse = await fetch('/api/auth/challenge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ walletAddress }),
-      })
+      const challengeResponse = await apiService.generateChallenge(walletAddress)
 
-      if (!challengeResponse.ok) {
-        throw new Error('Failed to get authentication challenge')
-      }
-
-      const { challenge } = await challengeResponse.json()
+      const { challenge } = challengeResponse
       console.log('✅ Received challenge:', challenge)
 
       // Add a small delay to ensure challenge is stored on server
