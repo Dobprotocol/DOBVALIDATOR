@@ -672,7 +672,7 @@ export function EnhancedDeviceVerificationFlow() {
           transition-property: all;
         }
       `}</style>
-      <div className={`${isSinglePageView ? '' : 'min-h-screen'} py-8 px-4`}>
+      <div className={`${isSinglePageView ? 'h-auto' : 'min-h-screen'} py-8 px-4`}>
         <div className="container mx-auto">
           {/* Header with Toggle and Download */}
           <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
