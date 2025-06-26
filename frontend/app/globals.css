@@ -75,12 +75,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    height: 200vh;
     overflow-x: hidden;
   }
   
   html {
-    height: 200vh;
     overflow-x: hidden;
   }
 }

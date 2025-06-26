@@ -478,7 +478,7 @@ export function EnhancedDeviceVerificationFlow() {
 
   // Single Page View Component - Continuous scrollable layout
   const SinglePageView = () => (
-    <div className="relative space-y-12 pb-12">
+    <div className="w-full space-y-12 pb-12">
       <Card className="transition-all duration-500 ease-in-out hover:shadow-lg">
         <CardContent className="p-8">
           <h3 className="text-xl font-semibold mb-6 text-primary">Step 1: Basic Information</h3>
@@ -789,8 +789,8 @@ export function EnhancedDeviceVerificationFlow() {
       
       {isSinglePageView ? (
         // Full page view - scrollable layout
-        <div className="py-8 px-4">
-          <div className="container mx-auto">
+        <div className="w-full">
+          <div className="container mx-auto px-4 py-8">
             {/* Header with Toggle and Download */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
               <div className="flex items-center space-x-4">
