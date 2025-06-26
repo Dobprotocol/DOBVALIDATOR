@@ -37,7 +37,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     if (!deviceData.purchaseProof) newErrors.purchaseProof = "Purchase proof is required (PDF, max 10MB)"
     if (!deviceData.maintenanceRecords) newErrors.maintenanceRecords = "Maintenance records are required (PDF, max 10MB)"
     if (deviceData.deviceImages.length === 0) newErrors.deviceImages = "At least one device image is required"
-    
+
     // Validate device images
     deviceData.deviceImages.forEach((file, idx) => {
       if (file.size > 10 * 1024 * 1024) newErrors[`deviceImages_${idx}`] = "Image too large (max 10MB)"
@@ -95,7 +95,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
 
   const getImageDropzone = () => {
     return useDropzone({
-      accept: { 
+      accept: {
         'image/jpeg': ['.jpg', '.jpeg'],
         'image/png': ['.png']
       },
@@ -111,7 +111,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
 
           // Create preview URLs for the new images
           const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file))
-          
+
           updateDeviceData({
             deviceImages: [...deviceData.deviceImages, ...namedFiles],
           })
@@ -152,7 +152,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
   } = getImageDropzone()
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+    <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
       <h2 className="text-xl font-medium text-gray-800 mb-6">Documentation</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -271,30 +271,35 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
 
               {deviceData.deviceImages.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {deviceData.deviceImages.map((file, index) => (
-                    <div key={index} className="relative group">
-                      <div className="aspect-square relative rounded-lg overflow-hidden">
-                        <Image
-                          src={imagePreviews[index]}
-                          alt={`Device image ${index + 1}`}
-                          fill
-                          className="object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-200">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onClick={() => removeDeviceImage(index)}
-                          >
-                            <X size={16} className="text-white" />
-                          </Button>
+                  {deviceData.deviceImages.map((file, index) => {
+                    const previewUrl = imagePreviews[index]
+                    if (!previewUrl) return null // Skip rendering if no preview URL
+
+                    return (
+                      <div key={index} className="relative group">
+                        <div className="aspect-square relative rounded-lg overflow-hidden">
+                          <Image
+                            src={previewUrl}
+                            alt={`Device image ${index + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-200">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              onClick={() => removeDeviceImage(index)}
+                            >
+                              <X size={16} className="text-white" />
+                            </Button>
+                          </div>
                         </div>
+                        <p className="text-xs text-gray-500 mt-1 truncate">{file.name}</p>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 truncate">{file.name}</p>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>

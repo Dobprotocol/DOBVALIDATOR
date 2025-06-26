@@ -43,7 +43,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
   const yearOptions = Array.from({ length: 30 }, (_, i) => (currentYear - i).toString())
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+    <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
       <h2 className="text-xl font-medium text-gray-800 mb-6">Technical Information</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">

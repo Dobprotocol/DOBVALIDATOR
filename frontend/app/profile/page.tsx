@@ -154,7 +154,7 @@ export default function ProfilePage() {
     
     // If already updated, redirect to dashboard
     if (isUpdated) {
-      router.push('/mockup-dashboard');
+      router.push('/dashboard');
       return;
     }
     
