@@ -89,7 +89,7 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+    <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
       <h2 className="text-xl font-medium text-gray-800 mb-6">Review Information</h2>
 
       {validationErrors.length > 0 && (

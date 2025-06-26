@@ -30,7 +30,7 @@ export function DeviceSuccess() {
         </Modal>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center">
+      <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-8 text-center">
         <div className="flex flex-col items-center justify-center max-w-md mx-auto">
           <div className="w-16 h-16 rounded-full bg-[#6366F1]/10 flex items-center justify-center mb-6">
             <CheckCircle2 className="text-[#6366F1] w-8 h-8" />

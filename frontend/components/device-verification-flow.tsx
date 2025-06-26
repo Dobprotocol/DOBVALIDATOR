@@ -156,65 +156,67 @@ export function DeviceVerificationFlow() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mt-8 mb-12">
-        <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
-      </div>
-
-      {/* Draft Save Button */}
-      {currentStep < 5 && (
-        <div className="max-w-3xl mx-auto mb-6 flex justify-end">
-          <Button
-            onClick={handleSaveDraft}
-            disabled={draftLoading}
-            variant="outline"
-            className="gap-2"
-          >
-            {draftLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {currentDraftId ? 'Update Draft' : 'Save Draft'}
-          </Button>
+    <div className="min-h-screen py-8 px-4">
+      <div className="container mx-auto">
+        <div className="mt-8 mb-12">
+          <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
         </div>
-      )}
 
-      <div className="max-w-3xl mx-auto">
-        {currentStep === 1 && (
-          <DeviceBasicInfo deviceData={deviceData} updateDeviceData={updateDeviceData} onNext={nextStep} />
+        {/* Draft Save Button */}
+        {currentStep < 5 && (
+          <div className="max-w-3xl mx-auto mb-6 flex justify-end">
+            <Button
+              onClick={handleSaveDraft}
+              disabled={draftLoading}
+              variant="outline"
+              className="gap-2 bg-background/90 backdrop-blur-sm"
+            >
+              {draftLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {currentDraftId ? 'Update Draft' : 'Save Draft'}
+            </Button>
+          </div>
         )}
 
-        {currentStep === 2 && (
-          <DeviceTechnicalInfo
-            deviceData={deviceData}
-            updateDeviceData={updateDeviceData}
-            onNext={nextStep}
-            onBack={prevStep}
-          />
-        )}
+        <div className="max-w-3xl mx-auto pb-8">
+          {currentStep === 1 && (
+            <DeviceBasicInfo deviceData={deviceData} updateDeviceData={updateDeviceData} onNext={nextStep} />
+          )}
 
-        {currentStep === 3 && (
-          <DeviceFinancialInfo
-            deviceData={deviceData}
-            updateDeviceData={updateDeviceData}
-            onNext={nextStep}
-            onBack={prevStep}
-          />
-        )}
+          {currentStep === 2 && (
+            <DeviceTechnicalInfo
+              deviceData={deviceData}
+              updateDeviceData={updateDeviceData}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
 
-        {currentStep === 4 && (
-          <DeviceDocumentation
-            deviceData={deviceData}
-            updateDeviceData={updateDeviceData}
-            onNext={nextStep}
-            onBack={prevStep}
-          />
-        )}
+          {currentStep === 3 && (
+            <DeviceFinancialInfo
+              deviceData={deviceData}
+              updateDeviceData={updateDeviceData}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
 
-        {currentStep === 5 && <DeviceReview deviceData={deviceData} onNext={nextStep} onBack={prevStep} />}
+          {currentStep === 4 && (
+            <DeviceDocumentation
+              deviceData={deviceData}
+              updateDeviceData={updateDeviceData}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
 
-        {currentStep === 6 && <DeviceSuccess />}
+          {currentStep === 5 && <DeviceReview deviceData={deviceData} onNext={nextStep} onBack={prevStep} />}
+
+          {currentStep === 6 && <DeviceSuccess />}
+        </div>
       </div>
     </div>
   )

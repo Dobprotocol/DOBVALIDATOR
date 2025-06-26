@@ -55,7 +55,7 @@ export function Footer() {
         className={`
           fixed bottom-0 left-0 right-0 
           flex items-center justify-between px-4 py-4 
-          bg-background/80 border-t backdrop-blur-sm
+          bg-background border-t
           transition-all duration-300 ease-in-out
           pointer-events-auto
           ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
@@ -66,7 +66,7 @@ export function Footer() {
             variant="ghost"
             size="sm"
             onClick={handleThemeToggle}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-[5vw]"
           >
             {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </Button>

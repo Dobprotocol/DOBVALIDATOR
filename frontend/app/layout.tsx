@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Suspense } from 'react'
 import { LoadingHandler } from '@/components/loading-handler'
 import { Footer } from "@/components/ui/footer"
+import { StarsBackground } from "@/components/ui/stars-background"
 
 export const metadata: Metadata = {
   title: 'DOB Validator',
@@ -42,18 +43,20 @@ export default function RootLayout({
         }} />
       </head>
       <body className="font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
           <LoadingHandler />
-          <div className="min-h-screen animate-fade-in">
-            <Header />
-            <main className="pt-20">
-              <Suspense fallback={null}>
-                {children}
-              </Suspense>
-            </main>
-            <Footer />
-            <Toaster />
-          </div>
+          <StarsBackground className="fixed inset-0 z-0">
+            <div className="min-h-screen animate-fade-in">
+              <Header />
+              <main className="pt-20">
+                <Suspense fallback={null}>
+                  {children}
+                </Suspense>
+              </main>
+              <Footer />
+              <Toaster />
+            </div>
+          </StarsBackground>
         </ThemeProvider>
       </body>
     </html>
