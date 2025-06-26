@@ -137,7 +137,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return (
+  return (
       <AuthGuard>
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -152,14 +152,14 @@ export default function DashboardPage() {
       <div className="relative z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-end mb-8">
-            <Button
-              onClick={handleCreateDevice}
+          <Button
+            onClick={handleCreateDevice}
               className="inline-flex items-center gap-2 text-base py-3 px-6 rounded-lg font-semibold shadow-md bg-background/90 backdrop-blur-sm"
-            >
-              <PlusCircle className="h-5 w-5" />
-              Validate New Device
-            </Button>
-          </div>
+          >
+            <PlusCircle className="h-5 w-5" />
+            Validate New Device
+          </Button>
+        </div>
 
           {error && (
             <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg bg-background/90 backdrop-blur-sm">

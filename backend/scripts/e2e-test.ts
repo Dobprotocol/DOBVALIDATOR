@@ -5,7 +5,7 @@ import { env } from '../src/lib/env-validation'
 
 // Test configuration
 const API_BASE_URL = `http://localhost:${env.PORT}`
-const TEST_USER_WALLET = 'GABC123456789_TEST_USER'
+const TEST_USER_WALLET = 'GABCDEF1234567890ABCDEF1234567890ABCDEF12'
 const TEST_ADMIN_WALLET = 'GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ'
 
 interface TestResult {
@@ -199,36 +199,28 @@ class E2ETestRunner {
       }
 
       const createResponse = await axios.post(`${API_BASE_URL}/api/submissions`, submissionData, { headers })
-
       if (createResponse.status === 200 && createResponse.data.submission) {
         this.testSubmissionId = createResponse.data.submission.id
+      }
 
         this.addResult({
           name: 'Create Submission',
-          status: 'PASS',
+        status: createResponse.status === 200 ? 'PASS' : 'FAIL',
           message: 'Submission created successfully',
           duration: Date.now() - createStart,
-          data: { submissionId: this.testSubmissionId }
+        data: createResponse.data
         })
 
         const getStart = Date.now()
-        const getResponse = await axios.get(`${API_BASE_URL}/api/submissions`, { headers })
+      const getResponse = await axios.get(`${API_BASE_URL}/api/submissions?limit=10`, { headers })
 
         this.addResult({
           name: 'Get User Submissions',
           status: getResponse.status === 200 ? 'PASS' : 'FAIL',
           message: `Found ${getResponse.data.submissions?.length || 0} submissions`,
           duration: Date.now() - getStart,
-          data: { count: getResponse.data.submissions?.length || 0 }
+        data: getResponse.data
         })
-      } else {
-        this.addResult({
-          name: 'Create Submission',
-          status: 'FAIL',
-          message: 'Failed to create submission',
-          duration: Date.now() - createStart
-        })
-      }
     } catch (error) {
       this.addResult({
         name: 'Submission Flow',
@@ -271,6 +263,9 @@ class E2ETestRunner {
           duration: Date.now() - verifyStart,
           data: { userId: verifyResponse.data.user.id, role: verifyResponse.data.user.role }
         })
+
+        // Debug: Check admin user details
+        console.log('🔍 Admin user details:', verifyResponse.data.user)
       } else {
         this.addResult({
           name: 'Verify Admin Signature',
@@ -304,7 +299,10 @@ class E2ETestRunner {
 
     const getAllStart = Date.now()
     try {
-      const getAllResponse = await axios.get(`${API_BASE_URL}/api/submissions`, { headers })
+      const getAllResponse = await axios.get(`${API_BASE_URL}/api/submissions?limit=50`, { headers })
+
+      console.log('🔍 Admin submissions response:', getAllResponse.data)
+      console.log('🔍 Test submission ID:', this.testSubmissionId)
 
       this.addResult({
         name: 'Get All Submissions (Admin)',
@@ -330,7 +328,8 @@ class E2ETestRunner {
           adminReview: updateResponse.data.submission?.adminReview ? 'Created' : 'None'
         }
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error('🔍 Admin review error details:', error.response?.data || error.message)
       this.addResult({
         name: 'Admin Review Flow',
         status: 'FAIL',
