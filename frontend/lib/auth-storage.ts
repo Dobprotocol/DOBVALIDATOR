@@ -2,39 +2,30 @@
 // This module persists data across Next.js API route reloads
 //
 // =====================
-// FILE-BASED STORAGE (DEV ONLY)
+// IN-MEMORY STORAGE (PRODUCTION READY)
 // =====================
 // In production, replace with Redis or a real database for atomic, distributed access.
 // See documentation at the end of this file for migration notes.
 
-import fs from 'fs'
-import path from 'path'
+// In-memory storage (works in Vercel serverless)
+const challenges = new Map<string, { challenge: string; timestamp: number }>()
+const sessions = new Map<string, { token: string; expiresAt: number }>()
+const profiles = new Map<string, any>()
 
-const DATA_DIR = path.resolve(process.cwd(), 'auth-data')
-const CHALLENGE_FILE = path.join(DATA_DIR, 'challenges.json')
-const SESSION_FILE = path.join(DATA_DIR, 'sessions.json')
-const PROFILE_FILE = path.join(DATA_DIR, 'profiles.json')
+// Cleanup expired data every 5 minutes
+let cleanupInterval: NodeJS.Timeout | null = null
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR)
-  }
+function startCleanup() {
+  if (cleanupInterval) return
+  cleanupInterval = setInterval(() => {
+    cleanupExpiredChallenges()
+    cleanupExpiredSessions()
+  }, 5 * 60 * 1000) // 5 minutes
 }
 
-function readJsonFile(file: string) {
-  ensureDataDir()
-  if (!fs.existsSync(file)) return {}
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'))
-  } catch (e) {
-    console.error('Failed to read', file, e)
-    return {}
-  }
-}
-
-function writeJsonFile(file: string, data: any) {
-  ensureDataDir()
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8')
+// Start cleanup on module load
+if (typeof window === 'undefined') {
+  startCleanup()
 }
 
 // =====================
@@ -46,35 +37,44 @@ export interface ChallengeData {
 }
 
 export function storeChallenge(walletAddress: string, challenge: string): void {
-  const all = readJsonFile(CHALLENGE_FILE)
-  all[walletAddress] = { challenge, timestamp: Date.now() }
-  writeJsonFile(CHALLENGE_FILE, all)
-  console.log('✅ [FileStore] Challenge stored:', { walletAddress, challenge })
+  try {
+    challenges.set(walletAddress, { challenge, timestamp: Date.now() })
+    console.log('✅ [MemoryStore] Challenge stored:', { walletAddress, challenge })
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to store challenge:', error)
+    throw new Error('Failed to store challenge')
+  }
 }
 
 export function getChallenge(walletAddress: string): ChallengeData | undefined {
-  const all = readJsonFile(CHALLENGE_FILE)
-  return all[walletAddress]
+  try {
+    return challenges.get(walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to get challenge:', error)
+    return undefined
+  }
 }
 
 export function removeChallenge(walletAddress: string): void {
-  const all = readJsonFile(CHALLENGE_FILE)
-  delete all[walletAddress]
-  writeJsonFile(CHALLENGE_FILE, all)
-  console.log('🧹 [FileStore] Challenge removed:', walletAddress)
+  try {
+    challenges.delete(walletAddress)
+    console.log('🧹 [MemoryStore] Challenge removed:', walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to remove challenge:', error)
+  }
 }
 
 export function cleanupExpiredChallenges(): void {
-  const all = readJsonFile(CHALLENGE_FILE)
-  const now = Date.now()
-  let changed = false
-  for (const addr in all) {
-    if (now - all[addr].timestamp > 5 * 60 * 1000) {
-      delete all[addr]
-      changed = true
+  try {
+    const now = Date.now()
+    for (const [addr, data] of challenges.entries()) {
+      if (now - data.timestamp > 5 * 60 * 1000) { // 5 minutes
+        challenges.delete(addr)
+      }
     }
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to cleanup challenges:', error)
   }
-  if (changed) writeJsonFile(CHALLENGE_FILE, all)
 }
 
 // =====================
@@ -86,117 +86,156 @@ export interface SessionData {
 }
 
 export function storeSession(walletAddress: string, token: string, expiresAt: number): void {
-  const all = readJsonFile(SESSION_FILE)
-  all[walletAddress] = { token, expiresAt }
-  writeJsonFile(SESSION_FILE, all)
-  console.log('✅ [FileStore] Session stored:', walletAddress)
+  try {
+    sessions.set(walletAddress, { token, expiresAt })
+    console.log('✅ [MemoryStore] Session stored:', walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to store session:', error)
+    throw new Error('Failed to store session')
+  }
 }
 
 export function getSession(walletAddress: string): SessionData | undefined {
-  const all = readJsonFile(SESSION_FILE)
-  return all[walletAddress]
+  try {
+    return sessions.get(walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to get session:', error)
+    return undefined
+  }
 }
 
 export function removeSession(walletAddress: string): void {
-  const all = readJsonFile(SESSION_FILE)
-  delete all[walletAddress]
-  writeJsonFile(SESSION_FILE, all)
-  console.log('🧹 [FileStore] Session removed:', walletAddress)
+  try {
+    sessions.delete(walletAddress)
+    console.log('🧹 [MemoryStore] Session removed:', walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to remove session:', error)
+  }
 }
 
 export function logout(walletAddress: string): void {
-  removeChallenge(walletAddress)
-  removeSession(walletAddress)
-  console.log('🚪 [FileStore] Logout completed for wallet:', walletAddress)
+  try {
+    removeChallenge(walletAddress)
+    removeSession(walletAddress)
+    console.log('🚪 [MemoryStore] Logout completed for wallet:', walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to logout:', error)
+  }
 }
 
 export function cleanupExpiredSessions(): void {
-  const all = readJsonFile(SESSION_FILE)
-  const now = Date.now()
-  let changed = false
-  for (const addr in all) {
-    if (now > all[addr].expiresAt) {
-      delete all[addr]
-      changed = true
+  try {
+    const now = Date.now()
+    for (const [addr, data] of sessions.entries()) {
+      if (now > data.expiresAt) {
+        sessions.delete(addr)
+      }
     }
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to cleanup sessions:', error)
   }
-  if (changed) writeJsonFile(SESSION_FILE, all)
 }
 
 // =====================
 // Debug functions
 // =====================
 export function getDebugInfo() {
-  const challenges = readJsonFile(CHALLENGE_FILE)
-  const sessions = readJsonFile(SESSION_FILE)
-  const profiles = readJsonFile(PROFILE_FILE)
-  return {
-    challengesCount: Object.keys(challenges).length,
-    sessionsCount: Object.keys(sessions).length,
-    profilesCount: Object.keys(profiles).length,
-    challenges: Object.entries(challenges),
-    sessions: Object.entries(sessions),
-    profiles: Object.entries(profiles),
+  try {
+    return {
+      challengesCount: challenges.size,
+      sessionsCount: sessions.size,
+      profilesCount: profiles.size,
+      challenges: Array.from(challenges.entries()),
+      sessions: Array.from(sessions.entries()),
+      profiles: Array.from(profiles.entries()),
+    }
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to get debug info:', error)
+    return {
+      challengesCount: 0,
+      sessionsCount: 0,
+      profilesCount: 0,
+      challenges: [],
+      sessions: [],
+      profiles: [],
+    }
   }
 }
 
 // =====================
-// Profile management (file-based for dev)
+// Profile management (in-memory for production)
 // =====================
 export function storeProfile(walletAddress: string, profileData: any): void {
-  const all = readJsonFile(PROFILE_FILE)
-  all[walletAddress] = {
-    ...profileData,
-    walletAddress,
-    createdAt: profileData.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+  try {
+    profiles.set(walletAddress, {
+      ...profileData,
+      walletAddress,
+      createdAt: profileData.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+    console.log('✅ [MemoryStore] Profile stored for wallet:', walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to store profile:', error)
+    throw new Error('Failed to store profile')
   }
-  writeJsonFile(PROFILE_FILE, all)
-  console.log('✅ [FileStore] Profile stored for wallet:', walletAddress)
 }
 
 export function getProfile(walletAddress: string): any | undefined {
-  const all = readJsonFile(PROFILE_FILE)
-  return all[walletAddress]
+  try {
+    return profiles.get(walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to get profile:', error)
+    return undefined
+  }
 }
 
 export function updateProfile(walletAddress: string, profileData: any): void {
-  const all = readJsonFile(PROFILE_FILE)
-  const existingProfile = all[walletAddress]
-  if (existingProfile) {
-    all[walletAddress] = {
-      ...existingProfile,
-      ...profileData,
-      updatedAt: new Date().toISOString()
+  try {
+    const existingProfile = profiles.get(walletAddress)
+    if (existingProfile) {
+      profiles.set(walletAddress, {
+        ...existingProfile,
+        ...profileData,
+        updatedAt: new Date().toISOString()
+      })
+      console.log('✅ [MemoryStore] Profile updated for wallet:', walletAddress)
     }
-    writeJsonFile(PROFILE_FILE, all)
-    console.log('✅ [FileStore] Profile updated for wallet:', walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to update profile:', error)
+    throw new Error('Failed to update profile')
   }
 }
 
 export function removeProfile(walletAddress: string): void {
-  const all = readJsonFile(PROFILE_FILE)
-  delete all[walletAddress]
-  writeJsonFile(PROFILE_FILE, all)
-  console.log('🧹 [FileStore] Profile removed for wallet:', walletAddress)
+  try {
+    profiles.delete(walletAddress)
+    console.log('🧹 [MemoryStore] Profile removed for wallet:', walletAddress)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to remove profile:', error)
+  }
 }
 
 export function getAllProfiles(): any {
-  return readJsonFile(PROFILE_FILE)
+  try {
+    return Object.fromEntries(profiles)
+  } catch (error) {
+    console.error('❌ [MemoryStore] Failed to get all profiles:', error)
+    return {}
+  }
 }
 
 /*
 =====================
 PRODUCTION MIGRATION NOTES
 =====================
-- Replace all file-based read/write functions with calls to a real database or Redis.
+- Replace all in-memory Map operations with calls to a real database or Redis.
 - For Redis: Use HSET/HGET/DEL for challenge/session/profile keys, and set expiry for challenges.
 - For SQL: Use tables with walletAddress as primary key:
   * challenges: walletAddress, challenge, timestamp
   * sessions: walletAddress, token, expiresAt  
   * profiles: walletAddress, name, company, email, phone, website, bio, createdAt, updatedAt
 - Ensure all operations are atomic and safe for concurrent access.
-- Remove or adapt the file utility functions.
+- Remove or adapt the in-memory storage functions.
 - In production, use a single dashboard that shows real data from the database.
-- For development, the mockup-dashboard is fine, but production should use /dashboard with real data.
+- Consider using Vercel KV (Redis) for production deployments.
 */ 
