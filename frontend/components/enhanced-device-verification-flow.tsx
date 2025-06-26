@@ -73,6 +73,7 @@ export function EnhancedDeviceVerificationFlow() {
   const [isScrolling, setIsScrolling] = useState(false)
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right')
   const [previousStep, setPreviousStep] = useState(1)
+  const [scrollProgress, setScrollProgress] = useState(0)
   
   const containerRef = useRef<HTMLDivElement>(null)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -141,13 +142,37 @@ export function EnhancedDeviceVerificationFlow() {
     return () => clearTimeout(timer)
   }, [currentStep, previousStep])
 
-  // Scroll to step when currentStep changes - only for carousel view
+  // Scroll listener for step-by-step view
   useEffect(() => {
-    if (!isSinglePageView && stepRefs.current[currentStep - 1]) {
-      // For carousel view, we don't need to scroll since cards are absolutely positioned
-      // The animation will handle the transition
+    if (isSinglePageView) return // Only for step-by-step view
+    
+    const handleScroll = () => {
+      if (!containerRef.current) return
+      
+      const container = containerRef.current
+      const scrollTop = container.scrollTop
+      const scrollHeight = container.scrollHeight
+      const clientHeight = container.clientHeight
+      
+      // Calculate scroll progress (0 to 1)
+      const progress = scrollTop / (scrollHeight - clientHeight)
+      setScrollProgress(progress)
+      
+      // Calculate which step should be visible based on scroll position
+      const stepHeight = scrollHeight / totalSteps
+      const currentScrollStep = Math.floor(scrollTop / stepHeight) + 1
+      
+      if (currentScrollStep !== currentStep && currentScrollStep >= 1 && currentScrollStep <= totalSteps) {
+        setCurrentStep(currentScrollStep)
+      }
     }
-  }, [currentStep, isSinglePageView])
+    
+    const container = containerRef.current
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true })
+      return () => container.removeEventListener('scroll', handleScroll)
+    }
+  }, [isSinglePageView, currentStep, totalSteps])
 
   const updateDeviceData = (data: Partial<DeviceData>) => {
     setDeviceData((prev) => ({ ...prev, ...data }))
@@ -270,37 +295,40 @@ export function EnhancedDeviceVerificationFlow() {
         </div>
       ))}
       
-      {/* Animation indicator */}
+      {/* Scroll progress indicator */}
       <div className="ml-4 flex items-center space-x-2">
-        <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-          isScrolling ? 'bg-primary animate-pulse' : 'bg-muted'
-        }`} />
+        <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-primary transition-all duration-300 ease-out"
+            style={{ width: `${scrollProgress * 100}%` }}
+          />
+        </div>
         <span className="text-xs text-muted-foreground">
-          {isScrolling ? 'Transitioning...' : 'Ready'}
+          {Math.round(scrollProgress * 100)}%
         </span>
       </div>
     </div>
   )
 
-  // Multi-step View Component with carousel-style animations
+  // Multi-step View Component with scrollable layout and fade animations
   const MultiStepView = () => (
     <div 
       ref={containerRef}
-      className="relative h-[70vh] overflow-hidden"
+      className="relative h-[70vh] overflow-y-auto overflow-x-hidden scroll-smooth"
     >
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="relative min-h-full">
         {/* Step 1 */}
         <div
           ref={(el) => { stepRefs.current[0] = el }}
-          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 1 
-              ? 'opacity-100 scale-100 translate-x-0 z-10' 
+              ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 1 
-                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
-                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
+                ? 'opacity-30 scale-95 translate-y-4' 
+                : 'opacity-30 scale-95 -translate-y-4'
           }`}
         >
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl p-8">
             <DeviceBasicInfo deviceData={deviceData} updateDeviceData={updateDeviceData} onNext={nextStep} />
           </div>
         </div>
@@ -308,15 +336,15 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 2 */}
         <div
           ref={(el) => { stepRefs.current[1] = el }}
-          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 2 
-              ? 'opacity-100 scale-100 translate-x-0 z-10' 
+              ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 2 
-                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
-                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
+                ? 'opacity-30 scale-95 translate-y-4' 
+                : 'opacity-30 scale-95 -translate-y-4'
           }`}
         >
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl p-8">
             <DeviceTechnicalInfo
               deviceData={deviceData}
               updateDeviceData={updateDeviceData}
@@ -329,15 +357,15 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 3 */}
         <div
           ref={(el) => { stepRefs.current[2] = el }}
-          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 3 
-              ? 'opacity-100 scale-100 translate-x-0 z-10' 
+              ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 3 
-                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
-                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
+                ? 'opacity-30 scale-95 translate-y-4' 
+                : 'opacity-30 scale-95 -translate-y-4'
           }`}
         >
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl p-8">
             <DeviceFinancialInfo
               deviceData={deviceData}
               updateDeviceData={updateDeviceData}
@@ -350,15 +378,15 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 4 */}
         <div
           ref={(el) => { stepRefs.current[3] = el }}
-          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 4 
-              ? 'opacity-100 scale-100 translate-x-0 z-10' 
+              ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 4 
-                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
-                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
+                ? 'opacity-30 scale-95 translate-y-4' 
+                : 'opacity-30 scale-95 -translate-y-4'
           }`}
         >
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl p-8">
             <DeviceDocumentation
               deviceData={deviceData}
               updateDeviceData={updateDeviceData}
@@ -371,15 +399,15 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 5 */}
         <div
           ref={(el) => { stepRefs.current[4] = el }}
-          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 5 
-              ? 'opacity-100 scale-100 translate-x-0 z-10' 
+              ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 5 
-                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
-                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
+                ? 'opacity-30 scale-95 translate-y-4' 
+                : 'opacity-30 scale-95 -translate-y-4'
           }`}
         >
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl p-8">
             <DeviceReview deviceData={deviceData} onNext={nextStep} onBack={prevStep} />
           </div>
         </div>
@@ -387,13 +415,13 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 6 */}
         <div
           ref={(el) => { stepRefs.current[5] = el }}
-          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 6 
-              ? 'opacity-100 scale-100 translate-x-0 z-10' 
-              : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
+              ? 'opacity-100 scale-100 translate-y-0' 
+              : 'opacity-30 scale-95 -translate-y-4'
           }`}
         >
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl p-8">
             <DeviceSuccess />
           </div>
         </div>
@@ -401,10 +429,10 @@ export function EnhancedDeviceVerificationFlow() {
     </div>
   )
 
-  // Single Page View Component - Continuous layout
+  // Single Page View Component - Continuous scrollable layout
   const SinglePageView = () => (
-    <div className="space-y-12 pb-12">
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg sticky top-4">
+    <div className="relative space-y-12 pb-12">
+      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg">
         <CardContent className="p-8">
           <h3 className="text-xl font-semibold mb-6 text-primary">Step 1: Basic Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -707,11 +735,14 @@ export function EnhancedDeviceVerificationFlow() {
         .step-indicator {
           will-change: transform, background-color;
         }
+        .scroll-container {
+          scroll-behavior: smooth;
+        }
       `}</style>
-      <div className={`${isSinglePageView ? 'h-auto' : 'min-h-screen'} py-8 px-4`}>
-        <div className="container mx-auto">
+      <div className={`${isSinglePageView ? 'h-auto' : 'h-screen'} py-8 px-4 overflow-hidden`}>
+        <div className="container mx-auto h-full flex flex-col">
           {/* Header with Toggle and Download */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 flex-shrink-0">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -769,8 +800,10 @@ export function EnhancedDeviceVerificationFlow() {
           {!isSinglePageView && <StepIndicator />}
 
           {/* Form Content */}
-          <div className="max-w-4xl mx-auto">
-            {isSinglePageView ? <SinglePageView /> : <MultiStepView />}
+          <div className="flex-1 overflow-hidden">
+            <div className="max-w-4xl mx-auto h-full">
+              {isSinglePageView ? <SinglePageView /> : <MultiStepView />}
+            </div>
           </div>
         </div>
       </div>
