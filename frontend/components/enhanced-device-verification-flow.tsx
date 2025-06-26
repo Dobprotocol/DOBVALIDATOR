@@ -159,20 +159,37 @@ export function EnhancedDeviceVerificationFlow() {
       setScrollProgress(progress)
       
       // Calculate which step should be visible based on scroll position
+      // Use a more precise calculation with viewport center detection
+      const viewportCenter = scrollTop + (clientHeight / 2)
       const stepHeight = scrollHeight / totalSteps
-      const currentScrollStep = Math.floor(scrollTop / stepHeight) + 1
+      const currentScrollStep = Math.floor(viewportCenter / stepHeight) + 1
       
-      if (currentScrollStep !== currentStep && currentScrollStep >= 1 && currentScrollStep <= totalSteps) {
-        setCurrentStep(currentScrollStep)
+      // Add some threshold to prevent rapid changes
+      const clampedStep = Math.max(1, Math.min(totalSteps, currentScrollStep))
+      
+      console.log('Scroll Debug:', {
+        scrollTop,
+        viewportCenter,
+        stepHeight,
+        currentScrollStep,
+        clampedStep,
+        currentStep
+      })
+      
+      if (clampedStep !== currentStep) {
+        console.log('Changing step from', currentStep, 'to', clampedStep)
+        setCurrentStep(clampedStep)
       }
     }
     
     const container = containerRef.current
     if (container) {
       container.addEventListener('scroll', handleScroll, { passive: true })
+      // Initial call to set correct state
+      handleScroll()
       return () => container.removeEventListener('scroll', handleScroll)
     }
-  }, [isSinglePageView, currentStep, totalSteps])
+  }, [isSinglePageView, totalSteps]) // Removed currentStep dependency to prevent loops
 
   const updateDeviceData = (data: Partial<DeviceData>) => {
     setDeviceData((prev) => ({ ...prev, ...data }))
@@ -320,14 +337,19 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 1 */}
         <div
           ref={(el) => { stepRefs.current[0] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
             currentStep === 1 
               ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 1 
-                ? 'opacity-30 scale-95 translate-y-4' 
-                : 'opacity-30 scale-95 -translate-y-4'
+                ? 'opacity-20 scale-90 translate-y-8' 
+                : 'opacity-20 scale-90 -translate-y-8'
           }`}
         >
+          {currentStep === 1 && (
+            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
+              Current Step
+            </div>
+          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceBasicInfo deviceData={deviceData} updateDeviceData={updateDeviceData} onNext={nextStep} />
           </div>
@@ -336,14 +358,19 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 2 */}
         <div
           ref={(el) => { stepRefs.current[1] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
             currentStep === 2 
               ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 2 
-                ? 'opacity-30 scale-95 translate-y-4' 
-                : 'opacity-30 scale-95 -translate-y-4'
+                ? 'opacity-20 scale-90 translate-y-8' 
+                : 'opacity-20 scale-90 -translate-y-8'
           }`}
         >
+          {currentStep === 2 && (
+            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
+              Current Step
+            </div>
+          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceTechnicalInfo
               deviceData={deviceData}
@@ -357,14 +384,19 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 3 */}
         <div
           ref={(el) => { stepRefs.current[2] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
             currentStep === 3 
               ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 3 
-                ? 'opacity-30 scale-95 translate-y-4' 
-                : 'opacity-30 scale-95 -translate-y-4'
+                ? 'opacity-20 scale-90 translate-y-8' 
+                : 'opacity-20 scale-90 -translate-y-8'
           }`}
         >
+          {currentStep === 3 && (
+            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
+              Current Step
+            </div>
+          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceFinancialInfo
               deviceData={deviceData}
@@ -378,14 +410,19 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 4 */}
         <div
           ref={(el) => { stepRefs.current[3] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
             currentStep === 4 
               ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 4 
-                ? 'opacity-30 scale-95 translate-y-4' 
-                : 'opacity-30 scale-95 -translate-y-4'
+                ? 'opacity-20 scale-90 translate-y-8' 
+                : 'opacity-20 scale-90 -translate-y-8'
           }`}
         >
+          {currentStep === 4 && (
+            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
+              Current Step
+            </div>
+          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceDocumentation
               deviceData={deviceData}
@@ -399,14 +436,19 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 5 */}
         <div
           ref={(el) => { stepRefs.current[4] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
             currentStep === 5 
               ? 'opacity-100 scale-100 translate-y-0' 
               : currentStep > 5 
-                ? 'opacity-30 scale-95 translate-y-4' 
-                : 'opacity-30 scale-95 -translate-y-4'
+                ? 'opacity-20 scale-90 translate-y-8' 
+                : 'opacity-20 scale-90 -translate-y-8'
           }`}
         >
+          {currentStep === 5 && (
+            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
+              Current Step
+            </div>
+          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceReview deviceData={deviceData} onNext={nextStep} onBack={prevStep} />
           </div>
@@ -415,12 +457,17 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 6 */}
         <div
           ref={(el) => { stepRefs.current[5] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
             currentStep === 6 
               ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-30 scale-95 -translate-y-4'
+              : 'opacity-20 scale-90 -translate-y-8'
           }`}
         >
+          {currentStep === 6 && (
+            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
+              Current Step
+            </div>
+          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceSuccess />
           </div>
