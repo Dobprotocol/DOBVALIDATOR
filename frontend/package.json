@@ -52,6 +52,7 @@
     "date-fns": "4.1.0",
     "dotenv": "^16.4.5",
     "embla-carousel-react": "8.5.1",
+    "framer-motion": "^12.19.1",
     "input-otp": "1.4.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.454.0",

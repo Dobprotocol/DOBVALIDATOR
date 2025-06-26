@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE_URL = '' // Use relative URLs to call frontend API routes
 
 class ApiService {
   private baseUrl: string
@@ -22,11 +22,18 @@ class ApiService {
     }
 
     // Add auth token if available
-    const token = localStorage.getItem('authToken')
-    if (token) {
+    const authData = localStorage.getItem('authToken')
+    if (authData) {
+      try {
+        const parsedAuth = JSON.parse(authData)
+        if (parsedAuth.token) {
       config.headers = {
         ...config.headers,
-        'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${parsedAuth.token}`,
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse auth token:', error)
       }
     }
 

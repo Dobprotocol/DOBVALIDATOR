@@ -104,7 +104,7 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-background/80 backdrop-blur-sm border-b h-16">
+    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-background border-b h-16">
       <div className="flex items-center gap-6 ">
         <a href="https://www.dobprotocol.com" target="_blank" rel="noopener noreferrer" className="h-12 overflow-hidden flex items-center">
           <Image
@@ -117,7 +117,7 @@ export function Header() {
           />
         </a>
         {isAuth && (
-          <a href="/mockup-dashboard" className="text-foreground hover:text-primary font-medium transition-colors">My Devices</a>
+          <a href="/dashboard" className="text-foreground hover:text-primary font-medium transition-colors">My Devices</a>
         )}
       </div>
       <div className="flex items-center justify-end gap-2">
