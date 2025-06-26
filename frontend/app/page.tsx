@@ -166,19 +166,27 @@ export default function Home() {
       {/* Optimized Spline 3D Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div 
-          className="absolute inset-0 spline-background parallax-bg"
+          className="absolute inset-0"
           style={{
-            transform: `scale(1.2) translate(${mousePosition.x * 15}px, ${mousePosition.y * 15}px)`,
-            transition: 'transform 0.3s ease-out'
+            transform: 'scale(1.2)',
+            transformOrigin: 'top center',
+            width: '100%',
+            height: '100%'
           }}
         >
           <OptimizedSpline
             url="https://prod.spline.design/Bfe9XFwx9BFcwE6l/scene.splinecode"
             className="w-full h-full"
             placeholderImage="/images/FLOWCARD + COINS - Clonable@1-1512x869.webp"
-            onLoad={() => setSplineLoaded(true)}
-            onError={(error) => console.error('Spline failed to load:', error)}
-            loadingDelay={500}
+            onLoad={() => {
+              console.log('Spline loaded successfully in main page')
+              setSplineLoaded(true)
+            }}
+            onError={(error) => {
+              console.error('Spline failed to load in main page:', error)
+            }}
+            loadingDelay={200}
+            forceRefresh={true}
             fallbackContent={
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <div className="text-center">
@@ -189,6 +197,15 @@ export default function Home() {
             }
           />
         </div>
+        
+        {/* Parallax overlay for mouse movement effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            transform: `translate(${mousePosition.x * 15}px, ${mousePosition.y * 15}px)`,
+            transition: 'transform 0.3s ease-out'
+          }}
+        />
       </div>
       
       {/* Main content container */}

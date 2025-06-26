@@ -12,6 +12,7 @@ interface OptimizedSplineProps {
   onError?: (error: any) => void
   loadingDelay?: number
   fallbackContent?: React.ReactNode
+  forceRefresh?: boolean
 }
 
 export function OptimizedSpline({
@@ -20,22 +21,104 @@ export function OptimizedSpline({
   placeholderImage = '/images/FLOWCARD + COINS - Clonable@1-1512x869.webp',
   onLoad,
   onError,
-  loadingDelay = 1000,
-  fallbackContent
+  loadingDelay = 500,
+  fallbackContent,
+  forceRefresh = false
 }: OptimizedSplineProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasError, setHasError] = useState(false)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
-  const [splineReady, setSplineReady] = useState(false)
   const splineViewerRef = useRef<HTMLDivElement>(null)
-  const splineInstanceRef = useRef<any>(null)
   const loadingTimeoutRef = useRef<NodeJS.Timeout>()
+  const scriptLoadedRef = useRef(false)
+  const splineInstanceRef = useRef<any>(null)
+  const isInitializedRef = useRef(false)
 
-  // Function to create the spline-viewer element
+  // Load Spline viewer script
+  const loadSplineScript = useCallback(() => {
+    return new Promise<void>((resolve, reject) => {
+      console.log('Starting Spline script loading...')
+      
+      // Check if script is already loaded
+      if (scriptLoadedRef.current || customElements.get('spline-viewer')) {
+        console.log('Spline script already available')
+        resolve()
+        return
+      }
+
+      // Check for existing script tag
+      const existingScript = document.querySelector('script[src*="spline-viewer"]')
+      if (existingScript && !forceRefresh) {
+        console.log('Spline script tag exists, waiting for it to load...')
+        // Wait for the existing script to load
+        const checkInterval = setInterval(() => {
+          console.log('Checking for spline-viewer custom element...')
+          if (customElements.get('spline-viewer')) {
+            clearInterval(checkInterval)
+            scriptLoadedRef.current = true
+            console.log('Spline custom element found from existing script')
+            resolve()
+          }
+        }, 100)
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval)
+          console.error('Existing script failed to load within timeout')
+          reject(new Error('Existing script failed to load'))
+        }, 5000)
+        return
+      }
+
+      // Remove existing script if force refresh is enabled
+      if (forceRefresh && existingScript) {
+        console.log('Force refresh enabled, removing existing script...')
+        existingScript.remove()
+        scriptLoadedRef.current = false
+      }
+
+      // Create and load new script with cache busting
+      console.log('Creating new Spline script element...')
+      const script = document.createElement('script')
+      const timestamp = Date.now()
+      script.src = `https://unpkg.com/@splinetool/viewer@latest/build/spline-viewer.js?v=${timestamp}`
+      script.type = 'module'
+      script.async = true
+      
+      const loadTimeout = setTimeout(() => {
+        console.error('Script load timeout')
+        reject(new Error('Script load timeout'))
+      }, 10000)
+
+      script.onload = () => {
+        clearTimeout(loadTimeout)
+        console.log('Spline script loaded successfully')
+        scriptLoadedRef.current = true
+        resolve()
+      }
+      
+      script.onerror = (error) => {
+        clearTimeout(loadTimeout)
+        console.error('Failed to load Spline viewer script:', error)
+        reject(new Error('Failed to load Spline viewer script'))
+      }
+
+      console.log('Appending script to document head...')
+      document.head.appendChild(script)
+    })
+  }, [forceRefresh])
+
+  // Create Spline viewer element
   const createSplineViewer = useCallback(() => {
-    if (!splineViewerRef.current || !customElements.get('spline-viewer')) {
-      return
+    if (!splineViewerRef.current || isInitializedRef.current) {
+      console.log('Spline container not ready or already initialized')
+      return false
+    }
+
+    if (!customElements.get('spline-viewer')) {
+      console.log('Spline viewer custom element not available')
+      return false
     }
 
     const container = splineViewerRef.current
@@ -45,67 +128,87 @@ export function OptimizedSpline({
     
     try {
       const splineViewer = document.createElement('spline-viewer')
-      splineViewer.setAttribute('url', url)
+      // Add cache-busting parameter to the URL
+      const cacheBustedUrl = forceRefresh ? `${url}?v=${Date.now()}` : url
+      splineViewer.setAttribute('url', cacheBustedUrl)
       splineViewer.style.width = '100%'
       splineViewer.style.height = '100%'
       splineViewer.style.border = 'none'
       splineViewer.style.background = 'transparent'
       splineViewer.style.minWidth = '100px'
       splineViewer.style.minHeight = '100px'
+      splineViewer.style.position = 'absolute'
+      splineViewer.style.top = '0'
+      splineViewer.style.left = '0'
+      splineViewer.style.zIndex = '1'
+      splineViewer.style.pointerEvents = 'auto'
+      splineViewer.style.userSelect = 'none'
+      splineViewer.style.touchAction = 'manipulation'
+
+      // Prevent the scene from losing focus
+      splineViewer.addEventListener('blur', (e) => {
+        e.preventDefault()
+        splineViewer.focus()
+      })
+
+      // Prevent default browser behaviors that might interfere
+      splineViewer.addEventListener('contextmenu', (e) => {
+        e.preventDefault()
+      })
+
+      splineViewer.addEventListener('selectstart', (e) => {
+        e.preventDefault()
+      })
 
       // Add error handling
       splineViewer.addEventListener('error', (error) => {
         console.error('Spline viewer error:', error)
         setHasError(true)
         setIsLoading(false)
-        setSplineReady(false)
         onError?.(error)
       })
 
       // Add load handling
       splineViewer.addEventListener('load', () => {
-        setSplineReady(true)
+        console.log('Spline viewer loaded successfully')
         splineInstanceRef.current = splineViewer
         setIsLoaded(true)
         setIsLoading(false)
+        
+        // Immediate transition for seamless experience
         setShowPlaceholder(false)
+        
         onLoad?.()
       })
 
+      // Add a timeout to detect if load event doesn't fire
+      const loadTimeout = setTimeout(() => {
+        if (!isLoaded && !hasError) {
+          console.log('Spline load timeout, forcing load state')
+          splineInstanceRef.current = splineViewer
+          setIsLoaded(true)
+          setIsLoading(false)
+          
+          // Immediate transition for seamless experience
+          setShowPlaceholder(false)
+          
+          onLoad?.()
+        }
+      }, 8000) // 8 second timeout
+
       container.appendChild(splineViewer)
+      isInitializedRef.current = true
+      
+      // Clean up timeout if component unmounts
+      return () => clearTimeout(loadTimeout)
     } catch (error) {
       console.error('Error creating Spline viewer:', error)
       setHasError(true)
       setIsLoading(false)
       onError?.(error)
+      return false
     }
-  }, [url, onLoad, onError])
-
-  // Load Spline viewer script
-  const loadSplineScript = useCallback(() => {
-    return new Promise<void>((resolve, reject) => {
-      const existingScript = document.querySelector('script[src*="spline-viewer"]')
-      
-      if (existingScript) {
-        resolve()
-        return
-      }
-
-      const script = document.createElement('script')
-      script.src = 'https://unpkg.com/@splinetool/viewer@1.10.13/build/spline-viewer.js'
-      script.async = true
-      
-      script.onload = () => {
-        resolve()
-      }
-      
-      script.onerror = () => {
-        reject(new Error('Failed to load Spline viewer script'))
-      }
-
-      document.head.appendChild(script)
-    })
-  }, [])
+  }, [url, onLoad, onError, isLoaded, hasError, forceRefresh])
 
   // Initialize Spline
   useEffect(() => {
@@ -113,16 +216,35 @@ export function OptimizedSpline({
 
     const initializeSpline = async () => {
       try {
+        console.log('Initializing Spline...')
         await loadSplineScript()
         
         if (!mounted) return
 
-        // Add a small delay to ensure script is fully loaded
-        setTimeout(() => {
-          if (mounted) {
-            createSplineViewer()
+        // Wait for custom elements to be defined
+        let attempts = 0
+        const maxAttempts = 100 // 10 seconds max
+        
+        const waitForCustomElement = () => {
+          console.log(`Checking for spline-viewer custom element (attempt ${attempts + 1}/${maxAttempts})...`)
+          if (customElements.get('spline-viewer')) {
+            console.log('Spline custom element ready')
+            if (mounted) {
+              createSplineViewer()
+            }
+          } else if (attempts < maxAttempts) {
+            attempts++
+            setTimeout(waitForCustomElement, 100)
+          } else {
+            console.error('Spline custom element not available after timeout')
+            console.log('Available custom elements:', Array.from(customElements.keys()))
+            setHasError(true)
+            setIsLoading(false)
+            onError?.(new Error('Spline custom element not available'))
           }
-        }, 100)
+        }
+        
+        waitForCustomElement()
       } catch (error) {
         console.error('Failed to initialize Spline:', error)
         if (mounted) {
@@ -157,11 +279,40 @@ export function OptimizedSpline({
     }
   }, [])
 
+  // Prevent scroll events from affecting the Spline scene
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      if (splineInstanceRef.current) {
+        // Prevent scroll events from bubbling to the Spline scene
+        e.stopPropagation()
+      }
+    }
+
+    const handleWheel = (e: WheelEvent) => {
+      if (splineInstanceRef.current) {
+        // Prevent wheel events from affecting the Spline scene
+        e.stopPropagation()
+      }
+    }
+
+    if (splineViewerRef.current) {
+      splineViewerRef.current.addEventListener('scroll', handleScroll, { passive: false })
+      splineViewerRef.current.addEventListener('wheel', handleWheel, { passive: false })
+    }
+
+    return () => {
+      if (splineViewerRef.current) {
+        splineViewerRef.current.removeEventListener('scroll', handleScroll)
+        splineViewerRef.current.removeEventListener('wheel', handleWheel)
+      }
+    }
+  }, [isLoaded])
+
   return (
-    <div className={cn('relative w-full h-full', className)}>
-      {/* Placeholder Image */}
+    <div className={cn('relative w-full h-full overflow-hidden', className)}>
+      {/* Placeholder Image - positioned absolutely to prevent layout shifts */}
       {showPlaceholder && (
-        <div className="absolute inset-0 transition-opacity duration-500">
+        <div className="absolute inset-0 transition-opacity duration-150 ease-in-out z-0">
           <Image
             src={placeholderImage}
             alt="Loading 3D Scene"
@@ -173,12 +324,12 @@ export function OptimizedSpline({
         </div>
       )}
 
-      {/* Spline Container */}
+      {/* Spline Container - positioned absolutely to prevent layout shifts */}
       <div 
         ref={splineViewerRef}
         className={cn(
-          'w-full h-full transition-opacity duration-500',
-          isLoaded ? 'opacity-100' : 'opacity-0'
+          'absolute inset-0 transition-opacity duration-150 ease-in-out',
+          isLoaded ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
         style={{
           minHeight: '400px'
