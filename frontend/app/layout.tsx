@@ -46,9 +46,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
           <LoadingHandler />
           <StarsBackground className="fixed inset-0 z-0">
-            <div className="min-h-screen animate-fade-in">
+            <div className="relative w-full">
               <Header />
-              <main className="pt-20">
+              <main className="pt-20 relative z-10">
                 <Suspense fallback={null}>
                   {children}
                 </Suspense>
