@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { storeChallenge } from '@/lib/auth-storage'
+import { storeChallenge, getDebugInfo } from '@/lib/auth-storage'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -13,6 +13,8 @@ const challengeSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Challenge POST request received')
+    console.log('🔍 Request URL:', request.url)
+    console.log('🔍 Environment:', process.env.NODE_ENV)
     
     // Check if request has body
     if (!request.body) {
@@ -41,19 +43,29 @@ export async function POST(request: NextRequest) {
     
     // Generate a unique challenge
     const challenge = `DOB_VALIDATOR_AUTH_${Date.now()}_${Math.random().toString(36).substring(2)}`
+    console.log('🔍 Generated challenge:', challenge)
     
     // Store challenge using shared storage
     try {
       storeChallenge(walletAddress, challenge)
+      console.log('✅ Challenge stored successfully')
+      
+      // Debug: Check if challenge was stored
+      const debugInfo = getDebugInfo()
+      console.log('🔍 Debug info after storing:', {
+        challengesCount: debugInfo.challengesCount,
+        hasChallenge: debugInfo.challenges.some(([addr]) => addr === walletAddress)
+      })
+      
     } catch (storageError) {
       console.error('❌ Failed to store challenge:', storageError)
       return NextResponse.json(
-        { error: 'Failed to store challenge' },
+        { error: 'Failed to store challenge', details: storageError instanceof Error ? storageError.message : 'Unknown error' },
         { status: 500 }
       )
     }
     
-    console.log('✅ Challenge generated successfully')
+    console.log('✅ Challenge generated and stored successfully')
     return NextResponse.json({
       success: true,
       challenge,
@@ -78,6 +90,24 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// Debug endpoint to check stored challenges
+export async function GET(request: NextRequest) {
+  try {
+    const debugInfo = getDebugInfo()
+    return NextResponse.json({
+      success: true,
+      debug: debugInfo,
+      message: 'Debug information retrieved'
+    })
+  } catch (error) {
+    console.error('❌ Error in debug endpoint:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -29,7 +29,17 @@ function verifyXDRTransaction(walletAddress: string, signedXDR: string, challeng
     // Parse the signed XDR transaction
     const transaction = TransactionBuilder.fromXDR(signedXDR, Networks.TESTNET)
     console.log('✅ Transaction parsed successfully')
-    console.log('🔍 Transaction source:', transaction.source)
+    
+    // Handle different transaction types
+    if ('source' in transaction) {
+      console.log('🔍 Transaction source:', transaction.source)
+    } else {
+      console.log('🔍 Fee bump transaction - using inner transaction source')
+      if (transaction.innerTransaction && 'source' in transaction.innerTransaction) {
+        console.log('🔍 Inner transaction source:', transaction.innerTransaction.source)
+      }
+    }
+    
     console.log('🔍 Transaction operations count:', transaction.operations.length)
     
     // Extract the challenge from manageData operation
@@ -40,11 +50,12 @@ function verifyXDRTransaction(walletAddress: string, signedXDR: string, challeng
       
       if (operation.type === 'manageData') {
         console.log('🔍 Found manageData operation')
-        console.log('🔍 Operation name:', operation.name)
-        console.log('🔍 Operation value:', operation.value)
+        const manageDataOp = operation as any // Type assertion for manageData operation
+        console.log('🔍 Operation name:', manageDataOp.name)
+        console.log('🔍 Operation value:', manageDataOp.value)
         
-        if (operation.name === 'auth_challenge') {
-          transactionChallenge = operation.value
+        if (manageDataOp.name === 'auth_challenge') {
+          transactionChallenge = manageDataOp.value
           console.log('✅ Found auth_challenge data:', transactionChallenge)
           console.log('🔍 Transaction challenge type:', typeof transactionChallenge)
           console.log('🔍 Transaction challenge length:', transactionChallenge?.length)
@@ -58,7 +69,7 @@ function verifyXDRTransaction(walletAddress: string, signedXDR: string, challeng
       console.log('❌ No auth_challenge data found in transaction')
       console.log('🔍 Available operations:')
       transaction.operations.forEach((op, i) => {
-        console.log(`  ${i}: ${op.type} - ${op.name || 'no name'}`)
+        console.log(`  ${i}: ${op.type} - ${(op as any).name || 'no name'}`)
       })
       return false
     }
@@ -106,7 +117,19 @@ function verifyXDRTransaction(walletAddress: string, signedXDR: string, challeng
     }
     
     // Verify the transaction signature
-    const sourceAccount = transaction.source
+    let sourceAccount: string
+    if ('source' in transaction) {
+      sourceAccount = transaction.source
+    } else {
+      // Handle fee bump transaction
+      if (transaction.innerTransaction && 'source' in transaction.innerTransaction) {
+        sourceAccount = transaction.innerTransaction.source
+      } else {
+        console.log('❌ Could not determine transaction source')
+        return false
+      }
+    }
+    
     if (sourceAccount !== walletAddress) {
       console.log('❌ Wallet address mismatch')
       console.log('❌ Expected:', walletAddress)
@@ -131,6 +154,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Verify POST request received')
     console.log('🔍 Request URL:', request.url)
     console.log('🔍 Request method:', request.method)
+    console.log('🔍 Environment:', process.env.NODE_ENV)
     
     const body = await request.json()
     console.log('🔍 Request body:', body)
@@ -147,6 +171,15 @@ export async function POST(request: NextRequest) {
 
     const { walletAddress, signature, challenge } = validationResult.data
     console.log('🔍 Validated data:', { walletAddress, signature: signature.substring(0, 20) + '...', challenge })
+    
+    // Debug: Check stored challenges before verification
+    const { getDebugInfo } = await import('@/lib/auth-storage')
+    const debugInfo = getDebugInfo()
+    console.log('🔍 Debug info before verification:', {
+      challengesCount: debugInfo.challengesCount,
+      hasChallenge: debugInfo.challenges.some(([addr]) => addr === walletAddress),
+      allChallenges: debugInfo.challenges.map(([addr, data]) => ({ addr, challenge: data.challenge }))
+    })
     
     // Verify XDR transaction
     console.log('🔍 Calling verifyXDRTransaction...')
