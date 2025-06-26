@@ -786,74 +786,126 @@ export function EnhancedDeviceVerificationFlow() {
           scroll-behavior: smooth;
         }
       `}</style>
-      <div className={`${isSinglePageView ? 'h-auto' : 'h-screen'} py-8 px-4 overflow-hidden`}>
-        <div className="container mx-auto h-full flex flex-col">
-          {/* Header with Toggle and Download */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 flex-shrink-0">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="view-mode"
-                  checked={isSinglePageView}
-                  onCheckedChange={setIsSinglePageView}
-                />
-                <Label htmlFor="view-mode" className="flex items-center space-x-2 cursor-pointer select-none">
-                  {isSinglePageView ? (
-                    <>
-                      <LayoutGrid className="h-4 w-4" />
-                      <span>Single Page</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4" />
-                      <span>Step by Step</span>
-                    </>
-                  )}
-                </Label>
+      
+      {isSinglePageView ? (
+        // Full page view - scrollable layout
+        <div className="py-8 px-4">
+          <div className="container mx-auto">
+            {/* Header with Toggle and Download */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="view-mode"
+                    checked={isSinglePageView}
+                    onCheckedChange={setIsSinglePageView}
+                  />
+                  <Label htmlFor="view-mode" className="flex items-center space-x-2 cursor-pointer select-none">
+                    {isSinglePageView ? (
+                      <>
+                        <LayoutGrid className="h-4 w-4" />
+                        <span>Single Page</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4" />
+                        <span>Step by Step</span>
+                      </>
+                    )}
+                  </Label>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-2">
-              <Button
-                onClick={downloadFormQuestions}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Download Form
-              </Button>
-
-              {!isSinglePageView && currentStep < 5 && (
+              <div className="flex items-center space-x-2">
                 <Button
-                  onClick={handleSaveDraft}
-                  disabled={draftLoading}
+                  onClick={downloadFormQuestions}
                   variant="outline"
                   size="sm"
                   className="gap-2"
                 >
-                  {draftLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  {currentDraftId ? 'Update Draft' : 'Save Draft'}
+                  <Download className="h-4 w-4" />
+                  Download Form
                 </Button>
-              )}
+              </div>
             </div>
-          </div>
 
-          {/* Step Indicator - Only show in multi-step view */}
-          {!isSinglePageView && <StepIndicator />}
-
-          {/* Form Content */}
-          <div className="flex-1 overflow-hidden">
-            <div className="max-w-4xl mx-auto h-full">
-              {isSinglePageView ? <SinglePageView /> : <MultiStepView />}
+            {/* Form Content - Full page scrollable */}
+            <div className="max-w-4xl mx-auto">
+              <SinglePageView />
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        // Step-by-step view - fixed height with scroll
+        <div className="h-screen py-8 px-4 overflow-hidden">
+          <div className="container mx-auto h-full flex flex-col">
+            {/* Header with Toggle and Download */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 flex-shrink-0">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="view-mode"
+                    checked={isSinglePageView}
+                    onCheckedChange={setIsSinglePageView}
+                  />
+                  <Label htmlFor="view-mode" className="flex items-center space-x-2 cursor-pointer select-none">
+                    {isSinglePageView ? (
+                      <>
+                        <LayoutGrid className="h-4 w-4" />
+                        <span>Single Page</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4" />
+                        <span>Step by Step</span>
+                      </>
+                    )}
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Button
+                  onClick={downloadFormQuestions}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Form
+                </Button>
+
+                {currentStep < 5 && (
+                  <Button
+                    onClick={handleSaveDraft}
+                    disabled={draftLoading}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {draftLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    {currentDraftId ? 'Update Draft' : 'Save Draft'}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Step Indicator */}
+            <StepIndicator />
+
+            {/* Form Content - Fixed height with scroll */}
+            <div className="flex-1 overflow-hidden">
+              <div className="max-w-4xl mx-auto h-full">
+                <MultiStepView />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 } 
