@@ -18,7 +18,7 @@ export const userService = {
   async findOrCreateByWallet(walletAddress: string, data?: { email?: string; name?: string; company?: string }) {
     return prisma.user.upsert({
       where: { walletAddress },
-      update: data ? { ...data, updatedAt: new Date() } : {},
+      update: data ? { ...data, updatedAt: new Date() } : { updatedAt: new Date() },
       create: {
         walletAddress,
         email: data?.email,
@@ -48,10 +48,15 @@ export const userService = {
 }
 
 export const profileService = {
-  // Create profile
+  // Create or update profile
   async create(userId: string, data: { name: string; company?: string; email: string; walletAddress: string }) {
-    return prisma.profile.create({
-      data: {
+    return prisma.profile.upsert({
+      where: { userId },
+      update: {
+        ...data,
+        updatedAt: new Date()
+      },
+      create: {
         userId,
         ...data
       }

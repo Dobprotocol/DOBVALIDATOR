@@ -13,7 +13,7 @@ async function seedDatabase() {
     
     const adminUser = await prisma.user.upsert({
       where: { walletAddress: adminWallet },
-      update: {},
+      update: { role: 'ADMIN' },
       create: {
         walletAddress: adminWallet,
         email: 'admin@dobvalidator.com',
@@ -21,6 +21,12 @@ async function seedDatabase() {
         company: 'DOB Protocol',
         role: 'ADMIN'
       }
+    })
+
+    // Force admin role to ensure it's always set correctly
+    await prisma.user.update({
+      where: { walletAddress: adminWallet },
+      data: { role: 'ADMIN' }
     })
 
     // Create admin profile
