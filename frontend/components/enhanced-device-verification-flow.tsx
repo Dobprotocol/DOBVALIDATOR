@@ -131,6 +131,14 @@ export function EnhancedDeviceVerificationFlow() {
       setSlideDirection('left')
     }
     setPreviousStep(currentStep)
+    
+    // Set animation state
+    setIsScrolling(true)
+    const timer = setTimeout(() => {
+      setIsScrolling(false)
+    }, 500) // Match the transition duration
+    
+    return () => clearTimeout(timer)
   }, [currentStep, previousStep])
 
   // Scroll to step when currentStep changes - only for carousel view
@@ -242,21 +250,35 @@ export function EnhancedDeviceVerificationFlow() {
             onClick={() => goToStep(index + 1)}
             className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 hover:scale-110 ${
               index + 1 === currentStep
-                ? "bg-primary text-primary-foreground shadow-lg"
+                ? "bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/20"
                 : index + 1 < currentStep
-                  ? "bg-primary/20 text-primary border-2 border-primary"
-                  : "bg-muted text-muted-foreground border-2 border-muted hover:bg-muted/80"
+                  ? "bg-primary/20 text-primary border-2 border-primary hover:bg-primary/30"
+                  : "bg-muted text-muted-foreground border-2 border-muted hover:bg-muted/80 hover:border-primary/50"
             }`}
           >
             {index + 1}
           </button>
           {index < totalSteps - 1 && (
-            <div className={`h-1 w-12 transition-all duration-300 ${
-              index + 1 < currentStep ? "bg-primary" : "bg-muted"
+            <div className={`h-1 w-12 transition-all duration-500 ease-in-out ${
+              index + 1 < currentStep 
+                ? "bg-primary" 
+                : index + 1 === currentStep 
+                  ? "bg-gradient-to-r from-primary to-muted" 
+                  : "bg-muted"
             }`} />
           )}
         </div>
       ))}
+      
+      {/* Animation indicator */}
+      <div className="ml-4 flex items-center space-x-2">
+        <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+          isScrolling ? 'bg-primary animate-pulse' : 'bg-muted'
+        }`} />
+        <span className="text-xs text-muted-foreground">
+          {isScrolling ? 'Transitioning...' : 'Ready'}
+        </span>
+      </div>
     </div>
   )
 
@@ -267,14 +289,15 @@ export function EnhancedDeviceVerificationFlow() {
       className="relative h-[70vh] overflow-hidden"
     >
       <div className="absolute inset-0 flex items-center justify-center">
+        {/* Step 1 */}
         <div
           ref={(el) => { stepRefs.current[0] = el }}
-          className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out transform ${
+          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 1 
               ? 'opacity-100 scale-100 translate-x-0 z-10' 
               : currentStep > 1 
-                ? 'opacity-0 scale-95 -translate-x-full z-0' 
-                : 'opacity-0 scale-95 translate-x-full z-0'
+                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
+                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
           }`}
         >
           <div className="w-full max-w-2xl">
@@ -282,14 +305,15 @@ export function EnhancedDeviceVerificationFlow() {
           </div>
         </div>
 
+        {/* Step 2 */}
         <div
           ref={(el) => { stepRefs.current[1] = el }}
-          className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out transform ${
+          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 2 
               ? 'opacity-100 scale-100 translate-x-0 z-10' 
               : currentStep > 2 
-                ? 'opacity-0 scale-95 -translate-x-full z-0' 
-                : 'opacity-0 scale-95 translate-x-full z-0'
+                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
+                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
           }`}
         >
           <div className="w-full max-w-2xl">
@@ -302,14 +326,15 @@ export function EnhancedDeviceVerificationFlow() {
           </div>
         </div>
 
+        {/* Step 3 */}
         <div
           ref={(el) => { stepRefs.current[2] = el }}
-          className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out transform ${
+          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 3 
               ? 'opacity-100 scale-100 translate-x-0 z-10' 
               : currentStep > 3 
-                ? 'opacity-0 scale-95 -translate-x-full z-0' 
-                : 'opacity-0 scale-95 translate-x-full z-0'
+                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
+                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
           }`}
         >
           <div className="w-full max-w-2xl">
@@ -322,14 +347,15 @@ export function EnhancedDeviceVerificationFlow() {
           </div>
         </div>
 
+        {/* Step 4 */}
         <div
           ref={(el) => { stepRefs.current[3] = el }}
-          className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out transform ${
+          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 4 
               ? 'opacity-100 scale-100 translate-x-0 z-10' 
               : currentStep > 4 
-                ? 'opacity-0 scale-95 -translate-x-full z-0' 
-                : 'opacity-0 scale-95 translate-x-full z-0'
+                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
+                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
           }`}
         >
           <div className="w-full max-w-2xl">
@@ -342,14 +368,15 @@ export function EnhancedDeviceVerificationFlow() {
           </div>
         </div>
 
+        {/* Step 5 */}
         <div
           ref={(el) => { stepRefs.current[4] = el }}
-          className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out transform ${
+          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 5 
               ? 'opacity-100 scale-100 translate-x-0 z-10' 
               : currentStep > 5 
-                ? 'opacity-0 scale-95 -translate-x-full z-0' 
-                : 'opacity-0 scale-95 translate-x-full z-0'
+                ? `opacity-0 scale-95 ${slideDirection === 'right' ? '-translate-x-full' : 'translate-x-full'} z-0` 
+                : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
           }`}
         >
           <div className="w-full max-w-2xl">
@@ -357,12 +384,13 @@ export function EnhancedDeviceVerificationFlow() {
           </div>
         </div>
 
+        {/* Step 6 */}
         <div
           ref={(el) => { stepRefs.current[5] = el }}
-          className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out transform ${
+          className={`step-card absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
             currentStep === 6 
               ? 'opacity-100 scale-100 translate-x-0 z-10' 
-              : 'opacity-0 scale-95 translate-x-full z-0'
+              : `opacity-0 scale-95 ${slideDirection === 'right' ? 'translate-x-full' : '-translate-x-full'} z-0`
           }`}
         >
           <div className="w-full max-w-2xl">
@@ -670,6 +698,14 @@ export function EnhancedDeviceVerificationFlow() {
         }
         .transition-all {
           transition-property: all;
+        }
+        .step-card {
+          will-change: transform, opacity;
+          backface-visibility: hidden;
+          transform-style: preserve-3d;
+        }
+        .step-indicator {
+          will-change: transform, background-color;
         }
       `}</style>
       <div className={`${isSinglePageView ? 'h-auto' : 'min-h-screen'} py-8 px-4`}>
