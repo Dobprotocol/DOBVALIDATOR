@@ -114,9 +114,9 @@ export function EnhancedDeviceVerificationFlow() {
     return () => window.removeEventListener('walletStateChange', onWalletChange)
   }, [])
 
-  const updateDeviceData = (data: Partial<DeviceData>) => {
+  const updateDeviceData = useCallback((data: Partial<DeviceData>) => {
     setDeviceData((prev) => ({ ...prev, ...data }))
-  }
+  }, [])
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -292,16 +292,16 @@ export function EnhancedDeviceVerificationFlow() {
   const MultiStepView = () => (
     <div 
       ref={containerRef}
-      className="relative h-[70vh] overflow-y-auto overflow-x-hidden scroll-container"
+      className="relative h-[70vh] overflow-y-auto overflow-x-hidden"
     >
       <div className="relative min-h-full">
         {/* Step 1 */}
         <div
           ref={(el) => { stepRefs.current[0] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
+          className={`min-h-[70vh] flex items-center justify-center ${
             currentStep === 1 
-              ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-50 scale-95 translate-y-4'
+              ? 'opacity-100' 
+              : 'opacity-50'
           }`}
         >
           <div className="w-full max-w-2xl p-8">
@@ -312,10 +312,10 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 2 */}
         <div
           ref={(el) => { stepRefs.current[1] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
+          className={`min-h-[70vh] flex items-center justify-center ${
             currentStep === 2 
-              ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-50 scale-95 translate-y-4'
+              ? 'opacity-100' 
+              : 'opacity-50'
           }`}
         >
           <div className="w-full max-w-2xl p-8">
@@ -331,10 +331,10 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 3 */}
         <div
           ref={(el) => { stepRefs.current[2] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
+          className={`min-h-[70vh] flex items-center justify-center ${
             currentStep === 3 
-              ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-50 scale-95 translate-y-4'
+              ? 'opacity-100' 
+              : 'opacity-50'
           }`}
         >
           <div className="w-full max-w-2xl p-8">
@@ -350,10 +350,10 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 4 */}
         <div
           ref={(el) => { stepRefs.current[3] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
+          className={`min-h-[70vh] flex items-center justify-center ${
             currentStep === 4 
-              ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-50 scale-95 translate-y-4'
+              ? 'opacity-100' 
+              : 'opacity-50'
           }`}
         >
           <div className="w-full max-w-2xl p-8">
@@ -369,10 +369,10 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 5 */}
         <div
           ref={(el) => { stepRefs.current[4] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
+          className={`min-h-[70vh] flex items-center justify-center ${
             currentStep === 5 
-              ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-50 scale-95 translate-y-4'
+              ? 'opacity-100' 
+              : 'opacity-50'
           }`}
         >
           <div className="w-full max-w-2xl p-8">
@@ -389,10 +389,10 @@ export function EnhancedDeviceVerificationFlow() {
         {submissionSuccess && (
           <div
             ref={(el) => { stepRefs.current[5] = el }}
-            className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
+            className={`min-h-[70vh] flex items-center justify-center ${
               currentStep === 6 
-                ? 'opacity-100 scale-100 translate-y-0' 
-                : 'opacity-50 scale-95 translate-y-4'
+                ? 'opacity-100' 
+                : 'opacity-50'
             }`}
           >
             <div className="w-full max-w-2xl p-8">
@@ -406,26 +406,6 @@ export function EnhancedDeviceVerificationFlow() {
 
   return (
     <>
-      <style jsx>{`
-        .transform {
-          will-change: transform, opacity;
-        }
-        .transition-all {
-          transition-property: all;
-        }
-        .step-card {
-          will-change: transform, opacity;
-          backface-visibility: hidden;
-          transform-style: preserve-3d;
-        }
-        .step-indicator {
-          will-change: transform, background-color;
-        }
-        .scroll-container {
-          scroll-behavior: auto;
-        }
-      `}</style>
-      
       {/* Step-by-step view - fixed height with scroll */}
       <div className="h-screen py-8 px-4 overflow-hidden">
         <div className="container mx-auto h-full flex flex-col">
