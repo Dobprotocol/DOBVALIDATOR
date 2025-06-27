@@ -29,30 +29,62 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="no-js">
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        <style dangerouslySetInnerHTML={{
-          __html: `
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            /* Prevent white flash on load */
+            html {
+              background-color: #0a0a0a !important;
+              color-scheme: dark;
+            }
+            body {
+              background-color: #0a0a0a !important;
+              opacity: 1;
+              transition: opacity 0.3s ease-in-out;
+            }
+            body.loading {
+              opacity: 0;
+            }
+            body.loaded {
+              opacity: 1;
+            }
             .no-js {
               visibility: hidden;
             }
-            .js-ready {
+            .js {
               visibility: visible;
             }
-          `
-        }} />
+            `,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Force dark mode immediately to prevent flash
+              // Prevent white flash by setting dark theme immediately
               document.documentElement.classList.add('dark');
-              document.documentElement.style.colorScheme = 'dark';
+              document.documentElement.style.backgroundColor = '#0a0a0a';
+              document.body.style.backgroundColor = '#0a0a0a';
+              
+              // Ensure content is visible
+              document.body.style.opacity = '1';
+              
+              // Add loaded class after a short delay
+              setTimeout(() => {
+                document.body.classList.add('loaded');
+              }, 100);
             `,
           }}
         />
       </head>
-      <body className="font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <body className="js">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
           <LoadingHandler />
           <StarsBackground className="fixed inset-0 z-0" />
           <div className="relative z-10 min-h-screen flex flex-col">

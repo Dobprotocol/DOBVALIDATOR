@@ -7,10 +7,31 @@
 // In production, replace with Redis or a real database for atomic, distributed access.
 // See documentation at the end of this file for migration notes.
 
+// Use global variables to persist across API route reloads in development
+declare global {
+  var __challenges: Map<string, { challenge: string; timestamp: number }> | undefined
+  var __sessions: Map<string, { token: string; expiresAt: number }> | undefined
+  var __profiles: Map<string, any> | undefined
+}
+
+// Initialize global storage if it doesn't exist
+if (typeof global !== 'undefined') {
+  if (!global.__challenges) global.__challenges = new Map()
+  if (!global.__sessions) global.__sessions = new Map()
+  if (!global.__profiles) global.__profiles = new Map()
+}
+
 // In-memory storage (works in Vercel serverless)
-const challenges = new Map<string, { challenge: string; timestamp: number }>()
-const sessions = new Map<string, { token: string; expiresAt: number }>()
-const profiles = new Map<string, any>()
+const challenges = global.__challenges || new Map<string, { challenge: string; timestamp: number }>()
+const sessions = global.__sessions || new Map<string, { token: string; expiresAt: number }>()
+const profiles = global.__profiles || new Map<string, any>()
+
+// Ensure global references are set
+if (typeof global !== 'undefined') {
+  global.__challenges = challenges
+  global.__sessions = sessions
+  global.__profiles = profiles
+}
 
 // Cleanup expired data every 5 minutes
 let cleanupInterval: NodeJS.Timeout | null = null
@@ -167,13 +188,17 @@ export function getDebugInfo() {
 // =====================
 export function storeProfile(walletAddress: string, profileData: any): void {
   try {
-    profiles.set(walletAddress, {
+    const profileToStore = {
       ...profileData,
       walletAddress,
       createdAt: profileData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    })
+    }
+    
+    profiles.set(walletAddress, profileToStore)
     console.log('✅ [MemoryStore] Profile stored for wallet:', walletAddress)
+    console.log('🔍 [MemoryStore] Profile data stored:', profileToStore)
+    console.log('🔍 [MemoryStore] Total profiles in memory:', profiles.size)
   } catch (error) {
     console.error('❌ [MemoryStore] Failed to store profile:', error)
     throw new Error('Failed to store profile')
@@ -182,7 +207,12 @@ export function storeProfile(walletAddress: string, profileData: any): void {
 
 export function getProfile(walletAddress: string): any | undefined {
   try {
-    return profiles.get(walletAddress)
+    const profile = profiles.get(walletAddress)
+    console.log('🔍 [MemoryStore] Profile lookup for wallet:', walletAddress, profile ? 'found' : 'not found')
+    if (profile) {
+      console.log('🔍 [MemoryStore] Profile details:', { name: profile.name, company: profile.company, email: profile.email })
+    }
+    return profile
   } catch (error) {
     console.error('❌ [MemoryStore] Failed to get profile:', error)
     return undefined

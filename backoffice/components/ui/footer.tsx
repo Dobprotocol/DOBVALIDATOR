@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
@@ -25,10 +25,25 @@ function playClickSound() {
 export function Footer() {
   const { theme, setTheme } = useTheme()
   const { isFooterVisible } = useFooter()
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleThemeToggle = () => {
     playClickSound()
     setTheme(theme === "dark" ? "light" : "dark")
+  }
+
+  // Don't render theme toggle until mounted to prevent hydration mismatch
+  const renderThemeToggle = () => {
+    if (!mounted) {
+      return <div className="w-5 h-5" /> // Placeholder with same dimensions
+    }
+    
+    return theme === "dark" ? <Sun size={20} /> : <Moon size={20} />
   }
 
   return (
@@ -44,7 +59,7 @@ export function Footer() {
           onClick={handleThemeToggle}
           className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
-          {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          {renderThemeToggle()}
         </Button>
       </div>
       <div className="flex items-center">

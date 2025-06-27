@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, Save, ArrowLeft, User } from 'lucide-react';
+import { Camera, Save, ArrowLeft, User, X } from 'lucide-react';
 import { apiService } from '@/lib/api-service';
 
 export default function ProfilePage() {
@@ -210,6 +210,15 @@ export default function ProfilePage() {
       localStorage.setItem('userProfile', JSON.stringify(localProfileData));
       console.log('✅ Profile: Local storage updated');
 
+      // Test if the profile can be retrieved immediately after creation
+      console.log('🔍 Profile: Testing immediate profile retrieval...');
+      try {
+        const testProfileResponse = await apiService.getProfile();
+        console.log('✅ Profile: Immediate retrieval test successful:', testProfileResponse);
+      } catch (testError) {
+        console.error('❌ Profile: Immediate retrieval test failed:', testError);
+      }
+
       // Show success toast notification
       console.log('🔔 Profile: Attempting to show toast notification...');
       try {
@@ -263,7 +272,18 @@ export default function ProfilePage() {
   return (
     <AuthGuard>
       <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto mt-8 backdrop-blur-md rounded-xl shadow-lg p-8 border border-white/20">
+        <div className="max-w-md mx-auto mt-8 backdrop-blur-md rounded-xl shadow-lg p-8 border border-white/20 relative">
+          {/* Close button for edit mode */}
+          {isEditMode && (
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="absolute top-4 right-4 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-white/30 hover:bg-background/30 transition-colors duration-200"
+              title="Close and return to dashboard"
+            >
+              <X className="w-5 h-5 text-foreground" />
+            </button>
+          )}
+          
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
               <div 

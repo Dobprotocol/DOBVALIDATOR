@@ -249,3 +249,99 @@ html:not(.ready) .animate-fade-in {
   overflow-y: auto;
   overflow-x: hidden;
 }
+
+/* Enhanced hover effects for form elements */
+@layer components {
+  /* Input hover effects */
+  .form-input {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .form-input:hover {
+    @apply border-gray-500 shadow-sm;
+  }
+  
+  .form-input:focus {
+    @apply border-primary ring-2 ring-primary/20 shadow-md;
+  }
+  
+  /* Select hover effects */
+  .form-select {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .form-select:hover {
+    @apply border-gray-500 shadow-sm;
+  }
+  
+  .form-select:focus {
+    @apply border-primary ring-2 ring-primary/20 shadow-md;
+  }
+  
+  /* Button hover effects */
+  .btn-primary {
+    @apply transition-all duration-200 ease-in-out transform;
+  }
+  
+  .btn-primary:hover {
+    @apply scale-105 shadow-lg;
+  }
+  
+  .btn-primary:active {
+    @apply scale-95;
+  }
+  
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  
+  .card-hover:hover {
+    @apply transform scale-[1.02] shadow-xl;
+  }
+  
+  /* Upload area hover effects */
+  .upload-area {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .upload-area:hover {
+    @apply border-gray-400 bg-gradient-to-br from-gray-800/60 to-gray-900/60;
+  }
+  
+  .upload-area:focus-within {
+    @apply border-primary ring-2 ring-primary/20;
+  }
+}
+
+/* Dark mode specific enhancements */
+.dark .form-input {
+  @apply bg-gray-800/50 border-gray-600 text-white;
+}
+
+.dark .form-input:hover {
+  @apply border-gray-500 bg-gray-800/70;
+}
+
+.dark .form-input:focus {
+  @apply border-primary bg-gray-800/80 ring-primary/20;
+}
+
+.dark .form-select {
+  @apply bg-gray-800/50 border-gray-600 text-white;
+}
+
+.dark .form-select:hover {
+  @apply border-gray-500 bg-gray-800/70;
+}
+
+.dark .form-select:focus {
+  @apply border-primary bg-gray-800/80 ring-primary/20;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}

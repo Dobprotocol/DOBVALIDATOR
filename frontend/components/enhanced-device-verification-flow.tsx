@@ -11,14 +11,8 @@ import { StellarWallet } from "@/components/stellar-wallet"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useDraft } from "@/hooks/use-draft"
 import { Button } from "@/components/ui/button"
-import { Save, Loader2, Download, LayoutGrid, FileText } from "lucide-react"
+import { Save, Loader2, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 
 export type DeviceData = {
   // Basic info
@@ -69,11 +63,7 @@ export function EnhancedDeviceVerificationFlow() {
   const [walletConnected, setWalletConnected] = useState(false)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
-  const [isSinglePageView, setIsSinglePageView] = useState(false)
-  const [isScrolling, setIsScrolling] = useState(false)
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right')
-  const [previousStep, setPreviousStep] = useState(1)
-  const [scrollProgress, setScrollProgress] = useState(0)
+  const [submissionSuccess, setSubmissionSuccess] = useState(false)
   
   const containerRef = useRef<HTMLDivElement>(null)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -105,7 +95,7 @@ export function EnhancedDeviceVerificationFlow() {
     }
   }, [searchParams, loadDraft, toast])
 
-  // Always start at step 1 and show welcome modal when wallet connects
+  // Always start at step 1 when wallet connects
   useEffect(() => {
     const wallet = typeof window !== 'undefined' ? localStorage.getItem('stellarWallet') : null
     setWalletConnected(!!wallet)
@@ -124,73 +114,6 @@ export function EnhancedDeviceVerificationFlow() {
     return () => window.removeEventListener('walletStateChange', onWalletChange)
   }, [])
 
-  // Handle step changes with slide direction
-  useEffect(() => {
-    if (currentStep > previousStep) {
-      setSlideDirection('right')
-    } else if (currentStep < previousStep) {
-      setSlideDirection('left')
-    }
-    setPreviousStep(currentStep)
-    
-    // Set animation state
-    setIsScrolling(true)
-    const timer = setTimeout(() => {
-      setIsScrolling(false)
-    }, 500) // Match the transition duration
-    
-    return () => clearTimeout(timer)
-  }, [currentStep, previousStep])
-
-  // Scroll listener for step-by-step view
-  useEffect(() => {
-    if (isSinglePageView) return // Only for step-by-step view
-    
-    const handleScroll = () => {
-      if (!containerRef.current) return
-      
-      const container = containerRef.current
-      const scrollTop = container.scrollTop
-      const scrollHeight = container.scrollHeight
-      const clientHeight = container.clientHeight
-      
-      // Calculate scroll progress (0 to 1)
-      const progress = scrollTop / (scrollHeight - clientHeight)
-      setScrollProgress(progress)
-      
-      // Calculate which step should be visible based on scroll position
-      // Use a more precise calculation with viewport center detection
-      const viewportCenter = scrollTop + (clientHeight / 2)
-      const stepHeight = scrollHeight / totalSteps
-      const currentScrollStep = Math.floor(viewportCenter / stepHeight) + 1
-      
-      // Add some threshold to prevent rapid changes
-      const clampedStep = Math.max(1, Math.min(totalSteps, currentScrollStep))
-      
-      console.log('Scroll Debug:', {
-        scrollTop,
-        viewportCenter,
-        stepHeight,
-        currentScrollStep,
-        clampedStep,
-        currentStep
-      })
-      
-      if (clampedStep !== currentStep) {
-        console.log('Changing step from', currentStep, 'to', clampedStep)
-        setCurrentStep(clampedStep)
-      }
-    }
-    
-    const container = containerRef.current
-    if (container) {
-      container.addEventListener('scroll', handleScroll, { passive: true })
-      // Initial call to set correct state
-      handleScroll()
-      return () => container.removeEventListener('scroll', handleScroll)
-    }
-  }, [isSinglePageView, totalSteps]) // Removed currentStep dependency to prevent loops
-
   const updateDeviceData = (data: Partial<DeviceData>) => {
     setDeviceData((prev) => ({ ...prev, ...data }))
   }
@@ -203,13 +126,53 @@ export function EnhancedDeviceVerificationFlow() {
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1)
+      const newStep = currentStep - 1
+      setCurrentStep(newStep)
+      
+      // Smooth scroll to the previous step
+      setTimeout(() => {
+        const targetStep = stepRefs.current[newStep - 1]
+        if (targetStep && containerRef.current) {
+          const container = containerRef.current
+          const targetRect = targetStep.getBoundingClientRect()
+          const containerRect = container.getBoundingClientRect()
+          
+          const scrollTop = container.scrollTop + (targetRect.top - containerRect.top)
+          
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          })
+        }
+      }, 100)
     }
   }
 
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= totalSteps) {
+    // Don't allow navigation to step 6 unless submission is successful
+    if (step === 6 && !submissionSuccess) {
+      return
+    }
+    
+    if (step >= 1 && step <= totalSteps && step !== currentStep) {
       setCurrentStep(step)
+      
+      // Smooth scroll to the target step
+      setTimeout(() => {
+        const targetStep = stepRefs.current[step - 1]
+        if (targetStep && containerRef.current) {
+          const container = containerRef.current
+          const targetRect = targetStep.getBoundingClientRect()
+          const containerRect = container.getBoundingClientRect()
+          
+          const scrollTop = container.scrollTop + (targetRect.top - containerRect.top)
+          
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          })
+        }
+      }, 100)
     }
   }
 
@@ -266,6 +229,10 @@ export function EnhancedDeviceVerificationFlow() {
     })
   }
 
+  const handleSubmissionSuccess = () => {
+    setSubmissionSuccess(true)
+  }
+
   if (!walletConnected) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -283,73 +250,60 @@ export function EnhancedDeviceVerificationFlow() {
     )
   }
 
-  // Enhanced Step Indicator with clickable steps
+  // Step Indicator with clickable steps
   const StepIndicator = () => (
     <div className="flex justify-center items-center space-x-2 mb-8">
-      {Array.from({ length: totalSteps }).map((_, index) => (
-        <div key={index} className="flex items-center">
-          <button
-            onClick={() => goToStep(index + 1)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 hover:scale-110 ${
-              index + 1 === currentStep
-                ? "bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/20"
-                : index + 1 < currentStep
-                  ? "bg-primary/20 text-primary border-2 border-primary hover:bg-primary/30"
-                  : "bg-muted text-muted-foreground border-2 border-muted hover:bg-muted/80 hover:border-primary/50"
-            }`}
-          >
-            {index + 1}
-          </button>
-          {index < totalSteps - 1 && (
-            <div className={`h-1 w-12 transition-all duration-500 ease-in-out ${
-              index + 1 < currentStep 
-                ? "bg-primary" 
-                : index + 1 === currentStep 
-                  ? "bg-gradient-to-r from-primary to-muted" 
-                  : "bg-muted"
-            }`} />
-          )}
-        </div>
-      ))}
-      
-      {/* Scroll progress indicator */}
-      <div className="ml-4 flex items-center space-x-2">
-        <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary transition-all duration-300 ease-out"
-            style={{ width: `${scrollProgress * 100}%` }}
-          />
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {Math.round(scrollProgress * 100)}%
-        </span>
-      </div>
+      {Array.from({ length: totalSteps }).map((_, index) => {
+        // Don't show step 6 until submission is successful
+        if (index === 5 && !submissionSuccess) {
+          return null
+        }
+        
+        return (
+          <div key={index} className="flex items-center">
+            <button
+              onClick={() => goToStep(index + 1)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 hover:scale-110 ${
+                index + 1 === currentStep
+                  ? "bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/20"
+                  : index + 1 < currentStep
+                    ? "bg-primary/20 text-primary border-2 border-primary hover:bg-primary/30"
+                    : "bg-muted text-muted-foreground border-2 border-muted hover:bg-muted/80 hover:border-primary/50"
+              }`}
+            >
+              {index + 1}
+            </button>
+            {index < totalSteps - 1 && (
+              <div className={`h-1 w-12 transition-all duration-500 ease-in-out ${
+                index + 1 < currentStep 
+                  ? "bg-primary" 
+                  : index + 1 === currentStep 
+                    ? "bg-gradient-to-r from-primary to-muted" 
+                    : "bg-muted"
+              }`} />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 
-  // Multi-step View Component with scrollable layout and fade animations
+  // Multi-step View Component with smooth scroll
   const MultiStepView = () => (
     <div 
       ref={containerRef}
-      className="relative h-[70vh] overflow-y-auto overflow-x-hidden scroll-smooth"
+      className="relative h-[70vh] overflow-y-auto overflow-x-hidden scroll-container"
     >
       <div className="relative min-h-full">
         {/* Step 1 */}
         <div
           ref={(el) => { stepRefs.current[0] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
             currentStep === 1 
               ? 'opacity-100 scale-100 translate-y-0' 
-              : currentStep > 1 
-                ? 'opacity-20 scale-90 translate-y-8' 
-                : 'opacity-20 scale-90 -translate-y-8'
+              : 'opacity-50 scale-95 translate-y-4'
           }`}
         >
-          {currentStep === 1 && (
-            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
-              Current Step
-            </div>
-          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceBasicInfo deviceData={deviceData} updateDeviceData={updateDeviceData} onNext={nextStep} />
           </div>
@@ -358,19 +312,12 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 2 */}
         <div
           ref={(el) => { stepRefs.current[1] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
             currentStep === 2 
               ? 'opacity-100 scale-100 translate-y-0' 
-              : currentStep > 2 
-                ? 'opacity-20 scale-90 translate-y-8' 
-                : 'opacity-20 scale-90 -translate-y-8'
+              : 'opacity-50 scale-95 translate-y-4'
           }`}
         >
-          {currentStep === 2 && (
-            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
-              Current Step
-            </div>
-          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceTechnicalInfo
               deviceData={deviceData}
@@ -384,19 +331,12 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 3 */}
         <div
           ref={(el) => { stepRefs.current[2] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
             currentStep === 3 
               ? 'opacity-100 scale-100 translate-y-0' 
-              : currentStep > 3 
-                ? 'opacity-20 scale-90 translate-y-8' 
-                : 'opacity-20 scale-90 -translate-y-8'
+              : 'opacity-50 scale-95 translate-y-4'
           }`}
         >
-          {currentStep === 3 && (
-            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
-              Current Step
-            </div>
-          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceFinancialInfo
               deviceData={deviceData}
@@ -410,19 +350,12 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 4 */}
         <div
           ref={(el) => { stepRefs.current[3] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
             currentStep === 4 
               ? 'opacity-100 scale-100 translate-y-0' 
-              : currentStep > 4 
-                ? 'opacity-20 scale-90 translate-y-8' 
-                : 'opacity-20 scale-90 -translate-y-8'
+              : 'opacity-50 scale-95 translate-y-4'
           }`}
         >
-          {currentStep === 4 && (
-            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
-              Current Step
-            </div>
-          )}
           <div className="w-full max-w-2xl p-8">
             <DeviceDocumentation
               deviceData={deviceData}
@@ -436,434 +369,38 @@ export function EnhancedDeviceVerificationFlow() {
         {/* Step 5 */}
         <div
           ref={(el) => { stepRefs.current[4] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
+          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
             currentStep === 5 
               ? 'opacity-100 scale-100 translate-y-0' 
-              : currentStep > 5 
-                ? 'opacity-20 scale-90 translate-y-8' 
-                : 'opacity-20 scale-90 -translate-y-8'
+              : 'opacity-50 scale-95 translate-y-4'
           }`}
         >
-          {currentStep === 5 && (
-            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
-              Current Step
-            </div>
-          )}
           <div className="w-full max-w-2xl p-8">
-            <DeviceReview deviceData={deviceData} onNext={nextStep} onBack={prevStep} />
+            <DeviceReview
+              deviceData={deviceData}
+              onNext={nextStep}
+              onBack={prevStep}
+              onSubmissionSuccess={handleSubmissionSuccess}
+            />
           </div>
         </div>
 
-        {/* Step 6 */}
-        <div
-          ref={(el) => { stepRefs.current[5] = el }}
-          className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-700 ease-in-out transform relative ${
-            currentStep === 6 
-              ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-20 scale-90 -translate-y-8'
-          }`}
-        >
-          {currentStep === 6 && (
-            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium animate-pulse">
-              Current Step
+        {/* Step 6 - Only show if submission is successful */}
+        {submissionSuccess && (
+          <div
+            ref={(el) => { stepRefs.current[5] = el }}
+            className={`step-card min-h-[70vh] flex items-center justify-center transition-all duration-300 ease-in-out transform relative ${
+              currentStep === 6 
+                ? 'opacity-100 scale-100 translate-y-0' 
+                : 'opacity-50 scale-95 translate-y-4'
+            }`}
+          >
+            <div className="w-full max-w-2xl p-8">
+              <DeviceSuccess showModal={submissionSuccess} />
             </div>
-          )}
-          <div className="w-full max-w-2xl p-8">
-            <DeviceSuccess />
           </div>
-        </div>
+        )}
       </div>
-    </div>
-  )
-
-  // Single Page View Component - Continuous scrollable layout
-  const SinglePageView = () => (
-    <div className="w-full space-y-16 pb-16">
-      {/* Step 1: Basic Information */}
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
-        <CardContent className="p-12">
-          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 1: Basic Information</h3>
-          <p className="text-muted-foreground mb-8">Please provide the basic details about your device. This information will be used for identification and verification purposes.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <Label htmlFor="deviceName" className="text-base font-medium">Device Name</Label>
-              <Input
-                id="deviceName"
-                value={deviceData.deviceName}
-                onChange={(e) => updateDeviceData({ deviceName: e.target.value })}
-                placeholder="Enter a name for your device"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">Choose a descriptive name that clearly identifies your device</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="deviceType" className="text-base font-medium">Device Type</Label>
-              <Select
-                value={deviceData.deviceType}
-                onValueChange={(value) => updateDeviceData({ deviceType: value })}
-                required
-              >
-                <SelectTrigger id="deviceType" className="mt-2 h-12 text-base">
-                  <SelectValue placeholder="Select device type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {["Solar Panel", "Wind Turbine", "Battery Storage", "Mining Equipment", "Server", "Other"].map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">Select the category that best describes your device</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="serialNumber" className="text-base font-medium">Serial Number</Label>
-              <Input
-                id="serialNumber"
-                value={deviceData.serialNumber}
-                onChange={(e) => updateDeviceData({ serialNumber: e.target.value })}
-                placeholder="Enter the device serial number"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">The unique identifier provided by the manufacturer</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="manufacturer" className="text-base font-medium">Manufacturer</Label>
-              <Input
-                id="manufacturer"
-                value={deviceData.manufacturer}
-                onChange={(e) => updateDeviceData({ manufacturer: e.target.value })}
-                placeholder="Enter the device manufacturer"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">The company that produced your device</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Step 2: Technical Information */}
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
-        <CardContent className="p-12">
-          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 2: Technical Information</h3>
-          <p className="text-muted-foreground mb-8">Provide detailed technical specifications and operational details about your device.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <Label htmlFor="model" className="text-base font-medium">Model</Label>
-              <Input
-                id="model"
-                value={deviceData.model}
-                onChange={(e) => updateDeviceData({ model: e.target.value })}
-                placeholder="Enter the device model"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">The specific model number or designation</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="yearOfManufacture" className="text-base font-medium">Year of Manufacture</Label>
-              <Select
-                value={deviceData.yearOfManufacture}
-                onValueChange={(value) => updateDeviceData({ yearOfManufacture: value })}
-                required
-              >
-                <SelectTrigger id="yearOfManufacture" className="mt-2 h-12 text-base">
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString()).map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">When the device was manufactured</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="condition" className="text-base font-medium">Condition</Label>
-              <Select
-                value={deviceData.condition}
-                onValueChange={(value) => updateDeviceData({ condition: value })}
-                required
-              >
-                <SelectTrigger id="condition" className="mt-2 h-12 text-base">
-                  <SelectValue placeholder="Select condition" />
-                </SelectTrigger>
-                <SelectContent>
-                  {["New", "Like New", "Excellent", "Good", "Fair", "Poor"].map((condition) => (
-                    <SelectItem key={condition} value={condition}>
-                      {condition}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">Current physical and operational condition</p>
-            </div>
-
-            <div className="md:col-span-2 space-y-4">
-              <Label htmlFor="specifications" className="text-base font-medium">Technical Specifications</Label>
-              <Textarea
-                id="specifications"
-                value={deviceData.specifications}
-                onChange={(e) => updateDeviceData({ specifications: e.target.value })}
-                placeholder="Enter detailed technical specifications including power output, dimensions, materials, certifications, and any other relevant technical details..."
-                className="min-h-[200px] mt-2 text-base resize-none"
-                required
-              />
-              <p className="text-sm text-muted-foreground">Provide comprehensive technical details about your device</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Step 3: Financial Information */}
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
-        <CardContent className="p-12">
-          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 3: Financial Information</h3>
-          <p className="text-muted-foreground mb-8">Provide financial details about your device including costs, value, and revenue projections.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <Label htmlFor="purchasePrice" className="text-base font-medium">Purchase Price (USD)</Label>
-              <Input
-                id="purchasePrice"
-                type="number"
-                min="0"
-                step="0.01"
-                value={deviceData.purchasePrice}
-                onChange={(e) => updateDeviceData({ purchasePrice: e.target.value })}
-                placeholder="Enter the original purchase price"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">The original cost when you purchased the device</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="currentValue" className="text-base font-medium">Current Value (USD)</Label>
-              <Input
-                id="currentValue"
-                type="number"
-                min="0"
-                step="0.01"
-                value={deviceData.currentValue}
-                onChange={(e) => updateDeviceData({ currentValue: e.target.value })}
-                placeholder="Enter the current estimated value"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">Current market value of your device</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="expectedRevenue" className="text-base font-medium">Expected Annual Revenue (USD)</Label>
-              <Input
-                id="expectedRevenue"
-                type="number"
-                min="0"
-                step="0.01"
-                value={deviceData.expectedRevenue}
-                onChange={(e) => updateDeviceData({ expectedRevenue: e.target.value })}
-                placeholder="Enter the expected annual revenue"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">Projected annual income from this device</p>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="operationalCosts" className="text-base font-medium">Annual Operational Costs (USD)</Label>
-              <Input
-                id="operationalCosts"
-                type="number"
-                min="0"
-                step="0.01"
-                value={deviceData.operationalCosts}
-                onChange={(e) => updateDeviceData({ operationalCosts: e.target.value })}
-                placeholder="Enter the annual operational costs"
-                required
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-muted-foreground">Annual costs for maintenance, utilities, etc.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Step 4: Documentation */}
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
-        <CardContent className="p-12">
-          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 4: Documentation</h3>
-          <p className="text-muted-foreground mb-8">Documentation uploads are available in the step-by-step view. Here you can review what documents will be required for verification.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-base">Technical Certification</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.technicalCertification ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                  {deviceData.technicalCertification ? "Uploaded" : "Not uploaded"}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">Certification documents proving device compliance and safety standards</p>
-            </div>
-            
-            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-base">Purchase Proof</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.purchaseProof ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                  {deviceData.purchaseProof ? "Uploaded" : "Not uploaded"}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">Invoice, receipt, or purchase agreement for the device</p>
-            </div>
-            
-            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-base">Maintenance Records</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.maintenanceRecords ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                  {deviceData.maintenanceRecords ? "Uploaded" : "Not uploaded"}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">Service history and maintenance documentation</p>
-            </div>
-            
-            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-base">Device Images</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.deviceImages.length > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                  {deviceData.deviceImages.length > 0 ? `${deviceData.deviceImages.length} images` : "No images"}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">High-quality photos showing device condition and setup</p>
-            </div>
-          </div>
-          
-          <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Documentation Requirements</h4>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              All documentation must be clear, legible, and in PDF format. Images should be high-resolution and show the device from multiple angles. 
-              Technical certifications must be from recognized authorities and current at the time of submission.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Step 5: Review */}
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
-        <CardContent className="p-12">
-          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 5: Review & Summary</h3>
-          <p className="text-muted-foreground mb-8">Please review all the information you've provided. Ensure all details are accurate before proceeding.</p>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <h4 className="font-semibold text-lg text-muted-foreground border-b pb-2">Basic Information</h4>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Device Name:</span>
-                  <span className="text-muted-foreground">{deviceData.deviceName || "Not provided"}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Device Type:</span>
-                  <span className="text-muted-foreground">{deviceData.deviceType || "Not provided"}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Serial Number:</span>
-                  <span className="text-muted-foreground">{deviceData.serialNumber || "Not provided"}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Manufacturer:</span>
-                  <span className="text-muted-foreground">{deviceData.manufacturer || "Not provided"}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              <h4 className="font-semibold text-lg text-muted-foreground border-b pb-2">Financial Summary</h4>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Purchase Price:</span>
-                  <span className="text-muted-foreground">${deviceData.purchasePrice || "0"}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Current Value:</span>
-                  <span className="text-muted-foreground">${deviceData.currentValue || "0"}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Expected Revenue:</span>
-                  <span className="text-muted-foreground">${deviceData.expectedRevenue || "0"}/year</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                  <span className="font-medium">Operational Costs:</span>
-                  <span className="text-muted-foreground">${deviceData.operationalCosts || "0"}/year</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 p-6 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
-            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Next Steps</h4>
-            <p className="text-sm text-amber-700 dark:text-amber-300">
-              After reviewing your information, you'll be able to upload the required documentation in the step-by-step view. 
-              All submissions will be reviewed by our verification team to ensure compliance with DOB Protocol standards.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Final Step: Success */}
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
-        <CardContent className="p-12 text-center">
-          <div className="max-w-2xl mx-auto">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold mb-4 text-primary">Form Complete!</h3>
-            <p className="text-muted-foreground mb-8 text-lg">
-              You've successfully completed the device verification form. Your information has been saved and is ready for review.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <h4 className="font-semibold mb-2">Information Saved</h4>
-                <p className="text-sm text-muted-foreground">All your device details have been securely stored</p>
-              </div>
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <h4 className="font-semibold mb-2">Ready for Review</h4>
-                <p className="text-sm text-muted-foreground">Your submission will be reviewed by our team</p>
-              </div>
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <h4 className="font-semibold mb-2">Next Steps</h4>
-                <p className="text-sm text-muted-foreground">Upload documentation in step-by-step view</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <Button 
-                onClick={() => setIsSinglePageView(false)} 
-                className="w-full md:w-auto"
-              >
-                Switch to Step-by-Step View
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Use the step-by-step view to upload required documentation and complete the verification process.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 
@@ -885,129 +422,56 @@ export function EnhancedDeviceVerificationFlow() {
           will-change: transform, background-color;
         }
         .scroll-container {
-          scroll-behavior: smooth;
+          scroll-behavior: auto;
         }
       `}</style>
       
-      {isSinglePageView ? (
-        // Full page view - scrollable layout
-        <div className="w-full min-h-screen">
-          <div className="container mx-auto px-4 py-8">
-            {/* Header with Toggle and Download */}
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="view-mode"
-                    checked={isSinglePageView}
-                    onCheckedChange={setIsSinglePageView}
-                  />
-                  <Label htmlFor="view-mode" className="flex items-center space-x-2 cursor-pointer select-none">
-                    {isSinglePageView ? (
-                      <>
-                        <LayoutGrid className="h-4 w-4" />
-                        <span>Single Page</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="h-4 w-4" />
-                        <span>Step by Step</span>
-                      </>
-                    )}
-                  </Label>
-                </div>
-              </div>
+      {/* Step-by-step view - fixed height with scroll */}
+      <div className="h-screen py-8 px-4 overflow-hidden">
+        <div className="container mx-auto h-full flex flex-col">
+          {/* Header with Download */}
+          <div className="flex justify-end items-center mb-8 gap-4 flex-shrink-0">
+            <div className="flex items-center space-x-2">
+              <Button
+                onClick={downloadFormQuestions}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download Form
+              </Button>
 
-              <div className="flex items-center space-x-2">
+              {currentStep < 5 && (
                 <Button
-                  onClick={downloadFormQuestions}
+                  onClick={handleSaveDraft}
+                  disabled={draftLoading}
                   variant="outline"
                   size="sm"
                   className="gap-2"
                 >
-                  <Download className="h-4 w-4" />
-                  Download Form
+                  {draftLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {currentDraftId ? 'Update Draft' : 'Save Draft'}
                 </Button>
-              </div>
+              )}
             </div>
+          </div>
 
-            {/* Form Content - Full page scrollable */}
-            <div className="max-w-4xl mx-auto">
-              <SinglePageView />
+          {/* Step Indicator */}
+          <StepIndicator />
+
+          {/* Form Content - Fixed height with scroll */}
+          <div className="flex-1 overflow-hidden">
+            <div className="max-w-4xl mx-auto h-full">
+              <MultiStepView />
             </div>
           </div>
         </div>
-      ) : (
-        // Step-by-step view - fixed height with scroll
-        <div className="h-screen py-8 px-4 overflow-hidden">
-          <div className="container mx-auto h-full flex flex-col">
-            {/* Header with Toggle and Download */}
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 flex-shrink-0">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="view-mode"
-                    checked={isSinglePageView}
-                    onCheckedChange={setIsSinglePageView}
-                  />
-                  <Label htmlFor="view-mode" className="flex items-center space-x-2 cursor-pointer select-none">
-                    {isSinglePageView ? (
-                      <>
-                        <LayoutGrid className="h-4 w-4" />
-                        <span>Single Page</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="h-4 w-4" />
-                        <span>Step by Step</span>
-                      </>
-                    )}
-                  </Label>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Button
-                  onClick={downloadFormQuestions}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download Form
-                </Button>
-
-                {currentStep < 5 && (
-                  <Button
-                    onClick={handleSaveDraft}
-                    disabled={draftLoading}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    {draftLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    {currentDraftId ? 'Update Draft' : 'Save Draft'}
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Step Indicator */}
-            <StepIndicator />
-
-            {/* Form Content - Fixed height with scroll */}
-            <div className="flex-1 overflow-hidden">
-              <div className="max-w-4xl mx-auto h-full">
-                <MultiStepView />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </>
   )
 } 
