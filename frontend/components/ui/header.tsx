@@ -18,228 +18,236 @@ export function Header() {
   const [hasProfile, setHasProfile] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isAuth, setIsAuth] = useState(false)
-  const [showLogoDropdown, setShowLogoDropdown] = useState(false)
+  const [showDobDropdown, setShowDobDropdown] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
-  const logoDropdownRef = useRef<HTMLDivElement>(null)
-  const userDropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  
+  // Refs for hover detection
+  const dobDropdownRef = useRef<HTMLDivElement>(null)
+  const userDropdownRef = useRef<HTMLDivElement>(null)
+  const dobTriggerRef = useRef<HTMLDivElement>(null)
+  const userTriggerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const updateWallet = () => {
-      const key = localStorage.getItem('stellarPublicKey')
-      const authToken = localStorage.getItem('authToken')
-      setPublicKey(key)
-      setIsAuth(!!authToken)
-    }
-    
-    const checkProfile = async () => {
-      if (!isAuthenticated()) {
-        setHasProfile(false)
-        setIsLoading(false)
-        return
-      }
-
+    const checkAuth = async () => {
       try {
-        const authData = getAuthToken()
-        if (!authData?.token) {
-          setHasProfile(false)
-          setIsLoading(false)
-          return
-        }
-
-        // Add a small delay to avoid race conditions
-        await new Promise(resolve => setTimeout(resolve, 100))
-
-        try {
-          const profileResponse = await apiService.getProfile()
-          const hasProfileResult = profileResponse.success
-          setHasProfile(hasProfileResult)
-          console.log('✅ Header: Profile check successful, hasProfile:', hasProfileResult)
-        } catch (error) {
-          console.log('ℹ️ Header: Profile not found or error:', error)
-          setHasProfile(false)
+        const auth = await isAuthenticated()
+        setIsAuth(auth)
+        
+        if (auth) {
+          const token = getAuthToken()
+          if (token) {
+            const response = await apiService.getProfile()
+            if (response.success) {
+              setPublicKey(response.profile.publicKey)
+              setHasProfile(true)
+            }
+          }
         }
       } catch (error) {
-        console.error('Error checking profile:', error)
-        setHasProfile(false)
+        console.error('Auth check failed:', error)
       } finally {
         setIsLoading(false)
       }
     }
-
-    updateWallet()
-    checkProfile()
-
-    // Listen for wallet state changes with debouncing
-    let timeoutId: NodeJS.Timeout
-    const handleWalletChange = () => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => {
-        updateWallet()
-        checkProfile()
-      }, 500) // Debounce to 500ms
-    }
-
-    window.addEventListener('walletStateChange', handleWalletChange)
-    window.addEventListener('storage', handleWalletChange)
-    window.addEventListener('visibilitychange', handleWalletChange)
-    window.addEventListener('focus', handleWalletChange)
     
-    return () => {
-      clearTimeout(timeoutId)
-      window.removeEventListener('walletStateChange', handleWalletChange)
-      window.removeEventListener('storage', handleWalletChange)
-      window.removeEventListener('visibilitychange', handleWalletChange)
-      window.removeEventListener('focus', handleWalletChange)
-    }
+    checkAuth()
   }, [])
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (logoDropdownRef.current && !logoDropdownRef.current.contains(event.target as Node)) {
-        setShowLogoDropdown(false)
+  // Handle DOB dropdown hover with delay
+  const handleDobMouseEnter = () => {
+    setShowDobDropdown(true)
+  }
+
+  const handleDobMouseLeave = () => {
+    setTimeout(() => {
+      if (!dobDropdownRef.current?.matches(':hover') && !dobTriggerRef.current?.matches(':hover')) {
+        setShowDobDropdown(false)
       }
-      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+    }, 150)
+  }
+
+  // Handle User dropdown hover with delay
+  const handleUserMouseEnter = () => {
+    setShowUserDropdown(true)
+  }
+
+  const handleUserMouseLeave = () => {
+    setTimeout(() => {
+      if (!userDropdownRef.current?.matches(':hover') && !userTriggerRef.current?.matches(':hover')) {
         setShowUserDropdown(false)
       }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
-  const handleDisconnect = () => {
-    // Call the global clear function to ensure everything is cleared
-    if (typeof window !== 'undefined' && (window as any).clearAllLocalStorage) {
-      (window as any).clearAllLocalStorage()
-    }
-    
-    localStorage.removeItem('stellarPublicKey')
-    localStorage.removeItem('stellarWallet')
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('userProfile')
-    sessionStorage.clear()
-    
-    window.dispatchEvent(new Event('walletStateChange'))
-    setPublicKey(null)
-    setHasProfile(false)
-    setIsAuth(false)
-    setShowUserDropdown(false)
-    router.push('/')
+    }, 150)
   }
 
-  const handleEditProfile = () => {
-    setShowUserDropdown(false)
-    router.push('/profile')
+  const handleLogout = async () => {
+    try {
+      // Clear all local storage
+      localStorage.removeItem('stellarPublicKey')
+      localStorage.removeItem('stellarWallet')
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('userProfile')
+      sessionStorage.clear()
+      
+      // Update state
+      setIsAuth(false)
+      setPublicKey(null)
+      setHasProfile(false)
+      
+      // Navigate to home
+      router.push('/')
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
   }
 
-  const handleNavigate = (path: string) => {
-    setShowLogoDropdown(false)
-    router.push(path)
+  if (isLoading) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="h-8 w-32 bg-gray-700 animate-pulse rounded"></div>
+            <div className="h-8 w-24 bg-gray-700 animate-pulse rounded"></div>
+          </div>
+        </div>
+      </header>
+    )
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-background/80 backdrop-blur-md border-b border-white/20 h-16">
-      <div className="flex items-center gap-6">
-        {/* DOB Logo with Dropdown */}
-        <div className="relative" ref={logoDropdownRef}>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          {/* DOB Logo with Dropdown */}
           <div 
-            className="h-12 overflow-hidden flex items-center cursor-pointer hover:opacity-80 transition-opacity"
-            onMouseEnter={() => setShowLogoDropdown(true)}
-            onMouseLeave={() => setShowLogoDropdown(false)}
+            ref={dobTriggerRef}
+            className="relative"
+            onMouseEnter={handleDobMouseEnter}
+            onMouseLeave={handleDobMouseLeave}
           >
-            <Image
-              src="/images/dob imagotipo.svg"
-              alt="DOB Protocol"
-              width={300}
-              height={200}
-              className="h-24 w-auto"
-              priority
-            />
-            <ChevronDown className="w-4 h-4 ml-1 text-white/70" />
-          </div>
-          
-          {/* Logo Dropdown Menu */}
-          {showLogoDropdown && (
-            <div className="absolute top-full left-0 mt-2 w-48 bg-background/95 backdrop-blur-md border border-white/20 rounded-lg shadow-lg py-2 z-50">
-              <button
-                onClick={() => handleNavigate('/')}
-                className="w-full flex items-center gap-3 px-4 py-2 text-left text-white hover:bg-white/10 transition-colors"
-              >
-                <Home className="w-4 h-4" />
-                Home
-              </button>
-              {isAuth && (
-                <button
-                  onClick={() => handleNavigate('/dashboard')}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left text-white hover:bg-white/10 transition-colors"
-                >
-                  <FileText className="w-4 h-4" />
-                  My Devices
-                </button>
-              )}
-              <button
-                onClick={() => window.open('https://home.dobprotocol.com', '_blank')}
-                className="w-full flex items-center gap-3 px-4 py-2 text-left text-white hover:bg-white/10 transition-colors"
-              >
-                <Users className="w-4 h-4" />
-                DOB Protocol
-              </button>
-              <button
-                onClick={() => window.open('https://docs.dobprotocol.com', '_blank')}
-                className="w-full flex items-center gap-3 px-4 py-2 text-left text-white hover:bg-white/10 transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                Documentation
-              </button>
+            <div className="flex items-center space-x-2 cursor-pointer group">
+              <Image
+                src="/images/dob-logo.png"
+                alt="DOB Protocol"
+                width={40}
+                height={40}
+                className="transition-transform duration-200 group-hover:scale-105"
+              />
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-lg">DOB Protocol</span>
+                <span className="text-gray-400 text-xs">Validator</span>
+              </div>
+              <ChevronDown className="text-gray-400 transition-transform duration-200 group-hover:rotate-180" size={16} />
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* User Actions */}
-      <div className="flex items-center justify-end">
-        {isAuth && (
-          <div className="relative" ref={userDropdownRef}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 bg-background/50 backdrop-blur-sm border-white/30 hover:bg-background/70"
-              onClick={() => setShowUserDropdown(!showUserDropdown)}
-              onMouseEnter={() => setShowUserDropdown(true)}
-              onMouseLeave={() => setShowUserDropdown(false)}
-            >
-              <User className="w-4 h-4" />
-              {publicKey ? truncateAddress(publicKey) : 'User'}
-              <ChevronDown className="w-3 h-3" />
-            </Button>
-            
-            {/* User Dropdown Menu */}
-            {showUserDropdown && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-background/95 backdrop-blur-md border border-white/20 rounded-lg shadow-lg py-2 z-50">
-                {!isLoading && hasProfile && (
-                  <button
-                    onClick={handleEditProfile}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-left text-white hover:bg-white/10 transition-colors"
+            {/* DOB Dropdown Menu */}
+            {showDobDropdown && (
+              <div
+                ref={dobDropdownRef}
+                className="absolute top-full left-0 mt-2 w-64 bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl transition-all duration-300 ease-out"
+                onMouseEnter={handleDobMouseEnter}
+                onMouseLeave={handleDobMouseLeave}
+              >
+                <div className="p-2">
+                  <div 
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                    onClick={() => router.push('/')}
                   >
-                    <User className="w-4 h-4" />
-                    Edit Profile
-                  </button>
-                )}
-                <button
-                  onClick={handleDisconnect}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left text-white hover:bg-white/10 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Disconnect Wallet
-                </button>
+                    <Home size={18} className="text-gray-300" />
+                    <span className="text-white">Home</span>
+                  </div>
+                  <div 
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                    onClick={() => router.push('/dashboard')}
+                  >
+                    <FileText size={18} className="text-gray-300" />
+                    <span className="text-white">My Devices</span>
+                  </div>
+                  <div 
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                    onClick={() => router.push('/form')}
+                  >
+                    <Settings size={18} className="text-gray-300" />
+                    <span className="text-white">Add Device</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
-        )}
+
+          {/* User Actions */}
+          {isAuth ? (
+            <div 
+              ref={userTriggerRef}
+              className="relative"
+              onMouseEnter={handleUserMouseEnter}
+              onMouseLeave={handleUserMouseLeave}
+            >
+              <div className="flex items-center space-x-3 cursor-pointer group">
+                <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-200">
+                  <User size={18} className="text-gray-300" />
+                  <span className="text-white text-sm font-medium">
+                    {publicKey ? truncateAddress(publicKey) : 'User'}
+                  </span>
+                  <ChevronDown className="text-gray-400 transition-transform duration-200 group-hover:rotate-180" size={16} />
+                </div>
+              </div>
+
+              {/* User Dropdown Menu */}
+              {showUserDropdown && (
+                <div
+                  ref={userDropdownRef}
+                  className="absolute top-full right-0 mt-2 w-56 bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl transition-all duration-300 ease-out"
+                  onMouseEnter={handleUserMouseEnter}
+                  onMouseLeave={handleUserMouseLeave}
+                >
+                  <div className="p-2">
+                    <div className="px-3 py-2 border-b border-white/10">
+                      <p className="text-white text-sm font-medium">
+                        {publicKey ? truncateAddress(publicKey) : 'User'}
+                      </p>
+                      <p className="text-gray-400 text-xs">
+                        {hasProfile ? 'Profile Verified' : 'Profile Pending'}
+                      </p>
+                    </div>
+                    <div className="p-2">
+                      <div 
+                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                        onClick={() => router.push('/profile')}
+                      >
+                        <User size={18} className="text-gray-300" />
+                        <span className="text-white">Edit Profile</span>
+                      </div>
+                      <div 
+                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                        onClick={handleLogout}
+                      >
+                        <LogOut size={18} className="text-gray-300" />
+                        <span className="text-white">Disconnect Wallet</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/form')}
+                className="text-white hover:bg-white/10 transition-colors duration-200"
+              >
+                Add Device
+              </Button>
+              <Button
+                onClick={() => router.push('/form')}
+                className="bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+              >
+                Connect Wallet
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )
