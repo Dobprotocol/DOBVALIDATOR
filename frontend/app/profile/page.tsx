@@ -152,12 +152,6 @@ export default function ProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // If already updated, redirect to dashboard
-    if (isUpdated) {
-      router.push('/dashboard');
-      return;
-    }
-    
     console.log('🔍 Profile: Form submission started');
     console.log('🔍 Profile: Form data:', formData);
     console.log('🔍 Profile: Is edit mode:', isEditMode);
@@ -220,26 +214,19 @@ export default function ProfilePage() {
       console.log('🔔 Profile: Attempting to show toast notification...');
       try {
         toast({
-          title: "Profile Updated Successfully!",
-          description: isEditMode 
-            ? "Your profile has been updated successfully."
-            : "Your profile has been created successfully.",
+          title: "Profile Created Successfully!",
+          description: "Your profile has been created successfully. Redirecting to dashboard...",
         });
         console.log('✅ Profile: Toast notification called successfully');
       } catch (toastError) {
         console.error('❌ Profile: Toast notification failed:', toastError);
-        // Fallback: show alert if toast fails
-        alert(isEditMode 
-          ? "Profile updated successfully!" 
-          : "Profile created successfully!"
-        );
       }
 
-      // Set updated state to change button
-      setIsUpdated(true);
+      // Redirect directly to dashboard after successful profile creation
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1000);
 
-      // Don't redirect automatically - let user click the button
-      console.log('✅ Profile: Update successful, button changed to "Go to Validation Dashboard"');
     } catch (error) {
       console.error(`❌ Error ${isEditMode ? 'updating' : 'saving'} profile:`, error);
       setErrors({ submit: error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'save'} profile. Please try again.` });
@@ -262,8 +249,8 @@ export default function ProfilePage() {
 
   if (!walletAddress || isLoading) {
     return (
-      <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto bg-card rounded-xl shadow-lg p-8">
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto backdrop-blur-md rounded-xl shadow-lg p-8 border border-white/20">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground">Loading profile...</p>
@@ -275,13 +262,13 @@ export default function ProfilePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto bg-card rounded-xl shadow-lg p-8">
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto mt-8 backdrop-blur-md rounded-xl shadow-lg p-8 border border-white/20">
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-6">
               <div 
                 onClick={handleImageClick}
-                className="relative w-24 h-24 rounded-full overflow-hidden bg-muted border-4 border-muted-foreground/20 cursor-pointer group hover:border-primary/50 transition-colors duration-200"
+                className="relative w-24 h-24 rounded-full overflow-hidden bg-muted/50 border-4 border-muted-foreground/20 cursor-pointer group hover:border-primary/50 transition-colors duration-200"
               >
                 {profileImage ? (
                   <Image
@@ -313,7 +300,7 @@ export default function ProfilePage() {
             <h2 className="text-3xl font-bold text-foreground">
               {isEditMode ? 'Edit Your Profile' : 'Create Your Profile'}
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 text-sm text-muted-foreground">
               {isEditMode 
                 ? 'Update your profile information below'
                 : 'Please provide your information to get started'
@@ -321,9 +308,9 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-foreground">
+              <label htmlFor="name" className="block text-sm font-medium text-foreground mb-3">
                 Full Name
               </label>
               <input
@@ -333,18 +320,18 @@ export default function ProfilePage() {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background border-input ${
+                className={`block w-full rounded-lg shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background/20 backdrop-blur-sm border border-white/30 px-4 py-3 ${
                   errors.name ? 'border-destructive' : ''
                 }`}
                 placeholder="John Doe"
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-destructive">{errors.name}</p>
+                <p className="mt-2 text-sm text-destructive">{errors.name}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-foreground">
+              <label htmlFor="company" className="block text-sm font-medium text-foreground mb-3">
                 Company/Project Name
               </label>
               <input
@@ -354,18 +341,18 @@ export default function ProfilePage() {
                 required
                 value={formData.company}
                 onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background border-input ${
+                className={`block w-full rounded-lg shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background/20 backdrop-blur-sm border border-white/30 px-4 py-3 ${
                   errors.company ? 'border-destructive' : ''
                 }`}
                 placeholder="Acme Inc."
               />
               {errors.company && (
-                <p className="mt-1 text-sm text-destructive">{errors.company}</p>
+                <p className="mt-2 text-sm text-destructive">{errors.company}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-3">
                 Email Address
               </label>
               <input
@@ -375,35 +362,33 @@ export default function ProfilePage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background border-input ${
+                className={`block w-full rounded-lg shadow-sm focus:ring-primary focus:border-primary sm:text-sm bg-background/20 backdrop-blur-sm border border-white/30 px-4 py-3 ${
                   errors.email ? 'border-destructive' : ''
                 }`}
                 placeholder="john@example.com"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-destructive">{errors.email}</p>
+                <p className="mt-2 text-sm text-destructive">{errors.email}</p>
               )}
             </div>
 
-            <div className="bg-muted/50 p-4 rounded-md">
+            <div className="bg-background/10 backdrop-blur-sm p-6 rounded-lg border border-white/10">
               <p className="text-sm text-muted-foreground">
                 Your personal information is fully encrypted and stored securely. We take your privacy seriously and will never share your data with third parties.
               </p>
             </div>
 
             {errors.submit && (
-              <div className="bg-destructive/10 p-4 rounded-md">
+              <div className="bg-destructive/10 backdrop-blur-sm p-4 rounded-lg border border-destructive/20">
                 <p className="text-sm text-destructive">{errors.submit}</p>
               </div>
             )}
 
             <button
               type="submit"
-              disabled={isSubmitting || (isEditMode && !hasFormChanges() && !isUpdated)}
-              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium transition-all duration-300 ${
-                isUpdated 
-                  ? 'text-white bg-violet-600 hover:bg-violet-700 focus:ring-violet-500' 
-                  : isEditMode && !hasFormChanges()
+              disabled={isSubmitting || (isEditMode && !hasFormChanges())}
+              className={`w-full flex justify-center py-4 px-6 border border-transparent rounded-lg shadow-sm text-sm font-medium transition-all duration-300 ${
+                isEditMode && !hasFormChanges()
                   ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
                   : isEditMode
                   ? 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
@@ -419,9 +404,7 @@ export default function ProfilePage() {
                   {isEditMode ? 'Updating Profile...' : 'Creating Profile...'}
                 </span>
               ) : (
-                isUpdated 
-                  ? 'Go to Validation Dashboard' 
-                  : isEditMode 
+                isEditMode 
                   ? 'Update Profile' 
                   : 'Create Profile'
               )}
