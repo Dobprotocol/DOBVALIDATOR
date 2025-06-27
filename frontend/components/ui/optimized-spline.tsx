@@ -4,6 +4,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
+// Global flag to prevent multiple script loads
+let splineScriptLoaded = false
+
 interface OptimizedSplineProps {
   url: string
   className?: string
@@ -40,9 +43,10 @@ export function OptimizedSpline({
     return new Promise<void>((resolve, reject) => {
       console.log('Starting Spline script loading...')
       
-      // Check if script is already loaded
-      if (scriptLoadedRef.current || customElements.get('spline-viewer')) {
-        console.log('Spline script already available')
+      // Check if script is already loaded globally
+      if (splineScriptLoaded && customElements.get('spline-viewer')) {
+        console.log('Spline script already available globally')
+        scriptLoadedRef.current = true
         resolve()
         return
       }
@@ -56,6 +60,7 @@ export function OptimizedSpline({
           console.log('Checking for spline-viewer custom element...')
           if (customElements.get('spline-viewer')) {
             clearInterval(checkInterval)
+            splineScriptLoaded = true
             scriptLoadedRef.current = true
             console.log('Spline custom element found from existing script')
             resolve()
@@ -75,6 +80,7 @@ export function OptimizedSpline({
       if (forceRefresh && existingScript) {
         console.log('Force refresh enabled, removing existing script...')
         existingScript.remove()
+        splineScriptLoaded = false
         scriptLoadedRef.current = false
       }
 
@@ -94,6 +100,7 @@ export function OptimizedSpline({
       script.onload = () => {
         clearTimeout(loadTimeout)
         console.log('Spline script loaded successfully')
+        splineScriptLoaded = true
         scriptLoadedRef.current = true
         resolve()
       }
@@ -140,7 +147,7 @@ export function OptimizedSpline({
       splineViewer.style.position = 'absolute'
       splineViewer.style.top = '0'
       splineViewer.style.left = '0'
-      splineViewer.style.zIndex = '1'
+      splineViewer.style.zIndex = '0'
       splineViewer.style.pointerEvents = 'auto'
       splineViewer.style.userSelect = 'none'
       splineViewer.style.touchAction = 'manipulation'
@@ -237,7 +244,6 @@ export function OptimizedSpline({
             setTimeout(waitForCustomElement, 100)
           } else {
             console.error('Spline custom element not available after timeout')
-            console.log('Available custom elements:', Array.from(customElements.keys()))
             setHasError(true)
             setIsLoading(false)
             onError?.(new Error('Spline custom element not available'))

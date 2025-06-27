@@ -106,7 +106,7 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-background border-b h-16">
       <div className="flex items-center gap-6 ">
-        <a href="https://www.dobprotocol.com" target="_blank" rel="noopener noreferrer" className="h-12 overflow-hidden flex items-center">
+        <div className="h-12 overflow-hidden flex items-center">
           <Image
             src="/images/dob imagotipo.svg"
             alt="DOB Protocol"
@@ -115,7 +115,7 @@ export function Header() {
             className="h-24 w-auto"
             priority
           />
-        </a>
+        </div>
         {isAuth && (
           <a href="/dashboard" className="text-foreground hover:text-primary font-medium transition-colors">My Devices</a>
         )}

@@ -186,7 +186,7 @@ export default function Home() {
               console.error('Spline failed to load in main page:', error)
             }}
             loadingDelay={200}
-            forceRefresh={true}
+            forceRefresh={false}
             fallbackContent={
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <div className="text-center">
@@ -208,11 +208,11 @@ export default function Home() {
         />
       </div>
       
-      {/* Main content container */}
-      <div className="relative z-10 w-full">
-        {/* Hero section - fixed and centered, but not covering footer */}
-        <section className="fixed top-0 left-0 right-0 bottom-16 flex flex-col items-center justify-center">
-          <div className="text-center max-w-2xl">
+      {/* Main content container - 150vh for full Spline scene scrolling (desktop only) */}
+      <div className="relative z-10 w-full h-screen md:h-[150vh]">
+        {/* Hero section - fixed content that stays in place while scrolling */}
+        <section className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full px-4 z-20">
+          <div className="text-center max-w-2xl mx-auto">
             <div className="spline-content rounded-2xl p-8">
               <h1 className="text-4xl font-bold tracking-tight text-black dark:text-foreground sm:text-5xl">
                 DOB Validator
@@ -235,6 +235,13 @@ export default function Home() {
                 Submit your documentation and unlock new funding opportunities.
               </p>
             </div>
+          </div>
+        </section>
+        
+        {/* Spacer section to create the full 150vh scroll space (desktop only) */}
+        <section className="hidden md:flex h-screen items-center justify-center">
+          <div className="text-center opacity-0 pointer-events-none">
+            {/* This section is invisible but creates scroll space on desktop */}
           </div>
         </section>
       </div>

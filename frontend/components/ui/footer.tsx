@@ -26,11 +26,16 @@ export function Footer() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + window.innerHeight
+      const scrollPosition = window.scrollY
+      const windowHeight = window.innerHeight
       const documentHeight = document.documentElement.scrollHeight
-      const threshold = documentHeight - 200 // Show footer when 200px from bottom
-
-      setIsVisible(scrollPosition >= threshold)
+      
+      // Show footer only when user has scrolled through the entire viewport (100% of screen height)
+      // This means they've seen the full Spline scene
+      const scrollPercentage = (scrollPosition / (documentHeight - windowHeight)) * 100
+      const threshold = 100 // Show footer when 100% scrolled through the scene
+      
+      setIsVisible(scrollPercentage >= threshold)
     }
 
     // Initial check
@@ -55,9 +60,10 @@ export function Footer() {
         className={`
           fixed bottom-0 left-0 right-0 
           flex items-center justify-between px-4 py-4 
-          bg-background border-t
+          bg-background/95 backdrop-blur-sm border-t
           transition-all duration-300 ease-in-out
           pointer-events-auto
+          z-50
           ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
         `}
       >

@@ -478,31 +478,35 @@ export function EnhancedDeviceVerificationFlow() {
 
   // Single Page View Component - Continuous scrollable layout
   const SinglePageView = () => (
-    <div className="w-full space-y-12 pb-12">
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg">
-        <CardContent className="p-8">
-          <h3 className="text-xl font-semibold mb-6 text-primary">Step 1: Basic Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="deviceName">Device Name</Label>
+    <div className="w-full space-y-16 pb-16">
+      {/* Step 1: Basic Information */}
+      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
+        <CardContent className="p-12">
+          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 1: Basic Information</h3>
+          <p className="text-muted-foreground mb-8">Please provide the basic details about your device. This information will be used for identification and verification purposes.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <Label htmlFor="deviceName" className="text-base font-medium">Device Name</Label>
               <Input
                 id="deviceName"
                 value={deviceData.deviceName}
                 onChange={(e) => updateDeviceData({ deviceName: e.target.value })}
                 placeholder="Enter a name for your device"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">Choose a descriptive name that clearly identifies your device</p>
             </div>
 
-            <div>
-              <Label htmlFor="deviceType">Device Type</Label>
+            <div className="space-y-4">
+              <Label htmlFor="deviceType" className="text-base font-medium">Device Type</Label>
               <Select
                 value={deviceData.deviceType}
                 onValueChange={(value) => updateDeviceData({ deviceType: value })}
                 required
               >
-                <SelectTrigger id="deviceType" className="mt-2">
+                <SelectTrigger id="deviceType" className="mt-2 h-12 text-base">
                   <SelectValue placeholder="Select device type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -513,59 +517,66 @@ export function EnhancedDeviceVerificationFlow() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">Select the category that best describes your device</p>
             </div>
 
-            <div>
-              <Label htmlFor="serialNumber">Serial Number</Label>
+            <div className="space-y-4">
+              <Label htmlFor="serialNumber" className="text-base font-medium">Serial Number</Label>
               <Input
                 id="serialNumber"
                 value={deviceData.serialNumber}
                 onChange={(e) => updateDeviceData({ serialNumber: e.target.value })}
                 placeholder="Enter the device serial number"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">The unique identifier provided by the manufacturer</p>
             </div>
 
-            <div>
-              <Label htmlFor="manufacturer">Manufacturer</Label>
+            <div className="space-y-4">
+              <Label htmlFor="manufacturer" className="text-base font-medium">Manufacturer</Label>
               <Input
                 id="manufacturer"
                 value={deviceData.manufacturer}
                 onChange={(e) => updateDeviceData({ manufacturer: e.target.value })}
                 placeholder="Enter the device manufacturer"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">The company that produced your device</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg">
-        <CardContent className="p-8">
-          <h3 className="text-xl font-semibold mb-6 text-primary">Step 2: Technical Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="model">Model</Label>
+      {/* Step 2: Technical Information */}
+      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
+        <CardContent className="p-12">
+          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 2: Technical Information</h3>
+          <p className="text-muted-foreground mb-8">Provide detailed technical specifications and operational details about your device.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <Label htmlFor="model" className="text-base font-medium">Model</Label>
               <Input
                 id="model"
                 value={deviceData.model}
                 onChange={(e) => updateDeviceData({ model: e.target.value })}
                 placeholder="Enter the device model"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">The specific model number or designation</p>
             </div>
 
-            <div>
-              <Label htmlFor="yearOfManufacture">Year of Manufacture</Label>
+            <div className="space-y-4">
+              <Label htmlFor="yearOfManufacture" className="text-base font-medium">Year of Manufacture</Label>
               <Select
                 value={deviceData.yearOfManufacture}
                 onValueChange={(value) => updateDeviceData({ yearOfManufacture: value })}
                 required
               >
-                <SelectTrigger id="yearOfManufacture" className="mt-2">
+                <SelectTrigger id="yearOfManufacture" className="mt-2 h-12 text-base">
                   <SelectValue placeholder="Select year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -576,16 +587,17 @@ export function EnhancedDeviceVerificationFlow() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">When the device was manufactured</p>
             </div>
 
-            <div>
-              <Label htmlFor="condition">Condition</Label>
+            <div className="space-y-4">
+              <Label htmlFor="condition" className="text-base font-medium">Condition</Label>
               <Select
                 value={deviceData.condition}
                 onValueChange={(value) => updateDeviceData({ condition: value })}
                 required
               >
-                <SelectTrigger id="condition" className="mt-2">
+                <SelectTrigger id="condition" className="mt-2 h-12 text-base">
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
                 <SelectContent>
@@ -596,29 +608,34 @@ export function EnhancedDeviceVerificationFlow() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">Current physical and operational condition</p>
             </div>
 
-            <div className="md:col-span-2">
-              <Label htmlFor="specifications">Technical Specifications</Label>
+            <div className="md:col-span-2 space-y-4">
+              <Label htmlFor="specifications" className="text-base font-medium">Technical Specifications</Label>
               <Textarea
                 id="specifications"
                 value={deviceData.specifications}
                 onChange={(e) => updateDeviceData({ specifications: e.target.value })}
-                placeholder="Enter detailed technical specifications"
-                className="min-h-[120px] mt-2"
+                placeholder="Enter detailed technical specifications including power output, dimensions, materials, certifications, and any other relevant technical details..."
+                className="min-h-[200px] mt-2 text-base resize-none"
                 required
               />
+              <p className="text-sm text-muted-foreground">Provide comprehensive technical details about your device</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg">
-        <CardContent className="p-8">
-          <h3 className="text-xl font-semibold mb-6 text-primary">Step 3: Financial Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="purchasePrice">Purchase Price (USD)</Label>
+      {/* Step 3: Financial Information */}
+      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
+        <CardContent className="p-12">
+          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 3: Financial Information</h3>
+          <p className="text-muted-foreground mb-8">Provide financial details about your device including costs, value, and revenue projections.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <Label htmlFor="purchasePrice" className="text-base font-medium">Purchase Price (USD)</Label>
               <Input
                 id="purchasePrice"
                 type="number"
@@ -628,12 +645,13 @@ export function EnhancedDeviceVerificationFlow() {
                 onChange={(e) => updateDeviceData({ purchasePrice: e.target.value })}
                 placeholder="Enter the original purchase price"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">The original cost when you purchased the device</p>
             </div>
 
-            <div>
-              <Label htmlFor="currentValue">Current Value (USD)</Label>
+            <div className="space-y-4">
+              <Label htmlFor="currentValue" className="text-base font-medium">Current Value (USD)</Label>
               <Input
                 id="currentValue"
                 type="number"
@@ -643,12 +661,13 @@ export function EnhancedDeviceVerificationFlow() {
                 onChange={(e) => updateDeviceData({ currentValue: e.target.value })}
                 placeholder="Enter the current estimated value"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">Current market value of your device</p>
             </div>
 
-            <div>
-              <Label htmlFor="expectedRevenue">Expected Annual Revenue (USD)</Label>
+            <div className="space-y-4">
+              <Label htmlFor="expectedRevenue" className="text-base font-medium">Expected Annual Revenue (USD)</Label>
               <Input
                 id="expectedRevenue"
                 type="number"
@@ -658,12 +677,13 @@ export function EnhancedDeviceVerificationFlow() {
                 onChange={(e) => updateDeviceData({ expectedRevenue: e.target.value })}
                 placeholder="Enter the expected annual revenue"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">Projected annual income from this device</p>
             </div>
 
-            <div>
-              <Label htmlFor="operationalCosts">Annual Operational Costs (USD)</Label>
+            <div className="space-y-4">
+              <Label htmlFor="operationalCosts" className="text-base font-medium">Annual Operational Costs (USD)</Label>
               <Input
                 id="operationalCosts"
                 type="number"
@@ -673,91 +693,173 @@ export function EnhancedDeviceVerificationFlow() {
                 onChange={(e) => updateDeviceData({ operationalCosts: e.target.value })}
                 placeholder="Enter the annual operational costs"
                 required
-                className="mt-2"
+                className="mt-2 h-12 text-base"
               />
+              <p className="text-sm text-muted-foreground">Annual costs for maintenance, utilities, etc.</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg">
-        <CardContent className="p-8">
-          <h3 className="text-xl font-semibold mb-6 text-primary">Step 4: Documentation</h3>
-          <p className="text-muted-foreground mb-6">Documentation uploads are available in the step-by-step view.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-              <span className="font-medium">Technical Certification:</span>
-              <span className={`px-2 py-1 rounded text-sm ${deviceData.technicalCertification ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                {deviceData.technicalCertification ? "Uploaded" : "Not uploaded"}
-              </span>
+      {/* Step 4: Documentation */}
+      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
+        <CardContent className="p-12">
+          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 4: Documentation</h3>
+          <p className="text-muted-foreground mb-8">Documentation uploads are available in the step-by-step view. Here you can review what documents will be required for verification.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-base">Technical Certification</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.technicalCertification ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                  {deviceData.technicalCertification ? "Uploaded" : "Not uploaded"}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">Certification documents proving device compliance and safety standards</p>
             </div>
-            <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-              <span className="font-medium">Purchase Proof:</span>
-              <span className={`px-2 py-1 rounded text-sm ${deviceData.purchaseProof ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                {deviceData.purchaseProof ? "Uploaded" : "Not uploaded"}
-              </span>
+            
+            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-base">Purchase Proof</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.purchaseProof ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                  {deviceData.purchaseProof ? "Uploaded" : "Not uploaded"}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">Invoice, receipt, or purchase agreement for the device</p>
             </div>
-            <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-              <span className="font-medium">Maintenance Records:</span>
-              <span className={`px-2 py-1 rounded text-sm ${deviceData.maintenanceRecords ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                {deviceData.maintenanceRecords ? "Uploaded" : "Not uploaded"}
-              </span>
+            
+            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-base">Maintenance Records</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.maintenanceRecords ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                  {deviceData.maintenanceRecords ? "Uploaded" : "Not uploaded"}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">Service history and maintenance documentation</p>
             </div>
-            <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-              <span className="font-medium">Device Images:</span>
-              <span className={`px-2 py-1 rounded text-sm ${deviceData.deviceImages.length > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                {deviceData.deviceImages.length > 0 ? `${deviceData.deviceImages.length} images` : "No images"}
-              </span>
+            
+            <div className="space-y-4 p-6 bg-muted/30 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-base">Device Images</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${deviceData.deviceImages.length > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                  {deviceData.deviceImages.length > 0 ? `${deviceData.deviceImages.length} images` : "No images"}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">High-quality photos showing device condition and setup</p>
             </div>
+          </div>
+          
+          <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Documentation Requirements</h4>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              All documentation must be clear, legible, and in PDF format. Images should be high-resolution and show the device from multiple angles. 
+              Technical certifications must be from recognized authorities and current at the time of submission.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg">
-        <CardContent className="p-8">
-          <h3 className="text-xl font-semibold mb-6 text-primary">Step 5: Review</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
+      {/* Step 5: Review */}
+      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
+        <CardContent className="p-12">
+          <h3 className="text-2xl font-semibold mb-8 text-primary">Step 5: Review & Summary</h3>
+          <p className="text-muted-foreground mb-8">Please review all the information you've provided. Ensure all details are accurate before proceeding.</p>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
               <h4 className="font-semibold text-lg text-muted-foreground border-b pb-2">Basic Information</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="font-medium">Device:</span>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                  <span className="font-medium">Device Name:</span>
                   <span className="text-muted-foreground">{deviceData.deviceName || "Not provided"}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Type:</span>
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                  <span className="font-medium">Device Type:</span>
                   <span className="text-muted-foreground">{deviceData.deviceType || "Not provided"}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Serial:</span>
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                  <span className="font-medium">Serial Number:</span>
                   <span className="text-muted-foreground">{deviceData.serialNumber || "Not provided"}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
                   <span className="font-medium">Manufacturer:</span>
                   <span className="text-muted-foreground">{deviceData.manufacturer || "Not provided"}</span>
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
+            
+            <div className="space-y-6">
               <h4 className="font-semibold text-lg text-muted-foreground border-b pb-2">Financial Summary</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
                   <span className="font-medium">Purchase Price:</span>
                   <span className="text-muted-foreground">${deviceData.purchasePrice || "0"}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
                   <span className="font-medium">Current Value:</span>
                   <span className="text-muted-foreground">${deviceData.currentValue || "0"}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
                   <span className="font-medium">Expected Revenue:</span>
                   <span className="text-muted-foreground">${deviceData.expectedRevenue || "0"}/year</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
                   <span className="font-medium">Operational Costs:</span>
                   <span className="text-muted-foreground">${deviceData.operationalCosts || "0"}/year</span>
                 </div>
               </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 p-6 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Next Steps</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              After reviewing your information, you'll be able to upload the required documentation in the step-by-step view. 
+              All submissions will be reviewed by our verification team to ensure compliance with DOB Protocol standards.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Final Step: Success */}
+      <Card className="transition-all duration-500 ease-in-out hover:shadow-lg min-h-[80vh]">
+        <CardContent className="p-12 text-center">
+          <div className="max-w-2xl mx-auto">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold mb-4 text-primary">Form Complete!</h3>
+            <p className="text-muted-foreground mb-8 text-lg">
+              You've successfully completed the device verification form. Your information has been saved and is ready for review.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-semibold mb-2">Information Saved</h4>
+                <p className="text-sm text-muted-foreground">All your device details have been securely stored</p>
+              </div>
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-semibold mb-2">Ready for Review</h4>
+                <p className="text-sm text-muted-foreground">Your submission will be reviewed by our team</p>
+              </div>
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-semibold mb-2">Next Steps</h4>
+                <p className="text-sm text-muted-foreground">Upload documentation in step-by-step view</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <Button 
+                onClick={() => setIsSinglePageView(false)} 
+                className="w-full md:w-auto"
+              >
+                Switch to Step-by-Step View
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Use the step-by-step view to upload required documentation and complete the verification process.
+              </p>
             </div>
           </div>
         </CardContent>
@@ -789,7 +891,7 @@ export function EnhancedDeviceVerificationFlow() {
       
       {isSinglePageView ? (
         // Full page view - scrollable layout
-        <div className="w-full">
+        <div className="w-full min-h-screen">
           <div className="container mx-auto px-4 py-8">
             {/* Header with Toggle and Download */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
