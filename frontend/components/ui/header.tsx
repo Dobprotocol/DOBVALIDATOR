@@ -104,7 +104,7 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-background border-b h-16">
+    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between py-4 px-6 bg-background/80 backdrop-blur-md border-b border-white/20 h-16">
       <div className="flex items-center gap-6 ">
         <div className="h-12 overflow-hidden flex items-center">
           <Image
@@ -128,7 +128,7 @@ export function Header() {
                 onClick={handleEditProfile}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-background/50 backdrop-blur-sm border-white/30"
               >
                 <User className="w-4 h-4" />
                 Edit Profile
@@ -136,7 +136,7 @@ export function Header() {
             )}
             <Button
               variant="outline"
-              className="flex items-center gap-2 px-3 py-1 text-sm"
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-background/50 backdrop-blur-sm border-white/30"
               onClick={handleDisconnect}
               title="Disconnect wallet"
             >
