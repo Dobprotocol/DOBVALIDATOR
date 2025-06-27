@@ -345,3 +345,47 @@ html:not(.ready) .animate-fade-in {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+
+/* Exclude form inputs from global transitions to prevent focus issues */
+input, textarea, select {
+  transition: none !important;
+}
+
+/* Re-apply specific transitions for form elements where needed */
+.form-input, .form-select {
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out !important;
+}
+
+/* Additional protection for form inputs in step cards */
+.step-card input,
+.step-card textarea,
+.step-card select {
+  transition: none !important;
+}
+
+.step-card input:focus,
+.step-card textarea:focus,
+.step-card select:focus {
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out !important;
+}
+
+/* Ensure form inputs maintain focus */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out !important;
+}
+
+@keyframes neonGlow {
+  0%, 100% {
+    box-shadow: 0 0 16px 4px rgba(59,130,246,0.7), 0 0 32px 8px rgba(59,130,246,0.2);
+  }
+  50% {
+    box-shadow: 0 0 32px 8px rgba(59,130,246,1), 0 0 64px 16px rgba(59,130,246,0.4);
+  }
+}
+
+.hover\:animate-neon-glow:hover {
+  animation: neonGlow 1.2s infinite alternate;
+}

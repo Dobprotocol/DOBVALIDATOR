@@ -135,14 +135,14 @@ export default function DashboardPage() {
       <div className="relative mt-20 z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-end mb-8">
-          <Button
-            onClick={handleCreateDevice}
-              className="inline-flex items-center gap-2 text-base py-3 px-6 rounded-lg font-semibold shadow-md bg-background/90 backdrop-blur-sm"
-          >
-            <PlusCircle className="h-5 w-5" />
-            Validate New Device
-          </Button>
-        </div>
+            <Button
+              onClick={handleCreateDevice}
+              className="inline-flex items-center gap-2 text-base py-3 px-6 rounded-lg font-semibold shadow-md bg-blue-600 text-white hover:animate-neon-glow hover:shadow-[0_0_16px_4px_rgba(59,130,246,0.7)] focus-visible:shadow-[0_0_24px_8px_rgba(59,130,246,0.8)] transition-all duration-200"
+            >
+              <PlusCircle className="h-5 w-5" />
+              Validate New Device
+            </Button>
+          </div>
 
           {error && (
             <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg bg-background/90 backdrop-blur-sm">
@@ -150,176 +150,80 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Tab Navigation */}
-          <div className="flex space-x-1 bg-muted/90 backdrop-blur-sm p-1 rounded-lg mb-8">
-            <button
-              onClick={() => setActiveTab('submissions')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'submissions'
-                  ? 'bg-background/90 text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Submissions ({submissions.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('drafts')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'drafts'
-                  ? 'bg-background/90 text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Drafts ({drafts.length})
-            </button>
+          {/* Device Submissions Table (no tabs) */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border bg-background/90 backdrop-blur-sm rounded-lg shadow-lg">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Updated</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {/* Show rows for submissions and drafts */}
+                {submissions.concat(drafts).length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                      No device submissions or drafts yet.
+                    </td>
+                  </tr>
+                ) : (
+                  submissions.concat(drafts).map((item: any) => (
+                    <tr key={item.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{item.deviceName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{item.deviceType}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{item.manufacturer}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(item.updatedAt || item.submittedAt)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {item.status === "approved" && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="gap-2"
+                            onClick={() => handleViewCertificate(item)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Certificate
+                          </Button>
+                        )}
+                        {item.status === "rejected" && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            className="gap-2"
+                            onClick={() => handleViewRejection(item)}
+                          >
+                            <AlertCircle className="h-4 w-4" />
+                            Review Reason
+                          </Button>
+                        )}
+                        {(item.status === "under review" || item.status === "pending") && (
+                          <Button size="sm" variant="ghost" className="gap-2" disabled>
+                            <FileText className="h-4 w-4" />
+                            In Review
+                          </Button>
+                        )}
+                        {item.status === "draft" && (
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="gap-2"
+                            onClick={() => handleEditDevice(item.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                            Continue Editing
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-
-          {/* Submissions Tab */}
-          {activeTab === 'submissions' && (
-            <>
-              {submissions.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="max-w-md mx-auto bg-background/90 backdrop-blur-sm rounded-lg p-8 shadow-lg">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                      <FileText className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium text-foreground mb-2">No submissions yet</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Start by submitting your first device for validation. This will allow you to create investment pools and tokenize your device's revenue.
-                    </p>
-                    <Button
-                      onClick={handleCreateDevice}
-                      className="inline-flex items-center gap-2"
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                      Submit Your First Device
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border bg-background/90 backdrop-blur-sm rounded-lg shadow-lg">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {submissions.map((submission) => (
-                        <tr key={submission.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{submission.deviceName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.deviceType}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{submission.manufacturer}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(submission.submittedAt)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={statusColor[submission.status] || "secondary"} className="capitalize">
-                              {submission.status}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            {submission.status === "approved" && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="gap-2"
-                                onClick={() => handleViewCertificate(submission)}
-                              >
-                                <Eye className="h-4 w-4" />
-                                View Certificate
-                              </Button>
-                            )}
-                            {submission.status === "rejected" && (
-                              <Button 
-                                size="sm" 
-                                variant="destructive" 
-                                className="gap-2"
-                                onClick={() => handleViewRejection(submission)}
-                              >
-                                <AlertCircle className="h-4 w-4" />
-                                Review Reason
-                              </Button>
-                            )}
-                            {(submission.status === "under review" || submission.status === "pending") && (
-                              <Button size="sm" variant="ghost" className="gap-2" disabled>
-                                <FileText className="h-4 w-4" />
-                                In Review
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Drafts Tab */}
-          {activeTab === 'drafts' && (
-            <>
-              {drafts.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="max-w-md mx-auto bg-background/90 backdrop-blur-sm rounded-lg p-8 shadow-lg">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                      <FileText className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium text-foreground mb-2">No drafts yet</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Start creating a device submission and save it as a draft to continue later.
-                    </p>
-                    <Button
-                      onClick={handleCreateDevice}
-                      className="inline-flex items-center gap-2"
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                      Create New Device
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border bg-background/90 backdrop-blur-sm rounded-lg shadow-lg">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Updated</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {drafts.map((draft) => (
-                        <tr key={draft.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{draft.deviceName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{draft.deviceType}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{draft.manufacturer}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(draft.updatedAt)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <Button 
-                              size="sm" 
-                              variant="secondary" 
-                              className="gap-2"
-                              onClick={() => handleEditDevice(draft.id)}
-                            >
-                              <Edit className="h-4 w-4" />
-                              Continue Editing
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
         </div>
       </div>
 

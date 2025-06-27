@@ -1,10 +1,10 @@
 "use client"
 
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { LogOut, User, ChevronDown, Home, Settings, FileText, Users } from 'lucide-react'
+import { LogOut, User, ChevronDown, Home, Settings, FileText, Users, HelpCircle, MessageCircle, TrendingUp } from 'lucide-react'
 import { isAuthenticated, getAuthToken } from '@/lib/auth'
 import { apiService } from '@/lib/api-service'
 
@@ -21,6 +21,7 @@ export function Header() {
   const [showDobDropdown, setShowDobDropdown] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   
   // Refs for hover detection
   const dobDropdownRef = useRef<HTMLDivElement>(null)
@@ -28,35 +29,60 @@ export function Header() {
   const dobTriggerRef = useRef<HTMLDivElement>(null)
   const userTriggerRef = useRef<HTMLDivElement>(null)
 
+  // Check if we're on the homepage
+  const isHomepage = pathname === '/'
+
   useEffect(() => {
     const checkAuth = async () => {
+      // If we're on the homepage, show minimal navbar immediately
+      if (isHomepage) {
+        setIsLoading(false)
+        setIsAuth(false)
+        return
+      }
+      
       try {
-        const auth = await isAuthenticated()
+        // Set a timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth check timeout')), 3000)
+        )
+        
+        const authPromise = isAuthenticated()
+        const auth = await Promise.race([authPromise, timeoutPromise]) as boolean
+        
         setIsAuth(auth)
         
         if (auth) {
           const token = getAuthToken()
           if (token) {
-            const response = await apiService.getProfile()
-            if (response.success) {
-              setPublicKey(response.profile.publicKey)
-              setHasProfile(true)
+            try {
+              const response = await apiService.getProfile()
+              if (response.success) {
+                setPublicKey(response.profile.publicKey)
+                setHasProfile(true)
+              }
+            } catch (error) {
+              console.error('Profile check failed:', error)
             }
           }
         }
       } catch (error) {
         console.error('Auth check failed:', error)
+        // Set auth to false on error to show minimal navbar
+        setIsAuth(false)
       } finally {
         setIsLoading(false)
       }
     }
     
     checkAuth()
-  }, [])
+  }, [isHomepage])
 
   // Handle DOB dropdown hover with delay
   const handleDobMouseEnter = () => {
-    setShowDobDropdown(true)
+    if (!isHomepage || isAuth) {
+      setShowDobDropdown(true)
+    }
   }
 
   const handleDobMouseLeave = () => {
@@ -118,7 +144,7 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* DOB Logo with Dropdown */}
+          {/* DOB Logo */}
           <div 
             ref={dobTriggerRef}
             className="relative"
@@ -127,55 +153,68 @@ export function Header() {
           >
             <div className="flex items-center space-x-2 cursor-pointer group">
               <Image
-                src="/images/dob-logo.png"
+                src="/images/dob imagotipo.svg"
                 alt="DOB Protocol"
-                width={40}
+                width={120}
                 height={40}
                 className="transition-transform duration-200 group-hover:scale-105"
               />
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-lg">DOB Protocol</span>
-                <span className="text-gray-400 text-xs">Validator</span>
-              </div>
-              <ChevronDown className="text-gray-400 transition-transform duration-200 group-hover:rotate-180" size={16} />
+              {/* Only show chevron if not on homepage or if authenticated */}
+              {(!isHomepage || isAuth) && (
+                <ChevronDown className="text-gray-400 transition-transform duration-200 group-hover:rotate-180" size={16} />
+              )}
             </div>
 
-            {/* DOB Dropdown Menu */}
-            {showDobDropdown && (
+            {/* DOB Dropdown Menu - Only show if not on homepage or if authenticated */}
+            {showDobDropdown && (!isHomepage || isAuth) && (
               <div
                 ref={dobDropdownRef}
-                className="absolute top-full left-0 mt-2 w-64 bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl transition-all duration-300 ease-out"
+                className="absolute top-full left-0 mt-2 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-2xl transition-all duration-300 ease-out"
                 onMouseEnter={handleDobMouseEnter}
                 onMouseLeave={handleDobMouseLeave}
               >
                 <div className="p-2">
                   <div 
-                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                     onClick={() => router.push('/')}
                   >
                     <Home size={18} className="text-gray-300" />
                     <span className="text-white">Home</span>
                   </div>
                   <div 
-                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                     onClick={() => router.push('/dashboard')}
                   >
                     <FileText size={18} className="text-gray-300" />
-                    <span className="text-white">My Devices</span>
+                    <span className="text-white">My Projects</span>
                   </div>
                   <div 
-                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
-                    onClick={() => router.push('/form')}
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                    onClick={() => window.open('https://dobprotocol.com/faq', '_blank')}
                   >
-                    <Settings size={18} className="text-gray-300" />
-                    <span className="text-white">Add Device</span>
+                    <HelpCircle size={18} className="text-gray-300" />
+                    <span className="text-white">FAQ</span>
+                  </div>
+                  <div 
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                    onClick={() => window.open('https://dobprotocol.com/support', '_blank')}
+                  >
+                    <MessageCircle size={18} className="text-gray-300" />
+                    <span className="text-white">Support</span>
+                  </div>
+                  <div 
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                    onClick={() => window.open('https://dobprotocol.com/liquidity-pools', '_blank')}
+                  >
+                    <TrendingUp size={18} className="text-gray-300" />
+                    <span className="text-white">Liquidity Pools</span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* User Actions */}
+          {/* User Actions - Only show if authenticated */}
           {isAuth ? (
             <div 
               ref={userTriggerRef}
@@ -197,29 +236,29 @@ export function Header() {
               {showUserDropdown && (
                 <div
                   ref={userDropdownRef}
-                  className="absolute top-full right-0 mt-2 w-56 bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl transition-all duration-300 ease-out"
+                  className="absolute top-full right-0 mt-2 w-56 bg-gray-800 border border-gray-600 rounded-lg shadow-2xl transition-all duration-300 ease-out"
                   onMouseEnter={handleUserMouseEnter}
                   onMouseLeave={handleUserMouseLeave}
                 >
                   <div className="p-2">
-                    <div className="px-3 py-2 border-b border-white/10">
+                    <div className="px-3 py-2 border-b border-gray-600">
                       <p className="text-white text-sm font-medium">
                         {publicKey ? truncateAddress(publicKey) : 'User'}
                       </p>
                       <p className="text-gray-400 text-xs">
-                        {hasProfile ? 'Profile Verified' : 'Profile Pending'}
+                        {publicKey ? publicKey : ''}
                       </p>
                     </div>
                     <div className="p-2">
                       <div 
-                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                         onClick={() => router.push('/profile')}
                       >
                         <User size={18} className="text-gray-300" />
                         <span className="text-white">Edit Profile</span>
                       </div>
                       <div 
-                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                         onClick={handleLogout}
                       >
                         <LogOut size={18} className="text-gray-300" />
@@ -231,21 +270,8 @@ export function Header() {
               )}
             </div>
           ) : (
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                onClick={() => router.push('/form')}
-                className="text-white hover:bg-white/10 transition-colors duration-200"
-              >
-                Add Device
-              </Button>
-              <Button
-                onClick={() => router.push('/form')}
-                className="bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
-              >
-                Connect Wallet
-              </Button>
-            </div>
+            // Empty div to maintain layout when not authenticated
+            <div></div>
           )}
         </div>
       </div>

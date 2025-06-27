@@ -183,3 +183,110 @@
 2025-06-27T23:09:12.987091Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
 2025-06-27T23:09:12.987298Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
 2025-06-27T23:09:13.005761Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:11:53.782906Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:11:53.782933Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:12:06.383131Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:12:06.383157Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:12:06.424639Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:12:18.981963Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:12:18.981973Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:12:20.183264Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:12:20.183272Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:12:20.196699Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:12:38.283016Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:12:38.283101Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:13:22.881904Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:13:22.881915Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:13:22.905184Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:14:15.783120Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/backoffice-dashboard.tsx")}
+2025-06-27T23:14:15.783292Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-27T23:14:25.782365Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/backoffice-dashboard.tsx")}
+2025-06-27T23:14:25.782406Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-27T23:15:17.783149Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:15:17.783190Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:15:58.382244Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:15:58.382272Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:15:58.684659Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/components/backoffice-dashboard.tsx")}
+2025-06-27T23:15:58.684668Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-27T23:15:58.732513Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:16:07.081714Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:16:07.081736Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:16:09.482717Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:16:09.482728Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:16:09.587698Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:17:32.387222Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/dashboard/page.tsx")}
+2025-06-27T23:17:32.387930Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:17:32.437089Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:17:45.682155Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/globals.css")}
+2025-06-27T23:17:45.682166Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:18:02.181794Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/globals.css")}
+2025-06-27T23:18:02.181803Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:18:02.194447Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:18:30.181586Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/dashboard/page.tsx")}
+2025-06-27T23:18:30.181607Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:18:42.681816Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/dashboard/page.tsx")}
+2025-06-27T23:18:42.681827Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:18:42.681877Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:18:47.881427Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/dashboard/page.tsx")}
+2025-06-27T23:18:47.881446Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:18:49.081404Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/dashboard/page.tsx")}
+2025-06-27T23:18:49.081414Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:18:49.142182Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:19:36.381829Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:19:36.382017Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:19:53.281256Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:19:53.281270Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:19:53.325128Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:20:24.782441Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:20:24.782503Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:20:44.081088Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:20:44.081105Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:20:44.081151Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:21:37.806641Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/stars-background.tsx")}
+2025-06-27T23:21:37.806694Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:25:19.616259Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("backoffice/app/dashboard/page.tsx")}
+2025-06-27T23:25:19.617031Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("backoffice") }}))
+2025-06-27T23:26:14.809544Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/globals.css")}
+2025-06-27T23:26:14.809593Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:27:02.608770Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/globals.css")}
+2025-06-27T23:27:02.608950Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:27:02.668808Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:28:19.310089Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:28:19.310111Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:28:21.509002Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:28:21.509011Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:28:21.528514Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:28:31.810956Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:28:31.810974Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:28:44.608968Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:28:44.608980Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:28:44.669872Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:28:49.909249Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/globals.css")}
+2025-06-27T23:28:49.909259Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:28:56.609199Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/globals.css")}
+2025-06-27T23:28:56.609207Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:28:56.654649Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:29:57.309255Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:29:57.309275Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:30:03.509367Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:30:03.509378Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:30:03.509455Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:30:25.809939Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:30:25.809959Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:30:44.109673Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:30:44.109698Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:31:01.610220Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:31:01.610229Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:31:08.309238Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/enhanced-device-verification-flow.tsx")}
+2025-06-27T23:31:08.309250Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:31:08.366443Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:31:11.809504Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/steps/device-basic-info.tsx")}
+2025-06-27T23:31:11.809519Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:31:18.810047Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/steps/device-basic-info.tsx")}
+2025-06-27T23:31:18.810060Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:31:18.810109Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-27T23:31:36.609114Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:31:36.609131Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:31:38.009654Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/components/ui/header.tsx")}
+2025-06-27T23:31:38.009661Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-27T23:31:38.009713Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
