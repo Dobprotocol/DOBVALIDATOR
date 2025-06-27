@@ -18,6 +18,7 @@ type StarLayerProps = HTMLMotionProps<"div"> & {
   size: number;
   transition: Transition;
   starColor: string;
+  isHovered?: boolean;
 };
 
 function generateStars(count: number, starColor: string) {
@@ -35,6 +36,7 @@ function StarLayer({
   size = 1,
   transition = { repeat: Infinity, duration: 50, ease: "linear" },
   starColor = "#fff",
+  isHovered = false,
   className,
   ...props
 }: StarLayerProps) {
@@ -44,11 +46,17 @@ function StarLayer({
     setBoxShadow(generateStars(count, starColor));
   }, [count, starColor]);
 
+  // Enhanced transition with hover effect
+  const enhancedTransition = React.useMemo(() => ({
+    ...transition,
+    duration: isHovered ? transition.duration * 0.6 : transition.duration,
+  }), [transition, isHovered]);
+
   return (
     <motion.div
       data-slot="star-layer"
       animate={{ y: [0, -2000] }}
-      transition={transition}
+      transition={enhancedTransition}
       className={cn("absolute top-0 left-0 w-full h-[2000px]", className)}
       {...props}
     >
@@ -58,6 +66,7 @@ function StarLayer({
           width: `${size}px`,
           height: `${size}px`,
           boxShadow: boxShadow,
+          filter: isHovered ? `brightness(1.2) blur(0.2px)` : 'none',
         }}
       />
       <div
@@ -66,6 +75,7 @@ function StarLayer({
           width: `${size}px`,
           height: `${size}px`,
           boxShadow: boxShadow,
+          filter: isHovered ? `brightness(1.2) blur(0.2px)` : 'none',
         }}
       />
     </motion.div>
@@ -90,6 +100,7 @@ export function StarsBackground({
 }: StarsBackgroundProps) {
   const { theme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
   const offsetX = useMotionValue(1);
   const offsetY = useMotionValue(1);
 
@@ -120,6 +131,14 @@ export function StarsBackground({
     [offsetX, offsetY, factor],
   );
 
+  const handleMouseEnter = React.useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
+  const handleMouseLeave = React.useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
   return (
     <div
       data-slot="stars-background"
@@ -129,14 +148,26 @@ export function StarsBackground({
         className,
       )}
       onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       {...props}
     >
-      <motion.div style={{ x: springX, y: springY }}>
+      <motion.div 
+        style={{ x: springX, y: springY }}
+        animate={{
+          scale: isHovered ? 1.05 : 1,
+        }}
+        transition={{
+          duration: 0.3,
+          ease: "easeInOut",
+        }}
+      >
         <StarLayer
           count={1000}
           size={1}
           transition={{ repeat: Infinity, duration: speed, ease: "linear" }}
           starColor={starColor || defaultStarColor}
+          isHovered={isHovered}
         />
         <StarLayer
           count={400}
@@ -147,6 +178,7 @@ export function StarsBackground({
             ease: "linear",
           }}
           starColor={starColor || defaultStarColor}
+          isHovered={isHovered}
         />
         <StarLayer
           count={200}
@@ -157,6 +189,7 @@ export function StarsBackground({
             ease: "linear",
           }}
           starColor={starColor || defaultStarColor}
+          isHovered={isHovered}
         />
       </motion.div>
       {children}

@@ -106,15 +106,33 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
+            {/* Test input for debugging */}
+            <div>
+              <Label htmlFor="testInput">Test Input (Debug)</Label>
+              <Input
+                id="testInput"
+                placeholder="Type here to test..."
+                className="form-input"
+                onFocus={() => console.log('Input focused')}
+                onBlur={() => console.log('Input blurred')}
+                onChange={(e) => console.log('Input changed:', e.target.value)}
+              />
+            </div>
+
             <div>
               <Label htmlFor="deviceName">Device Name</Label>
               <Input
                 id="deviceName"
                 value={deviceData.deviceName}
-                onChange={(e) => updateDeviceData({ deviceName: e.target.value })}
+                onChange={(e) => {
+                  console.log('Device name changed:', e.target.value)
+                  updateDeviceData({ deviceName: e.target.value })
+                }}
                 placeholder="Enter a name for your device"
                 required
                 className="form-input"
+                onFocus={() => console.log('Device name focused')}
+                onBlur={() => console.log('Device name blurred')}
               />
               {errors.deviceName && <p className="text-red-500 text-sm">{errors.deviceName}</p>}
             </div>

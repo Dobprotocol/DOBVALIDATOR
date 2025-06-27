@@ -288,8 +288,11 @@ function InboxSection() {
       })
 
       if (response.success && response.data) {
-        setSubmissions(response.data.submissions)
-        setPagination(response.data.pagination)
+        setSubmissions(response.data?.submissions || [])
+        setPagination(prev => ({
+          ...prev,
+          ...(response.data?.pagination || {})
+        }))
       } else {
         setError(response.error || 'Failed to fetch submissions')
         toast({
