@@ -1,4 +1,4 @@
-const API_BASE_URL = '' // Use relative URLs to call frontend API routes
+const API_BASE_URL = 'http://localhost:3001' // Connect to backend server
 
 class ApiService {
   private baseUrl: string
@@ -7,42 +7,52 @@ class ApiService {
     this.baseUrl = baseUrl
   }
 
+  private getAuthToken(): string | null {
+    try {
+      const authData = localStorage.getItem('authToken')
+      if (authData) {
+        const parsedAuth = JSON.parse(authData)
+        return parsedAuth.token || null
+      }
+    } catch (error) {
+      console.error('Failed to parse auth token:', error)
+    }
+    return null
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
     
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
+    // Add cache-busting headers for browser compatibility
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      ...options.headers,
     }
 
-    // Add auth token if available
-    const authData = localStorage.getItem('authToken')
-    if (authData) {
-      try {
-        const parsedAuth = JSON.parse(authData)
-        if (parsedAuth.token) {
-      config.headers = {
-        ...config.headers,
-            'Authorization': `Bearer ${parsedAuth.token}`,
-          }
-        }
-      } catch (error) {
-        console.error('Failed to parse auth token:', error)
-      }
+    // Add authorization header if token exists
+    const token = this.getAuthToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
     }
 
     try {
-      const response = await fetch(url, config)
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      })
       
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Endpoint not found')
+        }
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
       return await response.json()
@@ -96,6 +106,25 @@ class ApiService {
     return this.request<{
       success: boolean
       submissions: any[]
+      total: number
+      hasMore: boolean
+    }>(endpoint)
+  }
+
+  async getDrafts(options?: {
+    limit?: number
+    offset?: number
+  }) {
+    const params = new URLSearchParams()
+    if (options?.limit) params.append('limit', options.limit.toString())
+    if (options?.offset) params.append('offset', options.offset.toString())
+
+    const queryString = params.toString()
+    const endpoint = `/api/drafts${queryString ? `?${queryString}` : ''}`
+
+    return this.request<{
+      success: boolean
+      drafts: any[]
       total: number
       hasMore: boolean
     }>(endpoint)

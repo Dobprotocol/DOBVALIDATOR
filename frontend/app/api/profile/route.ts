@@ -35,8 +35,20 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Authentication successful, checking profile for wallet:', auth.user.walletAddress)
     
+    // Debug: Check what's in the profiles storage
+    const { getDebugInfo } = await import('../../../lib/auth-storage')
+    const debugInfo = getDebugInfo()
+    console.log('🔍 Debug info for profile lookup:', {
+      profilesCount: debugInfo.profilesCount,
+      hasProfile: debugInfo.profiles.some(([addr]) => addr === auth.user.walletAddress),
+      allProfiles: debugInfo.profiles.map(([addr, data]) => ({ addr, name: data.name }))
+    })
+    
     const profile = getProfile(auth.user.walletAddress)
     console.log('🔍 Profile lookup result:', profile ? 'found' : 'not found')
+    if (profile) {
+      console.log('🔍 Profile details:', { name: profile.name, company: profile.company, email: profile.email })
+    }
     
     if (!profile) {
       console.log('❌ Profile not found, returning 404')
@@ -74,8 +86,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Profile POST request received')
+    
     // Verify authentication
     const auth = getAuthenticatedUser(request)
+    console.log('🔍 Auth result:', { valid: auth.valid, user: auth.user })
+    
     if (!auth.valid) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -84,9 +100,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('🔍 Profile POST body:', body)
+    
     const validationResult = profileSchema.safeParse(body)
     
     if (!validationResult.success) {
+      console.log('❌ Profile validation failed:', validationResult.error.format())
       return NextResponse.json(
         { error: 'Invalid profile data', details: validationResult.error.format() },
         { status: 400 }
@@ -95,9 +114,11 @@ export async function POST(request: NextRequest) {
 
     const profileData = validationResult.data
     const walletAddress = auth.user.walletAddress
+    console.log('🔍 Creating profile for wallet:', walletAddress)
     
     // Check if profile already exists
     const existingProfile = getProfile(walletAddress)
+    console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
     
     const profile = {
       walletAddress,
@@ -106,11 +127,19 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     }
 
+    console.log('🔍 Profile data to store:', profile)
+
     if (existingProfile) {
+      console.log('🔍 Updating existing profile')
       updateProfile(walletAddress, profileData)
     } else {
+      console.log('🔍 Creating new profile')
       storeProfile(walletAddress, profileData)
     }
+
+    // Verify the profile was stored correctly
+    const storedProfile = getProfile(walletAddress)
+    console.log('🔍 Verification - stored profile:', storedProfile ? 'found' : 'not found')
 
     return NextResponse.json({
       success: true,
@@ -178,13 +207,25 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// Logout endpoint to clear profile data
+// Debug endpoint to check stored profiles
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
     const { action, walletAddress } = body
     
+    if (action === 'debug') {
+      const { getDebugInfo } = await import('../../../lib/auth-storage')
+      const debugInfo = getDebugInfo()
+      
+      return NextResponse.json({
+        success: true,
+        debug: debugInfo,
+        message: 'Debug information retrieved'
+      })
+    }
+    
     if (action === 'logout' && walletAddress) {
+      const { removeProfile } = await import('../../../lib/auth-storage')
       removeProfile(walletAddress)
       console.log('🚪 Profile cleared for logout:', walletAddress)
       return NextResponse.json({
@@ -198,7 +239,7 @@ export async function PATCH(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    console.error('Error in logout:', error)
+    console.error('❌ Error in profile PATCH:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -9,6 +9,7 @@ import { RejectionReviewModal } from "@/components/ui/rejection-review-modal"
 import { CertificateModal } from "@/components/ui/certificate-modal"
 import { AuthGuard } from "@/components/auth-guard"
 import { useToast } from "@/hooks/use-toast"
+import { apiService } from '@/lib/api-service'
 
 interface Submission {
   id: string
@@ -55,44 +56,26 @@ export default function DashboardPage() {
       try {
         setLoading(true)
         setError(null)
-        
-        const authToken = localStorage.getItem('authToken')
-        if (!authToken) {
-          throw new Error('No authentication token found')
-        }
 
-        const tokenData = JSON.parse(authToken)
-
-        // Fetch submissions
-        const submissionsResponse = await fetch('/api/submissions', {
-          headers: {
-            'Authorization': `Bearer ${tokenData.token}`
-          }
-        })
-
-        if (!submissionsResponse.ok) {
+        // Fetch submissions using apiService
+        const submissionsResponse = await apiService.getSubmissions()
+        if (submissionsResponse.success) {
+          setSubmissions(submissionsResponse.submissions)
+        } else {
           throw new Error('Failed to fetch submissions')
         }
 
-        const submissionsData = await submissionsResponse.json()
-        if (submissionsData.success) {
-          setSubmissions(submissionsData.submissions)
-        } else {
-          throw new Error(submissionsData.error || 'Failed to fetch submissions')
-        }
-
-        // Fetch drafts
-        const draftsResponse = await fetch('/api/drafts', {
-          headers: {
-            'Authorization': `Bearer ${tokenData.token}`
+        // Fetch drafts using apiService
+        try {
+          const draftsResponse = await apiService.getDrafts()
+          if (draftsResponse.success) {
+            setDrafts(draftsResponse.drafts)
           }
-        })
-
-        if (draftsResponse.ok) {
-          const draftsData = await draftsResponse.json()
-          if (draftsData.success) {
-            setDrafts(draftsData.drafts)
-          }
+        } catch (draftError) {
+          // Drafts might not be implemented yet, so we'll ignore this error
+          console.log('Drafts not available:', draftError)
+          // Set empty drafts array to avoid undefined errors
+          setDrafts([])
         }
 
       } catch (err: any) {
