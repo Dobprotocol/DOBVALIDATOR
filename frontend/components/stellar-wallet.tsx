@@ -397,42 +397,39 @@ export function StellarWallet() {
   return (
     <>
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={publicKey ? () => setIsOpen(true) : handleConnect}
         variant="outline"
-        disabled={isAuthenticating}
+        disabled={isAuthenticating || isConnecting}
       >
         {isAuthenticating ? "Authenticating..." : 
+         isConnecting ? "Connecting..." :
          publicKey ? truncateAddress(publicKey) : "Connect Wallet"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Connect Wallet</DialogTitle>
+            <DialogTitle>Disconnect Wallet</DialogTitle>
             <DialogDescription>
-              You will be redirected to sign with a Stellar-compatible web3 wallet (Freighter, xBull, or Albedo) to connect your account.
+              Are you sure you want to disconnect your wallet?
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {publicKey ? (
-              <Button
-                onClick={handleDisconnect}
-                className="w-full"
-                variant="destructive"
-                disabled={isDisconnecting}
-              >
-                {isDisconnecting ? "Disconnecting..." : "Disconnect Wallet"}
-              </Button>
-            ) : (
-              <Button
-                onClick={handleConnect}
-                className="w-full"
-                disabled={isConnecting || isAuthenticating}
-              >
-                {isConnecting ? "Connecting..." : 
-                 isAuthenticating ? "Authenticating..." : "Connect Wallet"}
-              </Button>
-            )}
+            <Button
+              onClick={handleDisconnect}
+              className="w-full"
+              variant="destructive"
+              disabled={isDisconnecting}
+            >
+              {isDisconnecting ? "Disconnecting..." : "Disconnect Wallet"}
+            </Button>
+            <Button
+              onClick={() => setIsOpen(false)}
+              className="w-full"
+              variant="outline"
+            >
+              Cancel
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
