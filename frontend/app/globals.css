@@ -76,10 +76,21 @@
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+    height: auto;
   }
   
   html {
     overflow-x: hidden;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    height: auto;
+  }
+  
+  #__next {
+    min-height: 100vh;
+    height: auto;
   }
 }
 
@@ -230,4 +241,11 @@ html:not(.ready) .animate-fade-in {
 
 .fade-out-80 {
   animation: fadeOut 0.2s ease-in;
+}
+
+/* Ensure proper scrolling for form pages */
+.form-page {
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
