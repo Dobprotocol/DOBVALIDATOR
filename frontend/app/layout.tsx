@@ -41,22 +41,30 @@ export default function RootLayout({
             }
           `
         }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Force dark mode immediately to prevent flash
+              document.documentElement.classList.add('dark');
+              document.documentElement.style.colorScheme = 'dark';
+            `,
+          }}
+        />
       </head>
       <body className="font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <LoadingHandler />
-          <StarsBackground className="fixed inset-0 z-0">
-            <div className="relative w-full">
-              <Header />
-              <main className="pt-20 relative z-10">
-                <Suspense fallback={null}>
-                  {children}
-                </Suspense>
-              </main>
-              <Footer />
-              <Toaster />
-            </div>
-          </StarsBackground>
+          <StarsBackground className="fixed inset-0 z-0" />
+          <div className="relative z-10 min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1">
+              <Suspense fallback={null}>
+                {children}
+              </Suspense>
+            </main>
+            <Footer />
+            <Toaster />
+          </div>
         </ThemeProvider>
       </body>
     </html>

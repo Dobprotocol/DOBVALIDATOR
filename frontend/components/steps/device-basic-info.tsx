@@ -60,7 +60,7 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
       )}
 
       <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
-        <h2 className="text-xl font-medium text-gray-800 mb-6">Basic Device Information</h2>
+        <h2 className="text-xl font-medium text-white mb-6">Basic Device Information</h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
