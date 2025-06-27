@@ -153,20 +153,27 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
 
   return (
     <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
-      <h2 className="text-xl font-medium text-gray-800 mb-6">Documentation</h2>
+      <h2 className="text-xl font-medium text-white mb-6">Documentation</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-6">
           <div>
-            <Label className="mb-2 block">
+            <Label className="mb-2 block text-white">
               Technical Certification
             </Label>
-            <div {...getTechCertRootProps()} className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer">
+            <div {...getTechCertRootProps()} className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer bg-gradient-to-br from-gray-800/30 to-gray-900/30 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 hover:border-gray-500 transition-all duration-200 upload-area">
               {deviceData.technicalCertification ? (
-                <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
+                <div className="flex items-center justify-between bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded">
                   <div className="flex items-center">
-                    <FileText className="text-[#6366F1] mr-2" size={20} />
-                    <span className="text-sm truncate max-w-[200px]">{deviceData.technicalCertification.name}</span>
+                    <FileText className="text-[#6366F1] mr-2" size={18} />
+                    <div>
+                      <p className="font-medium text-white">Technical Certification</p>
+                      <p className="text-sm text-gray-300">Required for verification</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-300">{deviceData.technicalCertification.name}</p>
+                    <p className="text-xs text-gray-400">PDF, DOC, DOCX up to 10MB</p>
                   </div>
                   <Button
                     type="button"
@@ -180,7 +187,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
               ) : (
                 <div className="flex flex-col items-center">
                   <Upload className="text-gray-400 mb-2" size={24} />
-                  <span className="text-sm text-gray-500">Upload technical certification</span>
+                  <span className="text-sm text-gray-300">Upload technical certification</span>
                   <span className="text-xs text-gray-400 mt-1">PDF only (max 10MB)</span>
                 </div>
               )}
@@ -189,15 +196,22 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
           </div>
 
           <div>
-            <Label className="mb-2 block">
+            <Label className="mb-2 block text-white">
               Proof of Purchase
             </Label>
-            <div {...getPurchaseProofRootProps()} className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer">
+            <div {...getPurchaseProofRootProps()} className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer bg-gradient-to-br from-gray-800/30 to-gray-900/30 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 hover:border-gray-500 transition-all duration-200 upload-area">
               {deviceData.purchaseProof ? (
-                <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
+                <div className="flex items-center justify-between bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded">
                   <div className="flex items-center">
-                    <FileText className="text-[#6366F1] mr-2" size={20} />
-                    <span className="text-sm truncate max-w-[200px]">{deviceData.purchaseProof.name}</span>
+                    <FileText className="text-[#6366F1] mr-2" size={18} />
+                    <div>
+                      <p className="font-medium text-white">Proof of Purchase</p>
+                      <p className="text-sm text-gray-300">Required for verification</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-300">{deviceData.purchaseProof.name}</p>
+                    <p className="text-xs text-gray-400">PDF, DOC, DOCX up to 10MB</p>
                   </div>
                   <Button
                     type="button"
@@ -211,7 +225,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
               ) : (
                 <div className="flex flex-col items-center">
                   <Upload className="text-gray-400 mb-2" size={24} />
-                  <span className="text-sm text-gray-500">Upload proof of purchase</span>
+                  <span className="text-sm text-gray-300">Upload proof of purchase</span>
                   <span className="text-xs text-gray-400 mt-1">PDF only (max 10MB)</span>
                 </div>
               )}
@@ -220,15 +234,22 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
           </div>
 
           <div>
-            <Label className="mb-2 block">
+            <Label className="mb-2 block text-white">
               Maintenance Records
             </Label>
-            <div {...getMaintenanceRootProps()} className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer">
+            <div {...getMaintenanceRootProps()} className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer bg-gradient-to-br from-gray-800/30 to-gray-900/30 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 hover:border-gray-500 transition-all duration-200 upload-area">
               {deviceData.maintenanceRecords ? (
-                <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
+                <div className="flex items-center justify-between bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded">
                   <div className="flex items-center">
-                    <FileText className="text-[#6366F1] mr-2" size={20} />
-                    <span className="text-sm truncate max-w-[200px]">{deviceData.maintenanceRecords.name}</span>
+                    <FileText className="text-[#6366F1] mr-2" size={18} />
+                    <div>
+                      <p className="font-medium text-white">Maintenance Records</p>
+                      <p className="text-sm text-gray-300">Required for verification</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-300">{deviceData.maintenanceRecords.name}</p>
+                    <p className="text-xs text-gray-400">PDF, DOC, DOCX up to 10MB</p>
                   </div>
                   <Button
                     type="button"
@@ -242,7 +263,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
               ) : (
                 <div className="flex flex-col items-center">
                   <Upload className="text-gray-400 mb-2" size={24} />
-                  <span className="text-sm text-gray-500">Upload maintenance records</span>
+                  <span className="text-sm text-gray-300">Upload maintenance records</span>
                   <span className="text-xs text-gray-400 mt-1">PDF only (max 10MB)</span>
                 </div>
               )}
@@ -251,14 +272,14 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
           </div>
 
           <div>
-            <Label className="mb-2 block">
+            <Label className="mb-2 block text-white">
               Device Images
             </Label>
             <div className="space-y-4">
-              <div {...getImageRootProps()} className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer">
+              <div {...getImageRootProps()} className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer bg-gradient-to-br from-gray-800/30 to-gray-900/30 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 hover:border-gray-500 transition-all duration-200 upload-area">
                 <div className="flex flex-col items-center">
                   <ImageIcon className="text-gray-400 mb-2" size={24} />
-                  <span className="text-sm text-gray-500">Upload device images</span>
+                  <span className="text-sm text-gray-300">Upload device images</span>
                   <span className="text-xs text-gray-400 mt-1">JPG, JPEG, PNG (max 10MB each)</span>
                   <span className="text-xs text-gray-400 mt-1">Recommended size: 1920x1080 pixels</span>
                 </div>
@@ -296,7 +317,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
                             </Button>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 truncate">{file.name}</p>
+                        <p className="text-xs text-gray-300 mt-1 truncate">{file.name}</p>
                       </div>
                     )
                   })}
@@ -310,7 +331,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
           <Button type="button" variant="outline" onClick={onBack}>
             Back
           </Button>
-          <Button type="submit" className="bg-[#6366F1] hover:bg-[#5355d1] text-white">
+          <Button type="submit" className="bg-[#6366F1] hover:bg-[#5355d1] text-white btn-primary">
             Continue
           </Button>
         </div>

@@ -12,7 +12,23 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
+    // Handle Stellar SDK browser compatibility
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      crypto: false,
+      stream: false,
+      buffer: false,
+    }
+
+    // Suppress sodium-native warnings in browser
+    if (!isServer) {
+      config.module.rules.push({
+        test: /sodium-native/,
+        use: 'null-loader',
+      })
+    }
+
     config.module.rules.push({
       test: /\.css$/,
       use: [

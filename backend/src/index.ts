@@ -49,7 +49,31 @@ const apiLimiter = rateLimit({
 
 // CORS configuration
 app.use(cors({
-  origin: env.CORS_ORIGIN,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost on various ports for development
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'http://localhost:3002',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3002'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // In development, allow all origins for easier testing
+      if (process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
   credentials: true
 }))
 
@@ -364,6 +388,93 @@ app.put('/api/submissions/:id/status', async (req, res) => {
   } catch (error) {
     console.error('Submission update error:', error)
     res.status(500).json({ error: 'Failed to update submission' })
+    return
+  }
+})
+
+// Drafts endpoints
+app.get('/api/drafts', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.***REMOVED***)
+    const { walletAddress } = decoded
+
+    const { limit = 10, offset = 0 } = req.query
+
+    // Get user
+    const user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    // Get drafts for user
+    const drafts = await prisma.draft.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: 'desc' },
+      take: parseInt(limit as string),
+      skip: parseInt(offset as string)
+    })
+
+    const total = await prisma.draft.count({
+      where: { userId: user.id }
+    })
+
+    res.json({ 
+      success: true, 
+      drafts,
+      total,
+      hasMore: (parseInt(offset as string) + parseInt(limit as string)) < total
+    })
+    return
+  } catch (error) {
+    console.error('Drafts fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch drafts' })
+    return
+  }
+})
+
+app.post('/api/drafts', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.***REMOVED***)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    const draftData = req.body
+    const draft = await prisma.draft.create({
+      data: {
+        userId: user.id,
+        ...draftData
+      }
+    })
+
+    res.json({ success: true, draft })
+    return
+  } catch (error) {
+    console.error('Draft creation error:', error)
+    res.status(500).json({ error: 'Failed to create draft' })
     return
   }
 })

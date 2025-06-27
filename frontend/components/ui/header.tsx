@@ -43,11 +43,16 @@ export function Header() {
           return
         }
 
+        // Add a small delay to avoid race conditions
+        await new Promise(resolve => setTimeout(resolve, 100))
+
         try {
           const profileResponse = await apiService.getProfile()
           const hasProfileResult = profileResponse.success
           setHasProfile(hasProfileResult)
+          console.log('✅ Header: Profile check successful, hasProfile:', hasProfileResult)
         } catch (error) {
+          console.log('ℹ️ Header: Profile not found or error:', error)
           setHasProfile(false)
         }
       } catch (error) {
@@ -61,10 +66,14 @@ export function Header() {
     updateWallet()
     checkProfile()
 
-    // Listen for wallet state changes
+    // Listen for wallet state changes with debouncing
+    let timeoutId: NodeJS.Timeout
     const handleWalletChange = () => {
-      updateWallet()
-      checkProfile()
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        updateWallet()
+        checkProfile()
+      }, 500) // Debounce to 500ms
     }
 
     window.addEventListener('walletStateChange', handleWalletChange)
@@ -73,6 +82,7 @@ export function Header() {
     window.addEventListener('focus', handleWalletChange)
     
     return () => {
+      clearTimeout(timeoutId)
       window.removeEventListener('walletStateChange', handleWalletChange)
       window.removeEventListener('storage', handleWalletChange)
       window.removeEventListener('visibilitychange', handleWalletChange)

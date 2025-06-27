@@ -44,7 +44,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
 
   return (
     <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
-      <h2 className="text-xl font-medium text-gray-800 mb-6">Technical Information</h2>
+      <h2 className="text-xl font-medium text-white mb-6">Technical Information</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
@@ -56,28 +56,21 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
               onChange={(e) => updateDeviceData({ model: e.target.value })}
               placeholder="Enter the device model"
               required
+              className="form-input"
             />
             {errors.model && <p className="text-red-500 text-sm">{errors.model}</p>}
           </div>
 
           <div>
             <Label htmlFor="yearOfManufacture">Year of Manufacture</Label>
-            <Select
+            <Input
+              id="yearOfManufacture"
               value={deviceData.yearOfManufacture}
-              onValueChange={(value) => updateDeviceData({ yearOfManufacture: value })}
+              onChange={(e) => updateDeviceData({ yearOfManufacture: e.target.value })}
+              placeholder="Enter the year of manufacture"
               required
-            >
-              <SelectTrigger id="yearOfManufacture">
-                <SelectValue placeholder="Select year" />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              className="form-input"
+            />
             {errors.yearOfManufacture && <p className="text-red-500 text-sm">{errors.yearOfManufacture}</p>}
           </div>
 
@@ -88,8 +81,8 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
               onValueChange={(value) => updateDeviceData({ condition: value })}
               required
             >
-              <SelectTrigger id="condition">
-                <SelectValue placeholder="Select condition" />
+              <SelectTrigger id="condition" className="form-select">
+                <SelectValue placeholder="Select device condition" />
               </SelectTrigger>
               <SelectContent>
                 {conditionOptions.map((condition) => (
@@ -108,9 +101,9 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
               id="specifications"
               value={deviceData.specifications}
               onChange={(e) => updateDeviceData({ specifications: e.target.value })}
-              placeholder="Enter detailed technical specifications"
-              className="min-h-[100px]"
+              placeholder="Enter technical specifications"
               required
+              className="form-input min-h-[100px]"
             />
             {errors.specifications && <p className="text-red-500 text-sm">{errors.specifications}</p>}
           </div>
@@ -120,7 +113,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
           <Button type="button" variant="outline" onClick={onBack}>
             Back
           </Button>
-          <Button type="submit" className="bg-[#6366F1] hover:bg-[#5355d1] text-white">
+          <Button type="submit" className="bg-[#6366F1] hover:bg-[#5355d1] text-white btn-primary">
             Continue
           </Button>
         </div>

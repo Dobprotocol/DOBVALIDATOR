@@ -11,9 +11,10 @@ interface DeviceReviewProps {
   deviceData: DeviceData
   onNext: () => void
   onBack: () => void
+  onSubmissionSuccess: () => void
 }
 
-export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) {
+export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }: DeviceReviewProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +76,9 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
         title: "Success",
         description: "Your submission has been received",
       })
+      
+      // Call the success callback to trigger the success modal
+      onSubmissionSuccess()
       onNext()
     } catch (err: any) {
       setError(err.message || 'Submission failed. Please try again.')
@@ -90,14 +94,14 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
 
   return (
     <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
-      <h2 className="text-xl font-medium text-gray-800 mb-6">Review Information</h2>
+      <h2 className="text-xl font-medium text-white mb-6">Review Information</h2>
 
       {validationErrors.length > 0 && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <h3 className="text-red-800 font-medium mb-2">Please fix the following errors:</h3>
+        <div className="mb-6 p-4 bg-red-900/50 border border-red-700/50 rounded-lg backdrop-blur-sm">
+          <h3 className="text-red-200 font-medium mb-2">Please fix the following errors:</h3>
           <ul className="list-disc list-inside space-y-1">
             {validationErrors.map((error, index) => (
-              <li key={index} className="text-red-600 text-sm">
+              <li key={index} className="text-red-300 text-sm">
                 {error.field}: {error.error}
               </li>
             ))}
@@ -107,55 +111,55 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
 
       <div className="space-y-8">
         <section>
-          <h3 className="text-lg font-medium text-gray-700 mb-3">Basic Information</h3>
-          <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Basic Information</h3>
+          <div className="grid grid-cols-2 gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-4 rounded-lg">
             <div>
-              <p className="text-sm text-gray-500">Device Name</p>
-              <p className="font-medium">{deviceData.deviceName || "-"}</p>
+              <p className="text-sm text-gray-300">Device Name</p>
+              <p className="font-medium text-white">{deviceData.deviceName || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Device Type</p>
-              <p className="font-medium">{deviceData.deviceType || "-"}</p>
+              <p className="text-sm text-gray-300">Device Type</p>
+              <p className="font-medium text-white">{deviceData.deviceType || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Serial Number</p>
-              <p className="font-medium">{deviceData.serialNumber || "-"}</p>
+              <p className="text-sm text-gray-300">Serial Number</p>
+              <p className="font-medium text-white">{deviceData.serialNumber || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Manufacturer</p>
-              <p className="font-medium">{deviceData.manufacturer || "-"}</p>
+              <p className="text-sm text-gray-300">Manufacturer</p>
+              <p className="font-medium text-white">{deviceData.manufacturer || "-"}</p>
             </div>
           </div>
         </section>
 
         <section>
-          <h3 className="text-lg font-medium text-gray-700 mb-3">Technical Information</h3>
-          <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Technical Information</h3>
+          <div className="grid grid-cols-2 gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-4 rounded-lg">
             <div>
-              <p className="text-sm text-gray-500">Model</p>
-              <p className="font-medium">{deviceData.model || "-"}</p>
+              <p className="text-sm text-gray-300">Model</p>
+              <p className="font-medium text-white">{deviceData.model || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Year of Manufacture</p>
-              <p className="font-medium">{deviceData.yearOfManufacture || "-"}</p>
+              <p className="text-sm text-gray-300">Year of Manufacture</p>
+              <p className="font-medium text-white">{deviceData.yearOfManufacture || "-"}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Condition</p>
-              <p className="font-medium">{deviceData.condition || "-"}</p>
+              <p className="text-sm text-gray-300">Condition</p>
+              <p className="font-medium text-white">{deviceData.condition || "-"}</p>
             </div>
             <div className="col-span-2">
-              <p className="text-sm text-gray-500">Technical Specifications</p>
-              <p className="font-medium whitespace-pre-wrap">{deviceData.specifications || "-"}</p>
+              <p className="text-sm text-gray-300">Technical Specifications</p>
+              <p className="font-medium text-white whitespace-pre-wrap">{deviceData.specifications || "-"}</p>
             </div>
           </div>
         </section>
 
         <section>
-          <h3 className="text-lg font-medium text-gray-700 mb-3">Financial Information</h3>
-          <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Financial Information</h3>
+          <div className="grid grid-cols-2 gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-4 rounded-lg">
             <div>
-              <p className="text-sm text-gray-500">Purchase Price</p>
-              <p className="font-medium">{formatCurrency(deviceData.purchasePrice)}</p>
+              <p className="text-sm text-gray-300">Purchase Price</p>
+              <p className="font-medium text-white">{formatCurrency(deviceData.purchasePrice)}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Current Value</p>
@@ -229,7 +233,7 @@ export function DeviceReview({ deviceData, onNext, onBack }: DeviceReviewProps) 
         </Button>
         <Button
           type="button"
-          className="bg-[#6366F1] hover:bg-[#5355d1] text-white"
+          className="bg-[#6366F1] hover:bg-[#5355d1] text-white btn-primary"
           onClick={handleFinalSubmit}
           disabled={loading}
         >

@@ -37,12 +37,12 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
 
   return (
     <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
-      <h2 className="text-xl font-medium text-gray-800 mb-6">Financial Information</h2>
+      <h2 className="text-xl font-medium text-white mb-6">Financial Information</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <div>
-            <Label htmlFor="purchasePrice">Purchase Price (USD)</Label>
+            <Label htmlFor="purchasePrice">Purchase Price</Label>
             <Input
               id="purchasePrice"
               type="number"
@@ -50,14 +50,15 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               step="0.01"
               value={deviceData.purchasePrice}
               onChange={(e) => updateDeviceData({ purchasePrice: e.target.value })}
-              placeholder="Enter the original purchase price"
+              placeholder="Enter the purchase price"
               required
+              className="form-input"
             />
             {errors.purchasePrice && <p className="text-red-500 text-sm">{errors.purchasePrice}</p>}
           </div>
 
           <div>
-            <Label htmlFor="currentValue">Current Value (USD)</Label>
+            <Label htmlFor="currentValue">Current Value</Label>
             <Input
               id="currentValue"
               type="number"
@@ -65,14 +66,15 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               step="0.01"
               value={deviceData.currentValue}
               onChange={(e) => updateDeviceData({ currentValue: e.target.value })}
-              placeholder="Enter the current estimated value"
+              placeholder="Enter the current value"
               required
+              className="form-input"
             />
             {errors.currentValue && <p className="text-red-500 text-sm">{errors.currentValue}</p>}
           </div>
 
           <div>
-            <Label htmlFor="expectedRevenue">Expected Annual Revenue (USD)</Label>
+            <Label htmlFor="expectedRevenue">Expected Annual Revenue</Label>
             <Input
               id="expectedRevenue"
               type="number"
@@ -80,14 +82,15 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               step="0.01"
               value={deviceData.expectedRevenue}
               onChange={(e) => updateDeviceData({ expectedRevenue: e.target.value })}
-              placeholder="Enter the expected annual revenue"
+              placeholder="Enter expected annual revenue"
               required
+              className="form-input"
             />
             {errors.expectedRevenue && <p className="text-red-500 text-sm">{errors.expectedRevenue}</p>}
           </div>
 
           <div>
-            <Label htmlFor="operationalCosts">Annual Operational Costs (USD)</Label>
+            <Label htmlFor="operationalCosts">Annual Operational Costs</Label>
             <Input
               id="operationalCosts"
               type="number"
@@ -95,8 +98,9 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
               step="0.01"
               value={deviceData.operationalCosts}
               onChange={(e) => updateDeviceData({ operationalCosts: e.target.value })}
-              placeholder="Enter the annual operational costs"
+              placeholder="Enter annual operational costs"
               required
+              className="form-input"
             />
             {errors.operationalCosts && <p className="text-red-500 text-sm">{errors.operationalCosts}</p>}
           </div>
@@ -106,7 +110,7 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
           <Button type="button" variant="outline" onClick={onBack}>
             Back
           </Button>
-          <Button type="submit" className="bg-[#6366F1] hover:bg-[#5355d1] text-white">
+          <Button type="submit" className="bg-[#6366F1] hover:bg-[#5355d1] text-white btn-primary">
             Continue
           </Button>
         </div>
