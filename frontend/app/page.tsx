@@ -218,7 +218,7 @@ export default function Home() {
                 DOB Validator
               </h1>
               <p className="mt-6 text-lg text-muted-foreground">
-                Connect your wallet to begin your device validation and get investment-ready on our RWA platform.
+                Connect your wallet to begin your device validation <br></br>and get investment-ready on our RWA platform.
               </p>
               <div className="mt-10 flex justify-center">
                 <div className="w-full flex justify-center">
