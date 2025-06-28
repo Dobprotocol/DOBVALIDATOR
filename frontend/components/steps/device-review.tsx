@@ -6,6 +6,7 @@ import { FileText, Image as ImageIcon } from "lucide-react"
 import { useState } from "react"
 import Image from 'next/image'
 import { useToast } from "@/components/ui/use-toast"
+import { apiService } from '@/lib/api-service'
 
 interface DeviceReviewProps {
   deviceData: DeviceData
@@ -22,71 +23,98 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
   const { toast } = useToast()
 
   const formatCurrency = (value: string) => {
-    if (!value) return "-"
-    return `$${Number.parseFloat(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    if (!value || isNaN(Number(value))) return '-'
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(Number(value))
   }
 
   const handleFinalSubmit = async () => {
     setLoading(true)
-    setError(null)
-    setSuccess(false)
+    setError('')
     setValidationErrors([])
 
     try {
+      // Create FormData for submission
       const formData = new FormData()
-      // Append all fields
+      
+      // Add all device data to formData
       Object.entries(deviceData).forEach(([key, value]) => {
-        if (value instanceof File) {
-          formData.append(key, value)
+        if (value === null || value === undefined) return
+        
+        if (typeof value === 'string' || typeof value === 'number') {
+          formData.append(key, value.toString())
         } else if (Array.isArray(value)) {
           value.forEach((file, idx) => {
             if (file instanceof File) {
               formData.append(`${key}[${idx}]`, file)
             }
           })
-        } else {
-          formData.append(key, value as string)
+        } else if (value instanceof File) {
+          formData.append(key, value)
         }
       })
 
-      const res = await fetch('/api/submit', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        if (res.status === 400 && data.errors) {
-          // Handle validation errors
-          setValidationErrors(data.errors)
-          toast({
-            title: "Validation Error",
-            description: "Please check the form for errors",
-            variant: "destructive",
-          })
-        } else {
-          throw new Error(data.message || 'Submission failed')
-        }
-        return
+      console.log('🔍 Submitting form data:')
+      for (let [key, value] of formData.entries()) {
+        console.log(`🔍 ${key}:`, value)
       }
 
-      setSuccess(true)
-      toast({
-        title: "Success",
-        description: "Your submission has been received",
-      })
-      
-      // Call the success callback to trigger the success modal
-      onSubmissionSuccess()
-      onNext()
+      // Submit using API service
+      const response = await apiService.submitDevice(formData)
+
+      if (response.success) {
+        // Delete the draft after successful submission
+        try {
+          const draftId = localStorage.getItem('currentDraftId')
+          if (draftId) {
+            console.log('Deleting draft after successful submission:', draftId)
+            await fetch(`/api/drafts/${draftId}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${JSON.parse(localStorage.getItem('authToken') || '{}').token}`
+              }
+            })
+            localStorage.removeItem('currentDraftId')
+            console.log('Draft deleted successfully')
+          }
+        } catch (deleteError) {
+          console.error('Error deleting draft:', deleteError)
+          // Don't fail the submission if draft deletion fails
+        }
+
+        setSuccess(true)
+        toast({
+          title: "Success",
+          description: "Your submission has been received",
+        })
+        
+        // Call the success callback to trigger the success modal
+        onSubmissionSuccess()
+        onNext()
+      } else {
+        throw new Error(response.message || 'Submission failed')
+      }
     } catch (err: any) {
-      setError(err.message || 'Submission failed. Please try again.')
-      toast({
-        title: "Error",
-        description: err.message || 'Submission failed. Please try again.',
-        variant: "destructive",
-      })
+      console.error('Submission error:', err)
+      
+      // Handle validation errors
+      if (err.status === 400 && err.errors) {
+        setValidationErrors(err.errors)
+        toast({
+          title: "Validation Error",
+          description: "Please check the form for errors",
+          variant: "destructive",
+        })
+      } else {
+        setError(err.message || 'Submission failed. Please try again.')
+        toast({
+          title: "Error",
+          description: err.message || 'Submission failed. Please try again.',
+          variant: "destructive",
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -119,8 +147,22 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
             </div>
             <div>
               <p className="text-sm text-gray-300">Device Type</p>
-              <p className="font-medium text-white">{deviceData.deviceType || "-"}</p>
+              <p className="font-medium text-white">
+                {deviceData.deviceType === 'other' && deviceData.customDeviceType 
+                  ? deviceData.customDeviceType 
+                  : deviceData.deviceType || "-"}
+              </p>
             </div>
+            <div className="col-span-2">
+              <p className="text-sm text-gray-300">Location</p>
+              <p className="font-medium text-white">{deviceData.location || "-"}</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-lg font-medium text-white mb-3">Technical Information</h3>
+          <div className="grid grid-cols-2 gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-4 rounded-lg">
             <div>
               <p className="text-sm text-gray-300">Serial Number</p>
               <p className="font-medium text-white">{deviceData.serialNumber || "-"}</p>
@@ -129,12 +171,6 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
               <p className="text-sm text-gray-300">Manufacturer</p>
               <p className="font-medium text-white">{deviceData.manufacturer || "-"}</p>
             </div>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="text-lg font-medium text-white mb-3">Technical Information</h3>
-          <div className="grid grid-cols-2 gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-4 rounded-lg">
             <div>
               <p className="text-sm text-gray-300">Model</p>
               <p className="font-medium text-white">{deviceData.model || "-"}</p>

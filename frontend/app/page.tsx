@@ -33,6 +33,7 @@ function isValidJWT(token: string): boolean {
 export default function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [splineLoaded, setSplineLoaded] = useState(false)
+  const [loading, setLoading] = useState(false)
   const hasRedirected = useRef(false)
   const hasCheckedInitial = useRef(false)
   const isCheckingProfile = useRef(false)
@@ -58,62 +59,36 @@ export default function Home() {
 
   useEffect(() => {
     const checkUserProfile = async () => {
-      // Prevent multiple simultaneous profile checks
-      if (isCheckingProfile.current) {
-        return
-      }
-
-      // Prevent redirects if we've already redirected
-      if (hasRedirected.current) {
-        return
-      }
-
-      // Prevent too frequent checks (debounce)
+      if (isCheckingProfile.current) return
+      if (hasRedirected.current) return
       const now = Date.now()
-      if (now - lastCheckTime.current < 2000) { // 2 second debounce
-        return
-      }
+      if (now - lastCheckTime.current < 2000) return
       lastCheckTime.current = now
-
-      // Check if user is authenticated
-      if (!isAuthenticated()) {
-        return
-      }
-
+      if (!isAuthenticated()) return
       const authData = getAuthToken()
-      if (!authData?.token) {
-        return
-      }
-
-      // Validate JWT token structure and expiration
+      if (!authData?.token) return
       if (!isValidJWT(authData.token)) {
         clearAllLocalStorage()
         return
       }
-
       isCheckingProfile.current = true
-
+      setLoading(true)
       try {
-        // Use the backend API service to check profile
-        const response = await apiService.getProfile()
-
-        // If user has a profile, redirect to dashboard
+        await apiService.getProfile()
         hasRedirected.current = true
-        window.location.href = '/dashboard'
+        router.push('/dashboard')
       } catch (error: any) {
         if (error.message?.includes('404') || error.message?.includes('Profile not found')) {
-          // If user doesn't have a profile, redirect to profile creation
           hasRedirected.current = true
-          window.location.href = '/profile'
+          router.push('/profile')
         } else if (error.message?.includes('401') || error.message?.includes('Authentication')) {
-          // Token is invalid, clear it
           clearAllLocalStorage()
         } else {
           console.error('Error checking user profile:', error)
-          // Don't redirect on error, just stay on home page
         }
       } finally {
         isCheckingProfile.current = false
+        setLoading(false)
       }
     }
 
@@ -163,6 +138,11 @@ export default function Home() {
 
   return (
     <div className="relative w-full">
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="text-white text-lg font-semibold animate-pulse">Checking authentication...</div>
+        </div>
+      )}
       {/* Optimized Spline 3D Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div 

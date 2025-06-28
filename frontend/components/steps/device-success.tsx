@@ -108,7 +108,7 @@ export function DeviceSuccess({ showModal = false }: DeviceSuccessProps) {
           </div>
 
           <div className="flex gap-4">
-            <Button variant="outline" onClick={() => window.location.href = '/devices'}>View My Devices</Button>
+            <Button variant="outline" onClick={() => window.location.href = '/dashboard'}>View My Devices</Button>
             <Button className="bg-[#6366F1] hover:bg-[#5355d1] text-white" onClick={() => window.open('https://home.dobprotocol.com', '_blank')}>Create Pool</Button>
           </div>
         </div>

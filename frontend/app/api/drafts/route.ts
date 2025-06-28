@@ -5,11 +5,11 @@ import { submissionStorage } from '@/lib/submission-storage'
 
 // Draft schema (very flexible for partial data - drafts are works in progress)
 const draftSchema = z.object({
+  name: z.string().optional(),
   deviceName: z.string().optional(),
   deviceType: z.string().optional(),
-  serialNumber: z.string().optional(),
-  manufacturer: z.string().optional(),
-  model: z.string().optional(),
+  customDeviceType: z.string().optional(),
+  location: z.string().optional(),
   yearOfManufacture: z.string().optional(),
   condition: z.string().optional(),
   specifications: z.string().optional(),
@@ -53,8 +53,10 @@ export async function POST(request: NextRequest) {
     
     if (draftId) {
       // Update existing draft
+      console.log('🔍 Updating existing draft:', draftId)
       const existingDraft = submissionStorage.get(draftId)
       if (!existingDraft) {
+        console.log('🔍 Draft not found:', draftId)
         return NextResponse.json(
           { error: 'Draft not found' },
           { status: 404 }
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (existingDraft.operatorWallet !== auth.user.walletAddress) {
+        console.log('🔍 Unauthorized access to draft:', draftId)
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 403 }
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (existingDraft.status !== 'draft') {
+        console.log('🔍 Can only update draft submissions:', existingDraft.status)
         return NextResponse.json(
           { error: 'Can only update draft submissions' },
           { status: 400 }
@@ -76,8 +80,11 @@ export async function POST(request: NextRequest) {
       }
 
       const updatedDraft = submissionStorage.update(draftId, {
+        name: validatedData.name || '',
         deviceName: validatedData.deviceName || '',
         deviceType: validatedData.deviceType || '',
+        customDeviceType: validatedData.customDeviceType || '',
+        location: validatedData.location || '',
         serialNumber: validatedData.serialNumber || '',
         manufacturer: validatedData.manufacturer || '',
         model: validatedData.model || '',
@@ -96,10 +103,13 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date().toISOString()
       })
 
+      console.log('🔍 Draft updated successfully:', updatedDraft?.id)
+
       return NextResponse.json({
         success: true,
         draft: {
           id: updatedDraft!.id,
+          name: updatedDraft!.name,
           deviceName: updatedDraft!.deviceName,
           status: updatedDraft!.status,
           updatedAt: updatedDraft!.updatedAt
@@ -108,12 +118,17 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Create new draft
+      console.log('🔍 Creating new draft')
       const draftId = `DRAFT_${Date.now()}_${Math.random().toString(36).substring(2)}`
+      console.log('🔍 Generated draft ID:', draftId)
       
       const draft = {
         id: draftId,
+        name: validatedData.name || '',
         deviceName: validatedData.deviceName || '',
         deviceType: validatedData.deviceType || '',
+        customDeviceType: validatedData.customDeviceType || '',
+        location: validatedData.location || '',
         serialNumber: validatedData.serialNumber || '',
         manufacturer: validatedData.manufacturer || '',
         model: validatedData.model || '',
@@ -147,6 +162,7 @@ export async function POST(request: NextRequest) {
         success: true,
         draft: {
           id: createdDraft.id,
+          name: createdDraft.name,
           deviceName: createdDraft.deviceName,
           status: createdDraft.status,
           submittedAt: createdDraft.submittedAt
@@ -192,8 +208,22 @@ export async function GET(request: NextRequest) {
       success: true,
       drafts: result.submissions.map(draft => ({
         id: draft.id,
+        name: draft.name,
         deviceName: draft.deviceName,
         deviceType: draft.deviceType,
+        customDeviceType: draft.customDeviceType,
+        location: draft.location,
+        serialNumber: draft.serialNumber,
+        manufacturer: draft.manufacturer,
+        model: draft.model,
+        yearOfManufacture: draft.yearOfManufacture,
+        condition: draft.condition,
+        specifications: draft.specifications,
+        purchasePrice: draft.purchasePrice,
+        currentValue: draft.currentValue,
+        expectedRevenue: draft.expectedRevenue,
+        operationalCosts: draft.operationalCosts,
+        files: draft.files,
         status: draft.status,
         submittedAt: draft.submittedAt,
         updatedAt: draft.updatedAt
