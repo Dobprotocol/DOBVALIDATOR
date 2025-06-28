@@ -141,33 +141,29 @@ export async function POST(request: NextRequest) {
     let user = await supabaseService.getUserByWallet(walletAddress)
     
     if (!user) {
-      console.log('🔍 User not found, creating user first...')
+      console.log('🔍 User not found, creating user directly...')
       
-      // Create user using the proper users API endpoint
-      const userResponse = await fetch(`${request.nextUrl.origin}/api/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': request.headers.get('Authorization') || '',
-          'Cookie': request.headers.get('Cookie') || ''
-        },
-        body: JSON.stringify({
+      // Try to create user directly with minimal data first
+      const { data: newUser, error: userError } = await supabase
+        .from('users')
+        .insert({
+          wallet_address: walletAddress,
           email: profileData.email,
           name: profileData.name
+          // Don't specify role - let it use default
         })
-      })
+        .select()
+        .single()
       
-      if (!userResponse.ok) {
-        const userError = await userResponse.json()
+      if (userError) {
         console.error('❌ Failed to create user:', userError)
         return NextResponse.json(
-          { error: 'Failed to create user account', details: userError },
+          { error: 'Failed to create user account', details: userError.message },
           { status: 500 }
         )
       }
       
-      const userResult = await userResponse.json()
-      user = userResult.user
+      user = newUser
       console.log('✅ User created successfully:', user)
     } else {
       console.log('🔍 Existing user found:', user)
