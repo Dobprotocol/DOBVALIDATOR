@@ -6,7 +6,7 @@ import { supabaseService } from '@/lib/supabase-service'
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
 
-// Profile schema validation
+// Profile schema validation - updated to match actual database schema
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   company: z.string().min(2, "Company must be at least 2 characters"),
@@ -35,10 +35,21 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Authentication successful, checking profile for wallet:', auth.user.walletAddress)
     
-    const profile = await supabaseService.getProfileByWallet(auth.user.walletAddress)
+    // First get the user by wallet address
+    const user = await supabaseService.getUserByWallet(auth.user.walletAddress)
+    if (!user) {
+      console.log('❌ User not found')
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    // Then get the profile by user_id
+    const profile = await supabaseService.getProfileByUserId(user.id)
     console.log('🔍 Profile lookup result:', profile ? 'found' : 'not found')
     if (profile) {
-      console.log('🔍 Profile details:', { name: profile.name, company: profile.company, email: profile.email })
+      console.log('🔍 Profile details:', { contact_person: profile.contact_person, company_name: profile.company_name })
     }
     
     if (!profile) {
@@ -53,14 +64,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       profile: {
-        walletAddress: profile.wallet_address,
-        name: profile.name,
-        company: profile.company,
-        email: profile.email,
+        walletAddress: auth.user.walletAddress,
+        name: profile.contact_person,
+        company: profile.company_name,
+        email: user.email,
         phone: profile.phone,
         website: profile.website,
-        bio: profile.bio,
-        profileImage: profile.profile_image,
+        bio: profile.description,
+        profileImage: null, // Not in current schema
         createdAt: profile.created_at,
         updatedAt: profile.updated_at,
       }
@@ -115,27 +126,26 @@ export async function POST(request: NextRequest) {
         wallet_address: walletAddress,
         email: profileData.email,
         name: profileData.name,
-        company: profileData.company || null,
-        role: 'OPERATOR'
+        role: 'USER'
       })
       console.log('🔍 User upserted:', user)
     }
     
     // Check if profile already exists
-    const existingProfile = await supabaseService.getProfileByWallet(walletAddress)
+    const existingProfile = await supabaseService.getProfileByUserId(user.id)
     console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
     
-    // Prepare profile data for Supabase
+    // Prepare profile data for Supabase - updated to match actual schema
     const supabaseProfileData = {
       user_id: user.id,
-      wallet_address: walletAddress,
-      name: profileData.name,
-      company: profileData.company || null,
-      email: profileData.email,
+      contact_person: profileData.name,
+      company_name: profileData.company || null,
       phone: profileData.phone || null,
       website: profileData.website || null,
-      bio: profileData.bio || null,
-      profile_image: profileData.profileImage || null,
+      description: profileData.bio || null,
+      industry: null, // Not provided in form
+      address: null, // Not provided in form
+      country: null, // Not provided in form
       updated_at: new Date().toISOString()
     }
 
@@ -148,14 +158,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       profile: {
-        walletAddress: profile.wallet_address,
-        name: profile.name,
-        company: profile.company,
-        email: profile.email,
+        walletAddress: walletAddress,
+        name: profile.contact_person,
+        company: profile.company_name,
+        email: user.email,
         phone: profile.phone,
         website: profile.website,
-        bio: profile.bio,
-        profileImage: profile.profile_image,
+        bio: profile.description,
+        profileImage: null,
         createdAt: profile.created_at,
         updatedAt: profile.updated_at,
       },
@@ -187,7 +197,16 @@ export async function DELETE(request: NextRequest) {
     }
 
     const walletAddress = auth.user.walletAddress
-    const profile = await supabaseService.getProfileByWallet(walletAddress)
+    const user = await supabaseService.getUserByWallet(walletAddress)
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    const profile = await supabaseService.getProfileByUserId(user.id)
     
     if (!profile) {
       return NextResponse.json(
@@ -196,7 +215,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    await supabaseService.deleteProfile(walletAddress)
+    await supabaseService.deleteProfile(user.id)
 
     return NextResponse.json({
       success: true,

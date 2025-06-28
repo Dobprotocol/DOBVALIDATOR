@@ -15,8 +15,7 @@ export interface Database {
           wallet_address: string
           email: string | null
           name: string | null
-          company: string | null
-          role: 'OPERATOR' | 'ADMIN'
+          role: 'USER' | 'ADMIN'
           created_at: string
           updated_at: string
         }
@@ -25,8 +24,7 @@ export interface Database {
           wallet_address: string
           email?: string | null
           name?: string | null
-          company?: string | null
-          role?: 'OPERATOR' | 'ADMIN'
+          role?: 'USER' | 'ADMIN'
           created_at?: string
           updated_at?: string
         }
@@ -35,8 +33,7 @@ export interface Database {
           wallet_address?: string
           email?: string | null
           name?: string | null
-          company?: string | null
-          role?: 'OPERATOR' | 'ADMIN'
+          role?: 'USER' | 'ADMIN'
           created_at?: string
           updated_at?: string
         }
@@ -45,42 +42,42 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          name: string
-          company: string | null
-          email: string
-          wallet_address: string
-          phone: string | null
+          company_name: string | null
+          industry: string | null
           website: string | null
-          bio: string | null
-          profile_image: string | null
+          description: string | null
+          contact_person: string | null
+          phone: string | null
+          address: string | null
+          country: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          name: string
-          company?: string | null
-          email: string
-          wallet_address: string
-          phone?: string | null
+          company_name?: string | null
+          industry?: string | null
           website?: string | null
-          bio?: string | null
-          profile_image?: string | null
+          description?: string | null
+          contact_person?: string | null
+          phone?: string | null
+          address?: string | null
+          country?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          name?: string
-          company?: string | null
-          email?: string
-          wallet_address?: string
-          phone?: string | null
+          company_name?: string | null
+          industry?: string | null
           website?: string | null
-          bio?: string | null
-          profile_image?: string | null
+          description?: string | null
+          contact_person?: string | null
+          phone?: string | null
+          address?: string | null
+          country?: string | null
           created_at?: string
           updated_at?: string
         }
