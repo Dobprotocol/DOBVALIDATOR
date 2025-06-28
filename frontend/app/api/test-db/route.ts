@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatedUser } from '../auth/verify/route'
 import { supabase } from '@/lib/supabase'
 
 // Required for API routes in Next.js
@@ -9,111 +8,83 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Test DB endpoint called')
     
-    // Test 1: Check authentication
-    const auth = getAuthenticatedUser(request)
-    console.log('🔍 Auth test:', { valid: auth.valid, user: auth.user })
-    
-    if (!auth.valid) {
-      return NextResponse.json({
-        success: false,
-        error: 'Authentication failed',
-        step: 'auth'
-      })
+    // Check environment variables
+    const envCheck = {
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'present' : 'missing',
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'present' : 'missing',
+      supabaseUrlValue: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20) + '...' || 'N/A',
+      supabaseKeyValue: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 10) + '...' || 'N/A'
     }
     
-    // Test 2: Check if user exists
-    const { data: existingUser, error: userError } = await supabase
+    console.log('🔍 Environment check:', envCheck)
+    
+    // Test basic connection
+    const { data: connectionTest, error: connectionError } = await supabase
       .from('users')
-      .select('*')
-      .eq('wallet_address', auth.user.walletAddress)
-      .single()
-    
-    console.log('🔍 User lookup test:', { existingUser, userError })
-    
-    // Test 3: Try to create a user if it doesn't exist
-    let user = existingUser
-    if (!existingUser) {
-      console.log('🔍 Creating test user...')
-      
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert({
-          wallet_address: auth.user.walletAddress,
-          email: 'test@example.com',
-          name: 'Test User'
-        })
-        .select()
-        .single()
-      
-      console.log('🔍 User creation test:', { newUser, createError })
-      
-      if (newUser) {
-        user = newUser
-        
-        // Clean up test user
-        await supabase.from('users').delete().eq('id', newUser.id)
-      }
-    }
-    
-    // Test 4: Check profiles table
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('*')
+      .select('count')
       .limit(1)
     
-    console.log('🔍 Profiles table test:', { profiles, profilesError })
+    console.log('🔍 Connection test:', { connectionTest, connectionError })
     
-    // Test 5: Try to create a profile
-    if (user) {
-      console.log('🔍 Creating test profile...')
-      
-      const { data: newProfile, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: user.id,
-          contact_person: 'Test Contact',
-          company_name: 'Test Company',
-          phone: '123-456-7890',
-          website: 'https://example.com',
-          description: 'Test description'
-        })
-        .select()
-        .single()
-      
-      console.log('🔍 Profile creation test:', { newProfile, profileError })
-      
-      // Clean up test profile
-      if (newProfile) {
-        await supabase.from('profiles').delete().eq('id', newProfile.id)
-      }
+    // Try to create a test user with detailed error logging
+    const testWalletAddress = `TEST_WALLET_${Date.now()}`
+    console.log('🔍 Attempting to create test user with wallet:', testWalletAddress)
+    
+    const { data: testUser, error: testUserError } = await supabase
+      .from('users')
+      .insert({
+        wallet_address: testWalletAddress,
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'OPERATOR'
+      })
+      .select()
+      .single()
+    
+    console.log('🔍 Test user creation result:', { testUser, testUserError })
+    
+    if (testUserError) {
+      console.error('❌ Test user creation failed:')
+      console.error('❌ Error code:', testUserError.code)
+      console.error('❌ Error message:', testUserError.message)
+      console.error('❌ Error details:', testUserError.details)
+      console.error('❌ Error hint:', testUserError.hint)
     }
+    
+    // Clean up test user if created
+    if (testUser) {
+      await supabase.from('users').delete().eq('wallet_address', testWalletAddress)
+      console.log('✅ Test user cleaned up')
+    }
+    
+    // Check RLS policies
+    const { data: rlsInfo, error: rlsError } = await supabase
+      .rpc('get_rls_policies', { table_name: 'users' })
     
     return NextResponse.json({
       success: true,
-      auth: {
-        valid: auth.valid,
-        walletAddress: auth.user.walletAddress
+      environment: envCheck,
+      connection: {
+        success: !connectionError,
+        error: connectionError?.message,
+        data: connectionTest
       },
-      userLookup: {
-        success: !userError,
-        error: userError?.message,
-        data: existingUser
+      testUserCreation: {
+        success: !testUserError,
+        error: testUserError ? {
+          code: testUserError.code,
+          message: testUserError.message,
+          details: testUserError.details,
+          hint: testUserError.hint
+        } : null,
+        data: testUser
       },
-      userCreation: {
-        success: !!user,
-        data: user
-      },
-      profilesTable: {
-        success: !profilesError,
-        error: profilesError?.message,
-        data: profiles
-      },
-      profileCreation: {
-        success: !!user,
-        data: user ? 'Test completed' : 'No user to test with'
+      rlsPolicies: {
+        success: !rlsError,
+        error: rlsError?.message,
+        data: rlsInfo
       }
     })
-    
   } catch (error) {
     console.error('❌ Error in test DB endpoint:', error)
     return NextResponse.json(
