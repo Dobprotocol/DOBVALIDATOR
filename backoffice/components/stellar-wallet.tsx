@@ -71,7 +71,7 @@ export function StellarWallet() {
       const mockWalletAddress = "GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN"
 
       // Request wallet connection
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/api/auth/challenge`, {
+      const response = await fetch('http://localhost:3001/api/auth/challenge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export function StellarWallet() {
       const mockSignature = "mock_signature_" + Date.now()
 
       // Verify the signature
-      const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/api/auth/verify`, {
+      const verifyResponse = await fetch('http://localhost:3001/api/auth/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

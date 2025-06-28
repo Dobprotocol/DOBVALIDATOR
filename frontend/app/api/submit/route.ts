@@ -240,8 +240,7 @@ export async function POST(request: NextRequest) {
       const draftId = formData.get('draftId') as string
       if (draftId) {
         console.log('Deleting existing draft before submission:', draftId)
-        const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'
-        const deleteResponse = await fetch(`${backendUrl}/api/drafts/${draftId}`, {
+        const deleteResponse = await fetch(`http://localhost:3001/api/drafts/${draftId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': request.headers.get('authorization') || ''
@@ -265,8 +264,7 @@ export async function POST(request: NextRequest) {
       if (authHeader) {
         console.log('Sending submission to backend database...')
         
-        const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'
-        const backendResponse = await fetch(`${backendUrl}/api/submissions`, {
+        const backendResponse = await fetch('http://localhost:3001/api/submissions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
