@@ -1,6 +1,6 @@
 # Frontend Deployment Version
 
-## Current Version: 2.0.3
+## Current Version: 2.0.4
 
 ### Changes in this deployment:
 
@@ -14,6 +14,8 @@
 - ✅ Fixed profile creation API to match actual database schema
 - ✅ Added enhanced error handling and debugging for profile API
 - ✅ Added debug endpoint to test Supabase connection
+- ✅ Fixed user role enum issue by trying multiple role values
+- ✅ Added RLS policy handling for user creation
 
 ### Deployment Date: $(date)
 
