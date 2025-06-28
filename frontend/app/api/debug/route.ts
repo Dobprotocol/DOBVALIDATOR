@@ -32,12 +32,53 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 Profiles table test:', { profiles, profilesError })
     
-    // Get table information
-    const { data: tables, error: tablesError } = await supabase
-      .rpc('get_table_info')
-      .select('*')
+    // Get table schema information using information_schema
+    const { data: usersSchema, error: usersSchemaError } = await supabase
+      .rpc('get_table_columns', { table_name: 'users' })
     
-    console.log('🔍 Tables info:', { tables, tablesError })
+    const { data: profilesSchema, error: profilesSchemaError } = await supabase
+      .rpc('get_table_columns', { table_name: 'profiles' })
+    
+    // Try to create a test user to see what happens
+    const testWalletAddress = 'TEST_WALLET_' + Date.now()
+    const { data: testUser, error: testUserError } = await supabase
+      .from('users')
+      .insert({
+        wallet_address: testWalletAddress,
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'USER'
+      })
+      .select()
+      .single()
+    
+    // Try to create a test profile
+    let testProfile = null
+    let testProfileError = null
+    if (testUser) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: testUser.id,
+          contact_person: 'Test Contact',
+          company_name: 'Test Company',
+          phone: '123-456-7890',
+          website: 'https://example.com',
+          description: 'Test description',
+          industry: 'Technology',
+          address: 'Test Address',
+          country: 'Test Country'
+        })
+        .select()
+        .single()
+      
+      testProfile = profile
+      testProfileError = profileError
+      
+      // Clean up test data
+      await supabase.from('profiles').delete().eq('user_id', testUser.id)
+      await supabase.from('users').delete().eq('wallet_address', testWalletAddress)
+    }
     
     return NextResponse.json({
       success: true,
@@ -46,17 +87,26 @@ export async function GET(request: NextRequest) {
       usersTable: {
         exists: !usersError,
         error: usersError?.message,
-        sampleData: users?.[0] || null
+        sampleData: users?.[0] || null,
+        schema: usersSchema || null,
+        schemaError: usersSchemaError?.message
       },
       profilesTable: {
         exists: !profilesError,
         error: profilesError?.message,
-        sampleData: profiles?.[0] || null
+        sampleData: profiles?.[0] || null,
+        schema: profilesSchema || null,
+        schemaError: profilesSchemaError?.message
       },
-      tablesInfo: {
-        exists: !tablesError,
-        error: tablesError?.message,
-        data: tables || null
+      testUserCreation: {
+        success: !testUserError,
+        error: testUserError?.message,
+        data: testUser
+      },
+      testProfileCreation: {
+        success: !testProfileError,
+        error: testProfileError?.message,
+        data: testProfile
       }
     })
   } catch (error) {
