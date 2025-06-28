@@ -11,7 +11,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "DOB Validator BackOffice",
   description: "CMS-Integrated BackOffice Dashboard for DOB Protocol validation",
-  generator: 'v0.dev'
+  generator: 'DOB Validator v1.0'
 }
 
 export default function RootLayout({
