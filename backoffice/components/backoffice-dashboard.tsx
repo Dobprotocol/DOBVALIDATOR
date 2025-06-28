@@ -21,7 +21,6 @@ import {
   LogOut,
   Loader2,
   AlertCircle,
-  Clock,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -70,18 +69,9 @@ import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
-import type { Database } from "@/lib/supabase"
+import { apiService, Submission } from "@/lib/api-service"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { backofficeSupabaseService } from "@/lib/supabase-service"
-
-type Submission = Database['public']['Tables']['submissions']['Row']
-type User = Database['public']['Tables']['users']['Row']
-
-interface SubmissionWithUser extends Submission {
-  user: User
-}
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -122,18 +112,11 @@ function AppSidebar() {
   // Fetch pending count for badge
   useEffect(() => {
     const fetchPendingCount = async () => {
-      if (supabase.auth.getUser().data.user) {
-        const { data, error } = await supabase
-          .from('submissions')
-          .select('*', { count: 'exact' })
-          .eq('status', 'pending')
-
-        if (error) {
-          console.error('Error fetching pending submissions:', error)
-          return
+      if (apiService.isAuthenticated()) {
+        const response = await apiService.getSubmissions({ status: 'pending' })
+        if (response.success && response.data) {
+          setPendingCount(response.data.pagination.total)
         }
-
-        setPendingCount(data?.count || 0)
       }
     }
 
@@ -277,7 +260,7 @@ function InboxSection() {
   const { toast } = useToast()
   const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
-  const [submissions, setSubmissions] = useState<SubmissionWithUser[]>([])
+  const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pagination, setPagination] = useState({
@@ -293,36 +276,31 @@ function InboxSection() {
       setLoading(true)
       setError(null)
 
-      if (!supabase.auth.getUser().data.user) {
+      if (!apiService.isAuthenticated()) {
         setError('Authentication required')
         return
       }
 
-      const { data, error } = await supabase
-        .from('submissions')
-        .select(`
-          *,
-          user:users(*)
-        `)
-        .order('submitted_at', { ascending: false })
-        .range(pagination.offset, pagination.offset + pagination.limit - 1)
+      const response = await apiService.getSubmissions({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        limit: pagination.limit,
+        offset: pagination.offset
+      })
 
-      if (error) {
-        setError(error.message || 'Failed to fetch submissions')
+      if (response.success && response.data) {
+        setSubmissions(response.data?.submissions || [])
+        setPagination(prev => ({
+          ...prev,
+          ...(response.data?.pagination || {})
+        }))
+      } else {
+        setError(response.error || 'Failed to fetch submissions')
         toast({
           title: "Error",
-          description: error.message || 'Failed to fetch submissions',
+          description: response.error || 'Failed to fetch submissions',
           variant: "destructive",
         })
-        return
       }
-
-      setSubmissions(data || [])
-      setPagination(prev => ({
-        ...prev,
-        total: data?.length || 0,
-        hasMore: data?.length === pagination.limit
-      }))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setError(errorMessage)
@@ -343,9 +321,9 @@ function InboxSection() {
   // Filter submissions by search query
   const filteredSubmissions = submissions.filter((submission) => {
     const matchesSearch =
-      submission.device_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      submission.deviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       submission.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.device_type.toLowerCase().includes(searchQuery.toLowerCase())
+      submission.deviceType.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesSearch
   })
 
@@ -453,7 +431,7 @@ function InboxSection() {
                   {filteredSubmissions.map((submission) => (
                     <TableRow key={submission.id}>
                       <TableCell className="font-mono text-sm">{submission.id}</TableCell>
-                      <TableCell className="font-medium">{submission.device_name}</TableCell>
+                      <TableCell className="font-medium">{submission.deviceName}</TableCell>
                       <TableCell>{submission.manufacturer}</TableCell>
                       <TableCell>
                         <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
@@ -462,7 +440,7 @@ function InboxSection() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {submission.device_type}
+                          {submission.deviceType}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -476,7 +454,7 @@ function InboxSection() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(submission.submitted_at).toLocaleDateString()}
+                        {new Date(submission.submittedAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -511,8 +489,8 @@ function InboxSection() {
 
 function ValidationToolsSection() {
   const { toast } = useToast()
-  const [submissions, setSubmissions] = useState<SubmissionWithUser[]>([])
-  const [selectedProject, setSelectedProject] = useState<SubmissionWithUser | null>(null)
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [selectedProject, setSelectedProject] = useState<Submission | null>(null)
   const [loading, setLoading] = useState(true)
   const [trufaScores, setTrufaScores] = useState({
     technical: [75],
@@ -528,7 +506,7 @@ function ValidationToolsSection() {
       try {
         setLoading(true)
         
-        if (!supabase.auth.getUser().data.user) {
+        if (!apiService.isAuthenticated()) {
           toast({
             title: "Authentication Required",
             description: "Please connect your wallet to access validation tools",
@@ -537,27 +515,16 @@ function ValidationToolsSection() {
           return
         }
 
-        const { data, error } = await supabase
-          .from('submissions')
-          .select(`
-            *,
-            user:users(*)
-          `)
-          .eq('status', 'pending')
+        const response = await apiService.getSubmissions({
+          status: 'pending'
+        })
 
-        if (error) {
-          toast({
-            title: "Error",
-            description: "Failed to fetch submissions",
-            variant: "destructive",
-          })
-          return
-        }
-
-        const pendingSubmissions = data || []
-        setSubmissions(pendingSubmissions)
-        if (pendingSubmissions.length > 0) {
-          setSelectedProject(pendingSubmissions[0])
+        if (response.success && response.data) {
+          const pendingSubmissions = response.data.submissions
+          setSubmissions(pendingSubmissions)
+          if (pendingSubmissions.length > 0) {
+            setSelectedProject(pendingSubmissions[0])
+          }
         }
       } catch (error) {
         toast({
@@ -616,7 +583,7 @@ function ValidationToolsSection() {
               <SelectContent>
                 {submissions.map((submission) => (
                   <SelectItem key={submission.id} value={submission.id}>
-                    {submission.device_name}
+                    {submission.deviceName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -630,7 +597,7 @@ function ValidationToolsSection() {
                     <span className="font-medium">ID:</span> {selectedProject.id}
                   </p>
                   <p>
-                    <span className="font-medium">Device:</span> {selectedProject.device_name}
+                    <span className="font-medium">Device:</span> {selectedProject.deviceName}
                   </p>
                   <p>
                     <span className="font-medium">Manufacturer:</span> {selectedProject.manufacturer}
@@ -813,7 +780,7 @@ function SettingsSection() {
 
 function ArchivedSection() {
   const { toast } = useToast()
-  const [submissions, setSubmissions] = useState<SubmissionWithUser[]>([])
+  const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
 
   // Fetch completed submissions (approved/rejected)
@@ -822,7 +789,7 @@ function ArchivedSection() {
       try {
         setLoading(true)
         
-        if (!supabase.auth.getUser().data.user) {
+        if (!apiService.isAuthenticated()) {
           toast({
             title: "Authentication Required",
             description: "Please connect your wallet to access archived submissions",
@@ -832,19 +799,14 @@ function ArchivedSection() {
         }
 
         // Fetch both approved and rejected submissions
-        const { data: approvedData, error: approvedError } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('status', 'approved')
-
-        const { data: rejectedData, error: rejectedError } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('status', 'rejected')
+        const [approvedResponse, rejectedResponse] = await Promise.all([
+          apiService.getSubmissions({ status: 'approved' }),
+          apiService.getSubmissions({ status: 'rejected' })
+        ])
 
         const archivedSubmissions = [
-          ...(approvedData?.map((submission) => ({ ...submission, status: 'approved' })) || []),
-          ...(rejectedData?.map((submission) => ({ ...submission, status: 'rejected' })) || [])
+          ...(approvedResponse.success ? approvedResponse.data?.submissions || [] : []),
+          ...(rejectedResponse.success ? rejectedResponse.data?.submissions || [] : [])
         ]
 
         setSubmissions(archivedSubmissions)
@@ -905,7 +867,7 @@ function ArchivedSection() {
               {submissions.map((submission) => (
                 <TableRow key={submission.id}>
                   <TableCell className="font-mono text-sm">{submission.id}</TableCell>
-                  <TableCell className="font-medium">{submission.device_name}</TableCell>
+                  <TableCell className="font-medium">{submission.deviceName}</TableCell>
                   <TableCell>
                     <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
                       {submission.status}
@@ -927,7 +889,7 @@ function ArchivedSection() {
                   <TableCell className="text-sm text-muted-foreground">
                     {submission.adminDecisionAt 
                       ? new Date(submission.adminDecisionAt).toLocaleDateString()
-                      : new Date(submission.submitted_at).toLocaleDateString()
+                      : new Date(submission.submittedAt).toLocaleDateString()
                     }
                   </TableCell>
                 </TableRow>
