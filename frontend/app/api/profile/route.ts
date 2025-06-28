@@ -141,48 +141,34 @@ export async function POST(request: NextRequest) {
     let user = await supabaseService.getUserByWallet(walletAddress)
     
     if (!user) {
-      console.log('🔍 User not found, trying to create with different role values...')
+      console.log('🔍 User not found, creating user first...')
       
-      // Try different role values to find the correct one
-      const roleValues = ['OPERATOR', 'USER', 'user', 'operator']
-      let userCreated = false
+      // Create user using the proper users API endpoint
+      const userResponse = await fetch(`${request.nextUrl.origin}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': request.headers.get('Authorization') || '',
+          'Cookie': request.headers.get('Cookie') || ''
+        },
+        body: JSON.stringify({
+          email: profileData.email,
+          name: profileData.name
+        })
+      })
       
-      for (const roleValue of roleValues) {
-        try {
-          console.log(`🔍 Trying to create user with role: ${roleValue}`)
-          
-          // Try direct Supabase insert to bypass service layer
-          const { data: newUser, error: userError } = await supabase
-            .from('users')
-            .insert({
-              wallet_address: walletAddress,
-              email: profileData.email,
-              name: profileData.name,
-              role: roleValue
-            })
-            .select()
-            .single()
-          
-          if (!userError && newUser) {
-            console.log(`✅ User created successfully with role: ${roleValue}`)
-            user = newUser
-            userCreated = true
-            break
-          } else {
-            console.log(`❌ Failed to create user with role ${roleValue}:`, userError?.message)
-          }
-        } catch (error) {
-          console.log(`❌ Exception creating user with role ${roleValue}:`, error.message)
-        }
-      }
-      
-      if (!userCreated) {
-        console.error('❌ Failed to create user with any role value')
+      if (!userResponse.ok) {
+        const userError = await userResponse.json()
+        console.error('❌ Failed to create user:', userError)
         return NextResponse.json(
-          { error: 'Failed to create user account', details: 'Could not create user with any valid role' },
+          { error: 'Failed to create user account', details: userError },
           { status: 500 }
         )
       }
+      
+      const userResult = await userResponse.json()
+      user = userResult.user
+      console.log('✅ User created successfully:', user)
     } else {
       console.log('🔍 Existing user found:', user)
     }
