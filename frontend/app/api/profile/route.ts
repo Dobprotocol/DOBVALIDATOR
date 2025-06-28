@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
-import { storeProfile, getProfile, updateProfile, removeProfile } from '../../../lib/auth-storage'
+import { supabaseService } from '@/lib/supabase-service'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -35,16 +35,7 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Authentication successful, checking profile for wallet:', auth.user.walletAddress)
     
-    // Debug: Check what's in the profiles storage
-    const { getDebugInfo } = await import('../../../lib/auth-storage')
-    const debugInfo = getDebugInfo()
-    console.log('🔍 Debug info for profile lookup:', {
-      profilesCount: debugInfo.profilesCount,
-      hasProfile: debugInfo.profiles.some(([addr]) => addr === auth.user.walletAddress),
-      allProfiles: debugInfo.profiles.map(([addr, data]) => ({ addr, name: data.name }))
-    })
-    
-    const profile = getProfile(auth.user.walletAddress)
+    const profile = await supabaseService.getProfileByWallet(auth.user.walletAddress)
     console.log('🔍 Profile lookup result:', profile ? 'found' : 'not found')
     if (profile) {
       console.log('🔍 Profile details:', { name: profile.name, company: profile.company, email: profile.email })
@@ -62,16 +53,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       profile: {
-        walletAddress: profile.walletAddress,
+        walletAddress: profile.wallet_address,
         name: profile.name,
         company: profile.company,
         email: profile.email,
         phone: profile.phone,
         website: profile.website,
         bio: profile.bio,
-        profileImage: profile.profileImage,
-        createdAt: profile.createdAt,
-        updatedAt: profile.updatedAt,
+        profileImage: profile.profile_image,
+        createdAt: profile.created_at,
+        updatedAt: profile.updated_at,
       }
     })
   } catch (error) {
@@ -117,43 +108,41 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Creating profile for wallet:', walletAddress)
     
     // Check if profile already exists
-    const existingProfile = getProfile(walletAddress)
+    const existingProfile = await supabaseService.getProfileByWallet(walletAddress)
     console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
     
-    const profile = {
-      walletAddress,
-      ...profileData,
-      createdAt: existingProfile?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    // Prepare profile data for Supabase
+    const supabaseProfileData = {
+      wallet_address: walletAddress,
+      name: profileData.name,
+      company: profileData.company,
+      email: profileData.email,
+      phone: profileData.phone || null,
+      website: profileData.website || null,
+      bio: profileData.bio || null,
+      profile_image: profileData.profileImage || null,
+      updated_at: new Date().toISOString()
     }
 
-    console.log('🔍 Profile data to store:', profile)
+    console.log('🔍 Profile data to store:', supabaseProfileData)
 
-    if (existingProfile) {
-      console.log('🔍 Updating existing profile')
-      updateProfile(walletAddress, profileData)
-    } else {
-      console.log('🔍 Creating new profile')
-      storeProfile(walletAddress, profileData)
-    }
-
-    // Verify the profile was stored correctly
-    const storedProfile = getProfile(walletAddress)
-    console.log('🔍 Verification - stored profile:', storedProfile ? 'found' : 'not found')
+    // Create or update profile in Supabase
+    const profile = await supabaseService.upsertProfile(supabaseProfileData)
+    console.log('🔍 Profile stored successfully:', profile)
 
     return NextResponse.json({
       success: true,
       profile: {
-        walletAddress: profile.walletAddress,
+        walletAddress: profile.wallet_address,
         name: profile.name,
         company: profile.company,
         email: profile.email,
         phone: profile.phone,
         website: profile.website,
         bio: profile.bio,
-        profileImage: profile.profileImage,
-        createdAt: profile.createdAt,
-        updatedAt: profile.updatedAt,
+        profileImage: profile.profile_image,
+        createdAt: profile.created_at,
+        updatedAt: profile.updated_at,
       },
       message: existingProfile ? 'Profile updated successfully' : 'Profile created successfully'
     })
@@ -183,7 +172,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const walletAddress = auth.user.walletAddress
-    const profile = getProfile(walletAddress)
+    const profile = await supabaseService.getProfileByWallet(walletAddress)
     
     if (!profile) {
       return NextResponse.json(
@@ -192,7 +181,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    removeProfile(walletAddress)
+    await supabaseService.deleteProfile(walletAddress)
 
     return NextResponse.json({
       success: true,
@@ -207,42 +196,7 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// Debug endpoint to check stored profiles
 export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { action, walletAddress } = body
-    
-    if (action === 'debug') {
-      const { getDebugInfo } = await import('../../../lib/auth-storage')
-      const debugInfo = getDebugInfo()
-      
-      return NextResponse.json({
-        success: true,
-        debug: debugInfo,
-        message: 'Debug information retrieved'
-      })
-    }
-    
-    if (action === 'logout' && walletAddress) {
-      const { removeProfile } = await import('../../../lib/auth-storage')
-      removeProfile(walletAddress)
-      console.log('🚪 Profile cleared for logout:', walletAddress)
-      return NextResponse.json({
-        success: true,
-        message: 'Profile cleared for logout'
-      })
-    }
-    
-    return NextResponse.json(
-      { error: 'Invalid action' },
-      { status: 400 }
-    )
-  } catch (error) {
-    console.error('❌ Error in profile PATCH:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  // PATCH is the same as POST for profile updates
+  return POST(request)
 } 

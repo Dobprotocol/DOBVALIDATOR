@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
+import { supabaseService } from '@/lib/supabase-service'
 
 // Draft schema (very flexible for partial data - drafts are works in progress)
 const draftSchema = z.object({
@@ -53,44 +54,51 @@ export async function POST(request: NextRequest) {
     const validatedData = validationResult.data
     console.log('🔍 Validated data:', validatedData)
     
-    // Forward to backend database
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
-    const authToken = request.headers.get('authorization')
-    console.log('🔍 Backend URL:', backendUrl)
-    console.log('🔍 Auth token present:', !!authToken)
+    // Get user by wallet address
+    const user = await supabaseService.getUserByWallet(auth.user.walletAddress)
+    if (!user) {
+      console.log('❌ User not found for wallet:', auth.user.walletAddress)
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
     
+    // Prepare draft data for Supabase
+    const supabaseDraftData = {
+      id: draftId || undefined,
+      user_id: user.id,
+      device_name: validatedData.deviceName || '',
+      device_type: validatedData.deviceType || '',
+      location: validatedData.location || '',
+      serial_number: validatedData.serialNumber || '',
+      manufacturer: validatedData.manufacturer || '',
+      model: validatedData.model || '',
+      year_of_manufacture: validatedData.yearOfManufacture || '',
+      condition: validatedData.condition || '',
+      specifications: validatedData.specifications || '',
+      purchase_price: validatedData.purchasePrice || '',
+      current_value: validatedData.currentValue || '',
+      expected_revenue: validatedData.expectedRevenue || '',
+      operational_costs: validatedData.operationalCosts || '',
+      updated_at: new Date().toISOString()
+    }
+
     if (draftId) {
       // Update existing draft
       console.log('🔍 Updating existing draft:', draftId)
       
-      const updateResponse = await fetch(`${backendUrl}/api/drafts/${draftId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authToken || ''
-        },
-        body: JSON.stringify(validatedData)
-      })
-
-      if (!updateResponse.ok) {
-        const errorData = await updateResponse.json()
-        return NextResponse.json(
-          { error: errorData.error || 'Failed to update draft' },
-          { status: updateResponse.status }
-        )
-      }
-
-      const updatedDraft = await updateResponse.json()
-      console.log('🔍 Draft updated successfully:', updatedDraft.draft?.id)
+      const updatedDraft = await supabaseService.upsertDraft(supabaseDraftData)
+      console.log('🔍 Draft updated successfully:', updatedDraft.id)
 
       return NextResponse.json({
         success: true,
         draft: {
-          id: updatedDraft.draft.id,
-          name: updatedDraft.draft.deviceName ? `${updatedDraft.draft.deviceName} - ${updatedDraft.draft.deviceType || 'Device'}` : 'Untitled Draft',
-          deviceName: updatedDraft.draft.deviceName,
+          id: updatedDraft.id,
+          name: updatedDraft.device_name ? `${updatedDraft.device_name} - ${updatedDraft.device_type || 'Device'}` : 'Untitled Draft',
+          deviceName: updatedDraft.device_name,
           status: 'draft',
-          updatedAt: updatedDraft.draft.updatedAt
+          updatedAt: updatedDraft.updated_at
         },
         message: 'Draft updated successfully'
       })
@@ -98,37 +106,17 @@ export async function POST(request: NextRequest) {
       // Create new draft
       console.log('🔍 Creating new draft')
       
-      const createResponse = await fetch(`${backendUrl}/api/drafts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authToken || ''
-        },
-        body: JSON.stringify(validatedData)
-      })
-
-      console.log('🔍 Backend response status:', createResponse.status)
-      
-      if (!createResponse.ok) {
-        const errorData = await createResponse.json()
-        console.error('❌ Backend error:', errorData)
-        return NextResponse.json(
-          { error: errorData.error || 'Failed to create draft' },
-          { status: createResponse.status }
-        )
-      }
-
-      const createdDraft = await createResponse.json()
-      console.log('🔍 Draft created successfully:', createdDraft.draft?.id)
+      const createdDraft = await supabaseService.upsertDraft(supabaseDraftData)
+      console.log('🔍 Draft created successfully:', createdDraft.id)
 
       return NextResponse.json({
         success: true,
         draft: {
-          id: createdDraft.draft.id,
-          name: createdDraft.draft.deviceName ? `${createdDraft.draft.deviceName} - ${createdDraft.draft.deviceType || 'Device'}` : 'Untitled Draft',
-          deviceName: createdDraft.draft.deviceName,
+          id: createdDraft.id,
+          name: createdDraft.device_name ? `${createdDraft.device_name} - ${createdDraft.device_type || 'Device'}` : 'Untitled Draft',
+          deviceName: createdDraft.device_name,
           status: 'draft',
-          submittedAt: createdDraft.draft.createdAt
+          submittedAt: createdDraft.created_at
         },
         message: 'Draft created successfully'
       })
@@ -156,33 +144,35 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = searchParams.get('limit') || '10'
-    const offset = searchParams.get('offset') || '0'
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const offset = parseInt(searchParams.get('offset') || '0')
     
-    // Forward to backend database
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
-    const authToken = request.headers.get('authorization')
-    
-    const response = await fetch(`${backendUrl}/api/drafts?limit=${limit}&offset=${offset}`, {
-      headers: {
-        'Authorization': authToken || ''
-      }
+    // Get user's drafts from Supabase
+    const drafts = await supabaseService.getUserDrafts(auth.user.walletAddress, {
+      limit,
+      offset
     })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      return NextResponse.json(
-        { error: errorData.error || 'Failed to fetch drafts' },
-        { status: response.status }
-      )
-    }
-
-    const data = await response.json()
-    console.log('🔍 Backend drafts data:', data)
     
-    // Add status field to drafts since backend doesn't have it
-    const draftsWithStatus = (data.drafts || []).map((draft: any) => ({
-      ...draft,
+    console.log('🔍 Supabase drafts data:', drafts)
+    
+    // Transform data to match expected format
+    const draftsWithStatus = drafts.map((draft: any) => ({
+      id: draft.id,
+      deviceName: draft.device_name,
+      deviceType: draft.device_type,
+      location: draft.location,
+      serialNumber: draft.serial_number,
+      manufacturer: draft.manufacturer,
+      model: draft.model,
+      yearOfManufacture: draft.year_of_manufacture,
+      condition: draft.condition,
+      specifications: draft.specifications,
+      purchasePrice: draft.purchase_price,
+      currentValue: draft.current_value,
+      expectedRevenue: draft.expected_revenue,
+      operationalCosts: draft.operational_costs,
+      createdAt: draft.created_at,
+      updatedAt: draft.updated_at,
       status: 'draft'
     }))
     
@@ -191,8 +181,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       drafts: draftsWithStatus,
-      total: data.total || 0,
-      hasMore: data.hasMore || false
+      total: drafts.length,
+      hasMore: drafts.length === limit
     })
 
   } catch (error) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
-import { submissionStorage } from '@/lib/submission-storage'
+import { supabaseService } from '@/lib/supabase-service'
 import { adminConfigService } from '@/lib/admin-config'
 
 // Submission schema
@@ -33,9 +33,6 @@ const submissionSchema = z.object({
   })).optional(),
 })
 
-// Mock submissions storage (in production, use database)
-// const submissions = new Map<string, any>() // Removed - now using shared storage
-
 export async function POST(request: NextRequest) {
   try {
     // Verify authentication
@@ -59,50 +56,47 @@ export async function POST(request: NextRequest) {
 
     const submissionData = validationResult.data
     
-    // Generate unique submission ID
-    const submissionId = `SUB_${Date.now()}_${Math.random().toString(36).substring(2)}`
-    
-    // Create submission record
-    const submission = {
-      id: submissionId,
-      deviceName: submissionData.deviceName,
-      deviceType: submissionData.deviceType,
-      serialNumber: submissionData.serialNumber,
-      manufacturer: submissionData.manufacturer,
-      model: submissionData.model,
-      yearOfManufacture: submissionData.yearOfManufacture,
-      condition: submissionData.condition,
-      specifications: submissionData.specifications,
-      purchasePrice: submissionData.purchasePrice,
-      currentValue: submissionData.currentValue,
-      expectedRevenue: submissionData.expectedRevenue,
-      operationalCosts: submissionData.operationalCosts,
-      operatorWallet: auth.user.walletAddress,
-      status: 'pending' as const,
-      submittedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      files: [],
-      // Admin fields (only for admin users)
-      adminNotes: null,
-      adminScore: null,
-      adminDecision: null,
-      adminDecisionAt: null,
-      certificateId: null,
+    // Get user by wallet address
+    const user = await supabaseService.getUserByWallet(auth.user.walletAddress)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
     }
     
-    // Store submission using shared storage
-    const createdSubmission = submissionStorage.create(submission)
+    // Prepare submission data for Supabase
+    const supabaseSubmissionData = {
+      user_id: user.id,
+      device_name: submissionData.deviceName,
+      device_type: submissionData.deviceType,
+      serial_number: submissionData.serialNumber,
+      manufacturer: submissionData.manufacturer,
+      model: submissionData.model,
+      year_of_manufacture: submissionData.yearOfManufacture,
+      condition: submissionData.condition,
+      specifications: submissionData.specifications,
+      purchase_price: submissionData.purchasePrice,
+      current_value: submissionData.currentValue,
+      expected_revenue: submissionData.expectedRevenue,
+      operational_costs: submissionData.operationalCosts,
+      status: 'PENDING',
+      submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    
+    // Create submission in Supabase
+    const createdSubmission = await supabaseService.createSubmission(supabaseSubmissionData)
     
     console.log('🔍 Created submission:', createdSubmission)
-    console.log('🔍 All submissions after creation:', Array.from(submissionStorage.getAll()))
     
     return NextResponse.json({
       success: true,
       submission: {
         id: createdSubmission.id,
-        deviceName: createdSubmission.deviceName,
+        deviceName: createdSubmission.device_name,
         status: createdSubmission.status,
-        submittedAt: createdSubmission.submittedAt
+        submittedAt: createdSubmission.submitted_at
       },
       message: 'Submission created successfully'
     })
@@ -135,47 +129,47 @@ export async function GET(request: NextRequest) {
 
     // Check if user is admin
     const isAdmin = adminConfigService.isAdminWallet(auth.user.walletAddress)
-    let result
+    let submissions
+    
     if (isAdmin) {
-      // Admin: return all submissions (optionally filtered), excluding drafts
-      result = submissionStorage.getPaginated({
+      // Admin: return all submissions
+      submissions = await supabaseService.getAllSubmissions({
         status: status || undefined,
         limit,
-        offset,
-        excludeDrafts: false // Temporarily show all items
+        offset
       })
     } else {
-      // Regular user: only their own submissions, excluding drafts
-      result = submissionStorage.getPaginated({
-        walletAddress: auth.user.walletAddress,
+      // Regular user: only their own submissions
+      submissions = await supabaseService.getUserSubmissions(auth.user.walletAddress, {
         status: status || undefined,
         limit,
-        offset,
-        excludeDrafts: false // Temporarily show all items
+        offset
       })
     }
 
     console.log('🔍 Submissions API - User wallet:', auth.user.walletAddress)
     console.log('🔍 Submissions API - Is admin:', isAdmin)
-    console.log('🔍 Submissions API - All storage items:', Array.from(submissionStorage.getAll()))
-    console.log('🔍 Submissions API - Filtered result:', result)
+    console.log('🔍 Submissions API - Result:', submissions)
+
+    // Transform data to match expected format
+    const transformedSubmissions = submissions.map((sub: any) => ({
+      id: sub.id,
+      deviceName: sub.device_name,
+      deviceType: sub.device_type,
+      status: sub.status,
+      submittedAt: sub.submitted_at,
+      updatedAt: sub.updated_at,
+      certificateId: sub.certificate_id
+    }))
 
     return NextResponse.json({
       success: true,
-      submissions: result.submissions.map(sub => ({
-        id: sub.id,
-        deviceName: sub.deviceName,
-        deviceType: sub.deviceType,
-        status: sub.status,
-        submittedAt: sub.submittedAt,
-        updatedAt: sub.updatedAt,
-        certificateId: sub.certificateId
-      })),
+      submissions: transformedSubmissions,
       pagination: {
-        total: result.total,
+        total: submissions.length,
         limit,
         offset,
-        hasMore: result.hasMore
+        hasMore: submissions.length === limit
       }
     })
   } catch (error) {
