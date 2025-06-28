@@ -174,8 +174,8 @@ export async function POST(request: NextRequest) {
           .insert({
             wallet_address: walletAddress,
             email: profileData.email,
-            name: profileData.name
-            // Don't specify role - let it use default
+            name: profileData.name,
+            role: 'OPERATOR' // Use OPERATOR as default role
           })
           .select()
           .single()
