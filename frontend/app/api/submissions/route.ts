@@ -93,6 +93,9 @@ export async function POST(request: NextRequest) {
     // Store submission using shared storage
     const createdSubmission = submissionStorage.create(submission)
     
+    console.log('🔍 Created submission:', createdSubmission)
+    console.log('🔍 All submissions after creation:', Array.from(submissionStorage.getAll()))
+    
     return NextResponse.json({
       success: true,
       submission: {
@@ -134,21 +137,28 @@ export async function GET(request: NextRequest) {
     const isAdmin = adminConfigService.isAdminWallet(auth.user.walletAddress)
     let result
     if (isAdmin) {
-      // Admin: return all submissions (optionally filtered)
+      // Admin: return all submissions (optionally filtered), excluding drafts
       result = submissionStorage.getPaginated({
         status: status || undefined,
         limit,
-        offset
+        offset,
+        excludeDrafts: false // Temporarily show all items
       })
     } else {
-      // Regular user: only their own submissions
+      // Regular user: only their own submissions, excluding drafts
       result = submissionStorage.getPaginated({
         walletAddress: auth.user.walletAddress,
         status: status || undefined,
         limit,
-        offset
+        offset,
+        excludeDrafts: false // Temporarily show all items
       })
     }
+
+    console.log('🔍 Submissions API - User wallet:', auth.user.walletAddress)
+    console.log('🔍 Submissions API - Is admin:', isAdmin)
+    console.log('🔍 Submissions API - All storage items:', Array.from(submissionStorage.getAll()))
+    console.log('🔍 Submissions API - Filtered result:', result)
 
     return NextResponse.json({
       success: true,

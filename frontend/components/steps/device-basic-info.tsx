@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect, useRef } from "react"
-import type { DeviceData } from "@/components/device-verification-flow"
+import { useState, useEffect, useRef, useCallback } from "react"
+import type { DeviceData } from "@/components/enhanced-device-verification-flow"
 import { Modal } from "@/components/ui/modal"
 import { PixelExplosion } from "@/components/ui/pixel-explosion"
 import { Button } from "@/components/ui/button"
@@ -11,19 +10,58 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ModalUtils, MODAL_KEYS } from "@/lib/modal-utils"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowRight, ArrowLeft } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface DeviceBasicInfoProps {
   deviceData: DeviceData
   updateDeviceData: (data: Partial<DeviceData>) => void
   onNext: () => void
+  onBack?: () => void
+  onSaveDraft?: () => Promise<void>
 }
 
-export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: DeviceBasicInfoProps) {
+export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft }: DeviceBasicInfoProps) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
   const [showExplosion, setShowExplosion] = useState(false)
   const [explosionPosition, setExplosionPosition] = useState({ x: 0, y: 0 })
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [isSaving, setIsSaving] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+
+  // Use local state for form inputs to prevent re-renders
+  const [localData, setLocalData] = useState({
+    deviceName: deviceData.deviceName || "",
+    deviceType: deviceData.deviceType || "",
+    customDeviceType: deviceData.customDeviceType || "",
+    location: deviceData.location || ""
+  })
+
+  // On mount, restore from localStorage if available
+  useEffect(() => {
+    const backup = localStorage.getItem('dobFormStep1Backup')
+    if (backup) {
+      try {
+        const restoredData = JSON.parse(backup)
+        console.log('🔍 Restoring step 1 data from localStorage:', restoredData)
+        setLocalData(restoredData)
+      } catch (error) {
+        console.error('🔍 Error parsing step 1 backup:', error)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Debounce localStorage update after user stops typing
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('🔍 Saving step 1 data to localStorage:', localData)
+      localStorage.setItem('dobFormStep1Backup', JSON.stringify(localData))
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [localData])
 
   // Check if user has seen the welcome modal in this session
   useEffect(() => {
@@ -32,19 +70,48 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
     }
   }, [])
 
+  const handleInputChange = (field: string, value: string) => {
+    console.log('🔍 Input change:', field, value)
+    setLocalData(prev => ({ ...prev, [field]: value }))
+  }
+
   const validate = () => {
     const newErrors: { [key: string]: string } = {}
-    if (!deviceData.deviceName || deviceData.deviceName.length < 2) newErrors.deviceName = "Device name is required (min 2 chars)"
-    if (!deviceData.deviceType) newErrors.deviceType = "Device type is required"
-    if (!deviceData.serialNumber || deviceData.serialNumber.length < 3) newErrors.serialNumber = "Serial number is required (min 3 chars)"
-    if (!deviceData.manufacturer || deviceData.manufacturer.length < 2) newErrors.manufacturer = "Manufacturer is required (min 2 chars)"
+    if (!localData.deviceName || localData.deviceName.length < 2) newErrors.deviceName = "Device name is required (min 2 chars)"
+    if (!localData.deviceType || localData.deviceType.length < 2) newErrors.deviceType = "Device type is required (min 2 chars)"
+    if (!localData.location || localData.location.length < 2) newErrors.location = "Location is required (min 2 chars)"
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSaveDraft = async () => {
+    if (!onSaveDraft) return
+    
+    setIsSaving(true)
+    try {
+      // Update parent state with current local data
+      updateDeviceData(localData)
+      
+      // Save draft (parent handles toast)
+      await onSaveDraft()
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (validate()) {
+      // Only now update parent state
+      updateDeviceData(localData)
+      // Clear backup after successful submit
+      localStorage.removeItem('dobFormStep1Backup')
       onNext()
     }
   }
@@ -101,97 +168,89 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext }: Device
         y={explosionPosition.y}
       />
 
-      <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
-        <h2 className="text-xl font-medium text-white mb-6">Basic Device Information</h2>
+      <Card className="w-full max-w-2xl mx-auto bg-white/5 backdrop-blur-xl border-white/10">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-white mb-2">Device Basic Information</CardTitle>
+          <CardDescription className="text-gray-300">
+            Please provide the basic details about your device
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="deviceName">Device Name</Label>
+                <Input
+                  id="deviceName"
+                  value={localData.deviceName}
+                  onChange={(e) => handleInputChange('deviceName', e.target.value)}
+                  placeholder="Enter device name"
+                  className="form-input"
+                />
+                {errors.deviceName && <p className="text-red-500 text-sm mt-1">{errors.deviceName}</p>}
+              </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            {/* Test input for debugging */}
-            <div>
-              <Label htmlFor="testInput">Test Input (Debug)</Label>
-              <Input
-                id="testInput"
-                placeholder="Type here to test..."
-                className="form-input"
-                onFocus={() => console.log('Input focused')}
-                onBlur={() => console.log('Input blurred')}
-                onChange={(e) => console.log('Input changed:', e.target.value)}
-              />
+              <div>
+                <Label htmlFor="deviceType">Device Type</Label>
+                <Select
+                  value={localData.deviceType}
+                  onValueChange={(value) => handleInputChange('deviceType', value)}
+                >
+                  <SelectTrigger id="deviceType" className="form-select">
+                    <SelectValue placeholder="Select device type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solar-panel">Solar Panel</SelectItem>
+                    <SelectItem value="wind-turbine">Wind Turbine</SelectItem>
+                    <SelectItem value="battery-storage">Battery Storage</SelectItem>
+                    <SelectItem value="hydro-generator">Hydro Generator</SelectItem>
+                    <SelectItem value="geothermal">Geothermal</SelectItem>
+                    <SelectItem value="biomass">Biomass</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.deviceType && <p className="text-red-500 text-sm mt-1">{errors.deviceType}</p>}
+              </div>
+
+              {localData.deviceType === 'other' && (
+                <div>
+                  <Label htmlFor="customDeviceType">Custom Device Type</Label>
+                  <Input
+                    id="customDeviceType"
+                    value={localData.customDeviceType}
+                    onChange={(e) => handleInputChange('customDeviceType', e.target.value)}
+                    placeholder="Specify custom device type"
+                    className="form-input"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={localData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  placeholder="Enter device location"
+                  className="form-input"
+                />
+                {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="deviceName">Device Name</Label>
-              <Input
-                id="deviceName"
-                value={deviceData.deviceName}
-                onChange={(e) => {
-                  console.log('Device name changed:', e.target.value)
-                  updateDeviceData({ deviceName: e.target.value })
-                }}
-                placeholder="Enter a name for your device"
-                required
-                className="form-input"
-                onFocus={() => console.log('Device name focused')}
-                onBlur={() => console.log('Device name blurred')}
-              />
-              {errors.deviceName && <p className="text-red-500 text-sm">{errors.deviceName}</p>}
+            <div className="flex justify-between pt-6">
+              <Button type="button" variant="outline" onClick={onBack} className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <Button type="submit" className="flex items-center gap-2 ml-auto">
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
-
-            <div>
-              <Label htmlFor="deviceType">Device Type</Label>
-              <Select
-                value={deviceData.deviceType}
-                onValueChange={(value) => updateDeviceData({ deviceType: value })}
-                required
-              >
-                <SelectTrigger id="deviceType" className="form-select">
-                  <SelectValue placeholder="Select device type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {deviceTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.deviceType && <p className="text-red-500 text-sm">{errors.deviceType}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="serialNumber">Serial Number</Label>
-              <Input
-                id="serialNumber"
-                value={deviceData.serialNumber}
-                onChange={(e) => updateDeviceData({ serialNumber: e.target.value })}
-                placeholder="Enter the device serial number"
-                required
-                className="form-input"
-              />
-              {errors.serialNumber && <p className="text-red-500 text-sm">{errors.serialNumber}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="manufacturer">Manufacturer</Label>
-              <Input
-                id="manufacturer"
-                value={deviceData.manufacturer}
-                onChange={(e) => updateDeviceData({ manufacturer: e.target.value })}
-                placeholder="Enter the device manufacturer"
-                required
-                className="form-input"
-              />
-              {errors.manufacturer && <p className="text-red-500 text-sm">{errors.manufacturer}</p>}
-            </div>
-          </div>
-
-          <div className="pt-4 flex justify-end">
-            <Button type="submit" className="bg-[#6366F1] hover:bg-[#5355d1] text-white btn-primary">
-              Continue
-            </Button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </CardContent>
+      </Card>
     </>
   )
 }

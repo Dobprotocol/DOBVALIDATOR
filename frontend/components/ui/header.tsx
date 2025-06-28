@@ -176,7 +176,7 @@ export function Header() {
                 <div className="p-2">
                   <div 
                     className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                    onClick={() => router.push('/')}
+                    onClick={() => window.open('https://www.dobprotocol.com', '_blank')}
                   >
                     <Home size={18} className="text-gray-300" />
                     <span className="text-white">Home</span>
@@ -190,21 +190,21 @@ export function Header() {
                   </div>
                   <div 
                     className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                    onClick={() => window.open('https://dobprotocol.com/faq', '_blank')}
+                    onClick={() => window.open('https://wiki.dobprotocol.com', '_blank')}
                   >
                     <HelpCircle size={18} className="text-gray-300" />
                     <span className="text-white">FAQ</span>
                   </div>
                   <div 
                     className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                    onClick={() => window.open('https://dobprotocol.com/support', '_blank')}
+                    onClick={() => window.open('https://t.me/andresanemic', '_blank')}
                   >
                     <MessageCircle size={18} className="text-gray-300" />
                     <span className="text-white">Support</span>
                   </div>
                   <div 
                     className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                    onClick={() => window.open('https://dobprotocol.com/liquidity-pools', '_blank')}
+                    onClick={() => window.open('https://home.dobprotocol.com', '_blank')}
                   >
                     <TrendingUp size={18} className="text-gray-300" />
                     <span className="text-white">Liquidity Pools</span>

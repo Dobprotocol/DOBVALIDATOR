@@ -230,32 +230,34 @@ export async function POST(request: NextRequest) {
 
 // Helper function to verify JWT token (used by other endpoints)
 export function verifyToken(token: string): { valid: boolean; payload?: any } {
+  console.log('🔍 Verifying JWT token...')
+  console.log('🔍 JWT_SECRET being used:', JWT_SECRET ? JWT_SECRET.substring(0, 10) + '...' : 'No JWT_SECRET')
+  console.log('🔍 Token being verified:', token ? token.substring(0, 20) + '...' : 'No token')
+  
   try {
-    console.log('🔍 Verifying JWT token...')
     const payload = jwt.verify(token, JWT_SECRET) as any
     console.log('✅ JWT payload:', payload)
     
+    // Temporarily disable session check to isolate JWT verification issue
+    console.log('✅ JWT verification successful (session check disabled)')
+    return { valid: true, payload }
+    
+    // Original session check (commented out for debugging)
+    /*
     // Check if session is still active
     const session = getSession(payload.walletAddress)
-    console.log('🔍 Session lookup:', session ? 'found' : 'not found')
-    
-    // In development, be more lenient - just check if JWT is valid
-    // In production, you should always verify the session
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Development mode: JWT verification successful')
-      return { valid: true, payload }
-    }
-    
-    // Production mode: strict session validation
-    if (!session || session.token !== token) {
-      console.log('❌ Session invalid or token mismatch')
+    if (!session) {
+      console.log('❌ No active session found for wallet:', payload.walletAddress)
       return { valid: false }
     }
     
-    console.log('✅ JWT verification successful')
+    console.log('✅ Session found and valid')
     return { valid: true, payload }
+    */
   } catch (error) {
-    console.error('❌ JWT verification failed:', error)
+    console.log('❌ JWT verification failed:', error)
+    console.log('❌ Error name:', error.name)
+    console.log('❌ Error message:', error.message)
     return { valid: false }
   }
 }

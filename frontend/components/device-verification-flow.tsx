@@ -19,11 +19,10 @@ export type DeviceData = {
   // Basic info
   deviceName: string
   deviceType: string
-  serialNumber: string
-  manufacturer: string
+  customDeviceType: string
+  location: string
 
   // Technical info
-  model: string
   yearOfManufacture: string
   condition: string
   specifications: string
@@ -46,9 +45,8 @@ export function DeviceVerificationFlow() {
   const [deviceData, setDeviceData] = useState<DeviceData>({
     deviceName: '',
     deviceType: '',
-    serialNumber: '',
-    manufacturer: '',
-    model: '',
+    customDeviceType: '',
+    location: '',
     yearOfManufacture: '',
     condition: '',
     specifications: '',
@@ -213,7 +211,20 @@ export function DeviceVerificationFlow() {
             />
           )}
 
-          {currentStep === 5 && <DeviceReview deviceData={deviceData} onNext={nextStep} onBack={prevStep} />}
+          {currentStep === 5 && (
+            <DeviceReview
+              deviceData={deviceData}
+              onNext={nextStep}
+              onBack={prevStep}
+              onSubmissionSuccess={() => {
+                // Handle submission success
+                toast({
+                  title: "Success",
+                  description: "Your device has been submitted successfully!",
+                })
+              }}
+            />
+          )}
 
           {currentStep === 6 && <DeviceSuccess />}
         </div>

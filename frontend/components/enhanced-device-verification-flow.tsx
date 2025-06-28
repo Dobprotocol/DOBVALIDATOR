@@ -13,15 +13,19 @@ import { useDraft } from "@/hooks/use-draft"
 import { Button } from "@/components/ui/button"
 import { Save, Loader2, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 
 export type DeviceData = {
   // Basic info
   deviceName: string
   deviceType: string
-  serialNumber: string
-  manufacturer: string
+  customDeviceType: string
+  location: string
 
   // Technical info
+  serialNumber: string
+  manufacturer: string
   model: string
   yearOfManufacture: string
   condition: string
@@ -45,6 +49,8 @@ export function EnhancedDeviceVerificationFlow() {
   const [deviceData, setDeviceData] = useState<DeviceData>({
     deviceName: '',
     deviceType: '',
+    customDeviceType: '',
+    location: '',
     serialNumber: '',
     manufacturer: '',
     model: '',
@@ -64,9 +70,9 @@ export function EnhancedDeviceVerificationFlow() {
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
   const [submissionSuccess, setSubmissionSuccess] = useState(false)
+  const [hasShownFirstSaveToast, setHasShownFirstSaveToast] = useState(false)
+  const [failedSaveAttempts, setFailedSaveAttempts] = useState(0)
   
-  const containerRef = useRef<HTMLDivElement>(null)
-  const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const router = useRouter()
   const searchParams = useSearchParams()
   const { saveDraft, loadDraft, loading: draftLoading } = useDraft()
@@ -77,11 +83,37 @@ export function EnhancedDeviceVerificationFlow() {
   // Check for edit mode and load draft if needed
   useEffect(() => {
     const editId = searchParams.get('edit')
+    console.log('🔍 Checking for edit mode, editId:', editId)
     if (editId) {
+      console.log('🔍 Edit mode detected, loading draft:', editId)
       setIsLoadingDraft(true)
       loadDraft(editId).then((loadedData) => {
+        console.log('🔍 Loaded draft data:', loadedData)
         if (loadedData) {
-          setDeviceData(loadedData)
+          // Merge loaded data with default state to ensure all fields are present
+          const defaultState = {
+            deviceName: '',
+            deviceType: '',
+            customDeviceType: '',
+            location: '',
+            serialNumber: '',
+            manufacturer: '',
+            model: '',
+            yearOfManufacture: '',
+            condition: '',
+            specifications: '',
+            purchasePrice: '',
+            currentValue: '',
+            expectedRevenue: '',
+            operationalCosts: '',
+            technicalCertification: null,
+            purchaseProof: null,
+            maintenanceRecords: null,
+            deviceImages: [],
+          }
+          const mergedData = { ...defaultState, ...loadedData }
+          console.log('🔍 Setting device data to:', mergedData)
+          setDeviceData(mergedData)
           setCurrentDraftId(editId)
           toast({
             title: "Draft Loaded",
@@ -89,11 +121,113 @@ export function EnhancedDeviceVerificationFlow() {
           })
         }
         setIsLoadingDraft(false)
-      }).catch(() => {
+      }).catch((error) => {
+        console.error('🔍 Error loading draft:', error)
         setIsLoadingDraft(false)
       })
+    } else {
+      console.log('🔍 No edit mode, checking for localStorage backup')
+      // Check for localStorage backup if no edit mode
+      try {
+        const backup = localStorage.getItem('dobFormBackup')
+        if (backup) {
+          const backupData = JSON.parse(backup)
+          const backupAge = Date.now() - backupData.timestamp
+          
+          // Only restore if backup is less than 1 hour old
+          if (backupAge < 3600000 && backupData.deviceData) {
+            console.log('🔍 Restoring form data from localStorage backup')
+            setDeviceData(backupData.deviceData)
+            // Don't restore the draft ID - let it create a new draft
+            setCurrentDraftId(null)
+            toast({
+              title: "Form Restored",
+              description: "Your form data has been restored from backup.",
+            })
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to restore form from localStorage backup:', error)
+      }
     }
   }, [searchParams, loadDraft, toast])
+
+  const updateDeviceData = useCallback((data: Partial<DeviceData>) => {
+    setDeviceData((prev) => ({ ...prev, ...data }))
+  }, [])
+
+  const handleSaveDraft = async (showToast = true) => {
+    try {
+      console.log('🔍 Saving draft with ID:', currentDraftId)
+      console.log('🔍 Current device data:', deviceData)
+      const savedDraft = await saveDraft(deviceData, currentDraftId || undefined)
+      console.log('🔍 Save response:', savedDraft)
+      if (!currentDraftId && savedDraft) {
+        console.log('🔍 Setting new draft ID:', savedDraft.id)
+        setCurrentDraftId(savedDraft.id)
+      }
+      
+      // Reset failed attempts on successful save
+      setFailedSaveAttempts(0)
+      
+      // Only show toast on first save or when explicitly requested
+      if (showToast && !hasShownFirstSaveToast) {
+        setHasShownFirstSaveToast(true)
+        toast({
+          title: "Draft Saved",
+          description: "Your progress has been automatically saved.",
+        })
+      }
+    } catch (error) {
+      console.error('🔍 Error in handleSaveDraft:', error)
+      // Increment failed attempts
+      setFailedSaveAttempts(prev => prev + 1)
+      // Error is already handled in the hook
+    }
+  }
+
+  // Auto-save functionality to prevent data loss (silent)
+  useEffect(() => {
+    // Auto-save every 10 seconds if there's data (silent) - more frequent than before
+    const autoSaveInterval = setInterval(() => {
+      const hasData = deviceData.deviceName || deviceData.deviceType || deviceData.location
+      // Stop auto-save if we've had too many failed attempts
+      if (hasData && walletConnected && failedSaveAttempts < 3) {
+        handleSaveDraft(false) // Silent save
+      }
+    }, 10000) // 10 seconds instead of 30
+
+    // Save to localStorage as backup every 5 seconds
+    const localStorageInterval = setInterval(() => {
+      const hasData = deviceData.deviceName || deviceData.deviceType || deviceData.location
+      if (hasData) {
+        try {
+          localStorage.setItem('dobFormBackup', JSON.stringify({
+            deviceData,
+            timestamp: Date.now()
+          }))
+        } catch (error) {
+          console.warn('Failed to save form backup to localStorage:', error)
+        }
+      }
+    }, 5000) // 5 seconds
+
+    // Save when user leaves the page (silent)
+    const handleBeforeUnload = () => {
+      const hasData = deviceData.deviceName || deviceData.deviceType || deviceData.location
+      if (hasData && walletConnected) {
+        handleSaveDraft(false) // Silent save
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      clearInterval(autoSaveInterval)
+      clearInterval(localStorageInterval)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [walletConnected, handleSaveDraft, currentDraftId, failedSaveAttempts])
 
   // Always start at step 1 when wallet connects
   useEffect(() => {
@@ -114,10 +248,6 @@ export function EnhancedDeviceVerificationFlow() {
     return () => window.removeEventListener('walletStateChange', onWalletChange)
   }, [])
 
-  const updateDeviceData = useCallback((data: Partial<DeviceData>) => {
-    setDeviceData((prev) => ({ ...prev, ...data }))
-  }, [])
-
   const nextStep = () => {
     if (currentStep < totalSteps) {
       setCurrentStep((prev) => prev + 1)
@@ -126,25 +256,7 @@ export function EnhancedDeviceVerificationFlow() {
 
   const prevStep = () => {
     if (currentStep > 1) {
-      const newStep = currentStep - 1
-      setCurrentStep(newStep)
-      
-      // Smooth scroll to the previous step
-      setTimeout(() => {
-        const targetStep = stepRefs.current[newStep - 1]
-        if (targetStep && containerRef.current) {
-          const container = containerRef.current
-          const targetRect = targetStep.getBoundingClientRect()
-          const containerRect = container.getBoundingClientRect()
-          
-          const scrollTop = container.scrollTop + (targetRect.top - containerRect.top)
-          
-          container.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth'
-          })
-        }
-      }, 100)
+      setCurrentStep(currentStep - 1)
     }
   }
 
@@ -156,34 +268,6 @@ export function EnhancedDeviceVerificationFlow() {
     
     if (step >= 1 && step <= totalSteps && step !== currentStep) {
       setCurrentStep(step)
-      
-      // Smooth scroll to the target step
-      setTimeout(() => {
-        const targetStep = stepRefs.current[step - 1]
-        if (targetStep && containerRef.current) {
-          const container = containerRef.current
-          const targetRect = targetStep.getBoundingClientRect()
-          const containerRect = container.getBoundingClientRect()
-          
-          const scrollTop = container.scrollTop + (targetRect.top - containerRect.top)
-          
-          container.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth'
-          })
-        }
-      }, 100)
-    }
-  }
-
-  const handleSaveDraft = async () => {
-    try {
-      const savedDraft = await saveDraft(deviceData, currentDraftId || undefined)
-      if (!currentDraftId && savedDraft) {
-        setCurrentDraftId(savedDraft.id)
-      }
-    } catch (error) {
-      // Error is already handled in the hook
     }
   }
 
@@ -193,23 +277,21 @@ export function EnhancedDeviceVerificationFlow() {
       "STEP 1: BASIC INFORMATION",
       "1. Device Name: " + (deviceData.deviceName || "Not provided"),
       "2. Device Type: " + (deviceData.deviceType || "Not provided"),
-      "3. Serial Number: " + (deviceData.serialNumber || "Not provided"),
-      "4. Manufacturer: " + (deviceData.manufacturer || "Not provided"),
+      "3. Location: " + (deviceData.location || "Not provided"),
       "\nSTEP 2: TECHNICAL INFORMATION",
-      "5. Model: " + (deviceData.model || "Not provided"),
-      "6. Year of Manufacture: " + (deviceData.yearOfManufacture || "Not provided"),
-      "7. Condition: " + (deviceData.condition || "Not provided"),
-      "8. Specifications: " + (deviceData.specifications || "Not provided"),
+      "4. Year of Manufacture: " + (deviceData.yearOfManufacture || "Not provided"),
+      "5. Condition: " + (deviceData.condition || "Not provided"),
+      "6. Specifications: " + (deviceData.specifications || "Not provided"),
       "\nSTEP 3: FINANCIAL INFORMATION",
-      "9. Purchase Price: " + (deviceData.purchasePrice || "Not provided"),
-      "10. Current Value: " + (deviceData.currentValue || "Not provided"),
-      "11. Expected Revenue: " + (deviceData.expectedRevenue || "Not provided"),
-      "12. Operational Costs: " + (deviceData.operationalCosts || "Not provided"),
+      "7. Purchase Price: " + (deviceData.purchasePrice || "Not provided"),
+      "8. Current Value: " + (deviceData.currentValue || "Not provided"),
+      "9. Expected Revenue: " + (deviceData.expectedRevenue || "Not provided"),
+      "10. Operational Costs: " + (deviceData.operationalCosts || "Not provided"),
       "\nSTEP 4: DOCUMENTATION",
-      "13. Technical Certification: " + (deviceData.technicalCertification ? "Uploaded" : "Not uploaded"),
-      "14. Purchase Proof: " + (deviceData.purchaseProof ? "Uploaded" : "Not uploaded"),
-      "15. Maintenance Records: " + (deviceData.maintenanceRecords ? "Uploaded" : "Not uploaded"),
-      "16. Device Images: " + (deviceData.deviceImages.length > 0 ? `${deviceData.deviceImages.length} images uploaded` : "No images uploaded"),
+      "11. Technical Certification: " + (deviceData.technicalCertification ? "Uploaded" : "Not uploaded"),
+      "12. Purchase Proof: " + (deviceData.purchaseProof ? "Uploaded" : "Not uploaded"),
+      "13. Maintenance Records: " + (deviceData.maintenanceRecords ? "Uploaded" : "Not uploaded"),
+      "14. Device Images: " + (deviceData.deviceImages.length > 0 ? `${deviceData.deviceImages.length} images uploaded` : "No images uploaded"),
       "\n=== END OF FORM ==="
     ].join('\n')
 
@@ -288,129 +370,79 @@ export function EnhancedDeviceVerificationFlow() {
     </div>
   )
 
-  // Multi-step View Component with smooth scroll
+  // Multi-step View Component (show all cards for scrolling)
   const MultiStepView = () => (
-    <div 
-      ref={containerRef}
-      className="relative h-[70vh] overflow-y-auto overflow-x-hidden"
-    >
-      <div className="relative min-h-full">
-        {/* Step 1 */}
-        <div
-          ref={(el) => { stepRefs.current[0] = el }}
-          className={`min-h-[70vh] flex items-center justify-center ${
-            currentStep === 1 
-              ? 'opacity-100' 
-              : 'opacity-50'
-          }`}
-        >
-          <div className="w-full max-w-2xl p-8">
-            <DeviceBasicInfo deviceData={deviceData} updateDeviceData={updateDeviceData} onNext={nextStep} />
-          </div>
-        </div>
-
-        {/* Step 2 */}
-        <div
-          ref={(el) => { stepRefs.current[1] = el }}
-          className={`min-h-[70vh] flex items-center justify-center ${
-            currentStep === 2 
-              ? 'opacity-100' 
-              : 'opacity-50'
-          }`}
-        >
-          <div className="w-full max-w-2xl p-8">
-            <DeviceTechnicalInfo
-              deviceData={deviceData}
-              updateDeviceData={updateDeviceData}
-              onNext={nextStep}
-              onBack={prevStep}
-            />
-          </div>
-        </div>
-
-        {/* Step 3 */}
-        <div
-          ref={(el) => { stepRefs.current[2] = el }}
-          className={`min-h-[70vh] flex items-center justify-center ${
-            currentStep === 3 
-              ? 'opacity-100' 
-              : 'opacity-50'
-          }`}
-        >
-          <div className="w-full max-w-2xl p-8">
-            <DeviceFinancialInfo
-              deviceData={deviceData}
-              updateDeviceData={updateDeviceData}
-              onNext={nextStep}
-              onBack={prevStep}
-            />
-          </div>
-        </div>
-
-        {/* Step 4 */}
-        <div
-          ref={(el) => { stepRefs.current[3] = el }}
-          className={`min-h-[70vh] flex items-center justify-center ${
-            currentStep === 4 
-              ? 'opacity-100' 
-              : 'opacity-50'
-          }`}
-        >
-          <div className="w-full max-w-2xl p-8">
-            <DeviceDocumentation
-              deviceData={deviceData}
-              updateDeviceData={updateDeviceData}
-              onNext={nextStep}
-              onBack={prevStep}
-            />
-          </div>
-        </div>
-
-        {/* Step 5 */}
-        <div
-          ref={(el) => { stepRefs.current[4] = el }}
-          className={`min-h-[70vh] flex items-center justify-center ${
-            currentStep === 5 
-              ? 'opacity-100' 
-              : 'opacity-50'
-          }`}
-        >
-          <div className="w-full max-w-2xl p-8">
-            <DeviceReview
-              deviceData={deviceData}
-              onNext={nextStep}
-              onBack={prevStep}
-              onSubmissionSuccess={handleSubmissionSuccess}
-            />
-          </div>
-        </div>
-
-        {/* Step 6 - Only show if submission is successful */}
-        {submissionSuccess && (
-          <div
-            ref={(el) => { stepRefs.current[5] = el }}
-            className={`min-h-[70vh] flex items-center justify-center ${
-              currentStep === 6 
-                ? 'opacity-100' 
-                : 'opacity-50'
-            }`}
-          >
-            <div className="w-full max-w-2xl p-8">
-              <DeviceSuccess showModal={submissionSuccess} />
-            </div>
-          </div>
-        )}
+    <div className="relative space-y-12">
+      {/* Step 1 */}
+      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+        <DeviceBasicInfo 
+          deviceData={deviceData} 
+          updateDeviceData={updateDeviceData} 
+          onNext={nextStep}
+          onSaveDraft={handleSaveDraft}
+        />
       </div>
+
+      {/* Step 2 */}
+      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+        <DeviceTechnicalInfo
+          deviceData={deviceData}
+          updateDeviceData={updateDeviceData}
+          onNext={nextStep}
+          onBack={prevStep}
+          onSaveDraft={handleSaveDraft}
+        />
+      </div>
+
+      {/* Step 3 */}
+      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+        <DeviceFinancialInfo
+          deviceData={deviceData}
+          updateDeviceData={updateDeviceData}
+          onNext={nextStep}
+          onBack={prevStep}
+          onSaveDraft={handleSaveDraft}
+        />
+      </div>
+
+      {/* Step 4 */}
+      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+        <DeviceDocumentation
+          deviceData={deviceData}
+          updateDeviceData={updateDeviceData}
+          onNext={nextStep}
+          onBack={prevStep}
+          onSaveDraft={handleSaveDraft}
+        />
+      </div>
+
+      {/* Step 5 */}
+      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+        <DeviceReview
+          deviceData={deviceData}
+          onNext={nextStep}
+          onBack={prevStep}
+          onSaveDraft={handleSaveDraft}
+          onSubmissionSuccess={handleSubmissionSuccess}
+        />
+      </div>
+
+      {/* Step 6 */}
+      {submissionSuccess && (
+        <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+          <DeviceSuccess />
+        </div>
+      )}
     </div>
   )
 
   return (
     <>
-      {/* Step-by-step view - fixed height with scroll */}
-      <div className="h-screen py-8 px-4 overflow-hidden">
-        <div className="container mx-auto h-full flex flex-col">
+      {/* Multi-step view with natural scrolling */}
+      <div className="min-h-screen py-8 px-4">
+        <div className="container mx-auto">
           {/* Header with Download */}
-          <div className="flex justify-end items-center mb-8 gap-4 flex-shrink-0">
+          <div className="flex justify-end items-center mb-8 gap-4">
             <div className="flex items-center space-x-2">
               <Button
                 onClick={downloadFormQuestions}
@@ -444,11 +476,9 @@ export function EnhancedDeviceVerificationFlow() {
           {/* Step Indicator */}
           <StepIndicator />
 
-          {/* Form Content - Fixed height with scroll */}
-          <div className="flex-1 overflow-hidden">
-            <div className="max-w-4xl mx-auto h-full">
-              <MultiStepView />
-            </div>
+          {/* Form Content - Natural scrolling */}
+          <div className="max-w-4xl mx-auto">
+            <MultiStepView />
           </div>
         </div>
       </div>
