@@ -15,8 +15,7 @@ export interface Database {
           wallet_address: string
           email: string | null
           name: string | null
-          company: string | null
-          role: 'OPERATOR' | 'ADMIN'
+          role: 'USER' | 'ADMIN'
           created_at: string
           updated_at: string
         }
@@ -25,8 +24,7 @@ export interface Database {
           wallet_address: string
           email?: string | null
           name?: string | null
-          company?: string | null
-          role?: 'OPERATOR' | 'ADMIN'
+          role?: 'USER' | 'ADMIN'
           created_at?: string
           updated_at?: string
         }
@@ -35,8 +33,7 @@ export interface Database {
           wallet_address?: string
           email?: string | null
           name?: string | null
-          company?: string | null
-          role?: 'OPERATOR' | 'ADMIN'
+          role?: 'USER' | 'ADMIN'
           created_at?: string
           updated_at?: string
         }

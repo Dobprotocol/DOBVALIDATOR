@@ -1,6 +1,6 @@
 # Backoffice Deployment Version
 
-## Current Version: 2.0.2
+## Current Version: 2.0.3
 
 ### Changes in this deployment:
 
@@ -10,6 +10,8 @@
 - ✅ Fixed CORS errors by removing hardcoded localhost URLs
 - ✅ Updated API service to use relative routes
 - ✅ Added authentication API routes (/api/auth/challenge, /api/auth/verify)
+- ✅ Added submissions API route (/api/submissions)
+- ✅ Fixed user role types to match database schema
 - ✅ Ready for production deployment
 
 ### Deployment Date: $(date)
@@ -28,5 +30,6 @@
 - Certificate generation
 - Dashboard analytics
 - Admin authentication with wallet
+- Submissions listing and filtering
 
 ### Status: Ready for Production
