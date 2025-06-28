@@ -83,11 +83,27 @@ export const profileService = {
 // SUBMISSION SERVICES
 // =====================
 
+// Helper function to convert status to Prisma enum
+function mapStatusToPrismaEnum(status: string): 'DRAFT' | 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | undefined {
+  const statusMap: Record<string, 'DRAFT' | 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'> = {
+    'draft': 'DRAFT',
+    'pending': 'PENDING',
+    'under_review': 'UNDER_REVIEW',
+    'under review': 'UNDER_REVIEW',
+    'approved': 'APPROVED',
+    'rejected': 'REJECTED'
+  }
+  
+  return statusMap[status.toLowerCase()]
+}
+
 export const submissionService = {
   // Create submission
   async create(userId: string, data: {
     deviceName: string
     deviceType: string
+    customDeviceType?: string
+    location: string
     serialNumber: string
     manufacturer: string
     model: string
@@ -116,6 +132,8 @@ export const submissionService = {
       },
       include: {
         files: true,
+        adminReview: true,
+        certificate: true,
         user: {
           select: {
             walletAddress: true,
@@ -155,9 +173,12 @@ export const submissionService = {
     const where: any = {
       user: { walletAddress }
     }
-
+    
     if (options?.status) {
-      where.status = options.status
+      const mappedStatus = mapStatusToPrismaEnum(options.status)
+      if (mappedStatus) {
+        where.status = mappedStatus
+      }
     }
 
     const [submissions, total] = await Promise.all([
@@ -166,7 +187,14 @@ export const submissionService = {
         include: {
           files: true,
           adminReview: true,
-          certificate: true
+          certificate: true,
+          user: {
+            select: {
+              walletAddress: true,
+              name: true,
+              email: true
+            }
+          }
         },
         orderBy: { submittedAt: 'desc' },
         take: options?.limit || 10,
@@ -182,7 +210,7 @@ export const submissionService = {
     }
   },
 
-  // Get all submissions (for admin)
+  // Get all submissions (admin only)
   async getAll(options?: {
     status?: string
     limit?: number
@@ -190,7 +218,10 @@ export const submissionService = {
   }) {
     const where: any = {}
     if (options?.status) {
-      where.status = options.status
+      const mappedStatus = mapStatusToPrismaEnum(options.status)
+      if (mappedStatus) {
+        where.status = mappedStatus
+      }
     }
 
     const [submissions, total] = await Promise.all([
@@ -224,7 +255,15 @@ export const submissionService = {
 
   // Update submission
   async update(id: string, data: any) {
-    const { adminNotes, ...submissionData } = data
+    const { adminNotes, status, ...submissionData } = data
+    
+    // Map status to Prisma enum if provided
+    if (status) {
+      const mappedStatus = mapStatusToPrismaEnum(status)
+      if (mappedStatus) {
+        submissionData.status = mappedStatus
+      }
+    }
     
     // If adminNotes are provided, create or update AdminReview
     if (adminNotes !== undefined) {
