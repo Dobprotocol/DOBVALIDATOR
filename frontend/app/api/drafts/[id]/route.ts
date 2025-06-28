@@ -25,7 +25,7 @@ export async function DELETE(
     console.log('🔍 Deleting draft ID:', draftId)
 
     // Forward to backend database
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'
     const authToken = request.headers.get('authorization')
     console.log('🔍 Backend URL:', backendUrl)
     console.log('🔍 Auth token present:', !!authToken)

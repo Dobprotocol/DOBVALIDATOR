@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001' // For backend-only endpoints
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001' // For backend-only endpoints
 
 class ApiService {
   private baseUrl: string
@@ -128,63 +128,7 @@ class ApiService {
       hasMore: boolean
     }>(endpoint)
   }
-
-  async getSubmission(id: string) {
-    return this.request<{ success: boolean; submission: any }>(`/api/submissions/${id}`)
-  }
-
-  async createSubmission(submissionData: any) {
-    return this.request<{ success: boolean; submission: any }>('/api/submissions', {
-      method: 'POST',
-      body: JSON.stringify(submissionData),
-    })
-  }
-
-  // Device submission (use frontend API route)
-  async submitDevice(formData: FormData) {
-    const token = this.getAuthToken()
-    const headers: Record<string, string> = {}
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    try {
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        body: formData,
-        headers,
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        const error = new Error(data.error || 'Submission failed')
-        ;(error as any).status = response.status
-        ;(error as any).errors = data.errors
-        throw error
-      }
-
-      return data
-    } catch (error) {
-      console.error('Device submission failed:', error)
-      throw error
-    }
-  }
-
-  // Admin endpoints
-  async updateSubmissionStatus(id: string, status: string, adminNotes?: string) {
-    return this.request<{ success: boolean; submission: any }>(`/api/submissions/${id}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status, adminNotes }),
-    })
-  }
-
-  // Health check
-  async healthCheck() {
-    return this.request<{ status: string; timestamp: string }>('/health')
-  }
 }
 
 export const apiService = new ApiService()
-export default apiService 
+export default apiService

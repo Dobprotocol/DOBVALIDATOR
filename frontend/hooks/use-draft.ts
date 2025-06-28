@@ -154,7 +154,7 @@ export function useDraft() {
       console.log('🔍 Loading draft with ID:', draftId)
       
       // Get draft directly from backend database
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+      const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'
       const response = await fetch(`${backendUrl}/api/drafts/${draftId}`, {
         headers: {
           'Authorization': `Bearer ${tokenData.token}`
