@@ -6,116 +6,108 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Schema debug endpoint called')
+    console.log('🔍 Debug schema endpoint called')
     
-    // Test 1: Check users table structure
-    console.log('🔍 Testing users table...')
-    const { data: usersTest, error: usersTestError } = await supabase
-      .from('users')
-      .select('id, wallet_address, email, name, role, created_at, updated_at')
-      .limit(1)
+    // Get all tables in the public schema
+    const { data: tables, error: tablesError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
     
-    console.log('🔍 Users test result:', { usersTest, usersTestError })
+    console.log('🔍 Tables in public schema:', { tables, tablesError })
     
-    // Test 2: Check profiles table structure
-    console.log('🔍 Testing profiles table...')
-    const { data: profilesTest, error: profilesTestError } = await supabase
-      .from('profiles')
-      .select('id, user_id, contact_person, company_name, phone, website, description, industry, address, country, created_at, updated_at')
-      .limit(1)
+    // Get all columns in the users table
+    const { data: userColumns, error: userColumnsError } = await supabase
+      .from('information_schema.columns')
+      .select('column_name, data_type, is_nullable, column_default')
+      .eq('table_schema', 'public')
+      .eq('table_name', 'users')
     
-    console.log('🔍 Profiles test result:', { profilesTest, profilesTestError })
+    console.log('🔍 Users table columns:', { userColumns, userColumnsError })
     
-    // Test 3: Try to create a user with our expected schema
-    console.log('🔍 Testing user creation...')
-    const testWallet = 'TEST_WALLET_' + Date.now()
-    const { data: newUser, error: newUserError } = await supabase
+    // Get all enums in the public schema
+    const { data: enums, error: enumsError } = await supabase
+      .from('pg_enum')
+      .select('enumlabel')
+      .eq('enumtypid', (
+        await supabase
+          .from('pg_type')
+          .select('oid')
+          .eq('typname', 'user_role')
+          .single()
+      ).data?.oid)
+    
+    console.log('🔍 User role enum values:', { enums, enumsError })
+    
+    // Try to get the actual enum type definition
+    const { data: enumType, error: enumTypeError } = await supabase
+      .from('pg_type')
+      .select('typname, typtype')
+      .eq('typname', 'user_role')
+    
+    console.log('🔍 User role enum type:', { enumType, enumTypeError })
+    
+    // Try to create a user without specifying role (let database use default)
+    const testWalletAddress = `TEST_WALLET_DEFAULT_${Date.now()}`
+    const { data: testUserDefault, error: testUserDefaultError } = await supabase
       .from('users')
       .insert({
-        wallet_address: testWallet,
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'USER'
+        wallet_address: testWalletAddress,
+        email: 'test-default@example.com',
+        name: 'Test Default Role'
+        // No role specified - let database use default
       })
       .select()
       .single()
     
-    console.log('🔍 New user result:', { newUser, newUserError })
-    
-    // Test 4: Try to create a profile with our expected schema
-    let newProfile = null
-    let newProfileError = null
-    if (newUser) {
-      console.log('🔍 Testing profile creation...')
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: newUser.id,
-          contact_person: 'Test Contact',
-          company_name: 'Test Company',
-          phone: '123-456-7890',
-          website: 'https://example.com',
-          description: 'Test description',
-          industry: 'Technology',
-          address: 'Test Address',
-          country: 'Test Country'
-        })
-        .select()
-        .single()
-      
-      newProfile = profile
-      newProfileError = profileError
-      console.log('🔍 New profile result:', { newProfile, newProfileError })
-      
-      // Clean up
-      if (newProfile) {
-        await supabase.from('profiles').delete().eq('id', newProfile.id)
-      }
-      await supabase.from('users').delete().eq('id', newUser.id)
+    // Clean up test data
+    if (testUserDefault) {
+      await supabase.from('users').delete().eq('wallet_address', testWalletAddress)
     }
     
-    // Test 5: Check what fields actually exist by trying different combinations
-    console.log('🔍 Testing field combinations...')
-    const { data: fieldTest, error: fieldTestError } = await supabase
-      .from('profiles')
-      .select('*')
-      .limit(0)
+    // Try to get existing users to see what roles they have
+    const { data: existingUsers, error: existingUsersError } = await supabase
+      .from('users')
+      .select('wallet_address, role, created_at')
+      .limit(5)
     
-    console.log('🔍 Field test result:', { fieldTest, fieldTestError })
+    console.log('🔍 Existing users:', { existingUsers, existingUsersError })
     
     return NextResponse.json({
       success: true,
-      usersTable: {
-        selectTest: {
-          success: !usersTestError,
-          error: usersTestError?.message,
-          data: usersTest
-        },
-        insertTest: {
-          success: !newUserError,
-          error: newUserError?.message,
-          data: newUser
-        }
+      tables: {
+        success: !tablesError,
+        error: tablesError?.message,
+        data: tables
       },
-      profilesTable: {
-        selectTest: {
-          success: !profilesTestError,
-          error: profilesTestError?.message,
-          data: profilesTest
-        },
-        insertTest: {
-          success: !newProfileError,
-          error: newProfileError?.message,
-          data: newProfile
-        },
-        fieldTest: {
-          success: !fieldTestError,
-          error: fieldTestError?.message
-        }
+      userColumns: {
+        success: !userColumnsError,
+        error: userColumnsError?.message,
+        data: userColumns
+      },
+      enums: {
+        success: !enumsError,
+        error: enumsError?.message,
+        data: enums
+      },
+      enumType: {
+        success: !enumTypeError,
+        error: enumTypeError?.message,
+        data: enumType
+      },
+      testUserDefault: {
+        success: !testUserDefaultError,
+        error: testUserDefaultError?.message,
+        data: testUserDefault
+      },
+      existingUsers: {
+        success: !existingUsersError,
+        error: existingUsersError?.message,
+        data: existingUsers
       }
     })
   } catch (error) {
-    console.error('❌ Error in schema debug endpoint:', error)
+    console.error('❌ Error in debug schema endpoint:', error)
     return NextResponse.json(
       { 
         success: false,

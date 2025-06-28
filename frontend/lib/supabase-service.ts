@@ -37,8 +37,31 @@ export class SupabaseService {
     company?: string
     role?: 'OPERATOR' | 'ADMIN' | 'USER' | 'user' | 'operator' | 'admin'
   }) {
-    // Try different role values if the provided one fails
-    // Based on the error, let's try lowercase values first
+    // First, try without specifying role (let database use default)
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .upsert({ 
+          wallet_address: userData.wallet_address,
+          email: userData.email,
+          name: userData.name,
+          company: userData.company
+          // No role specified - let database use default
+        }, { onConflict: 'wallet_address' })
+        .select()
+        .single()
+      
+      if (!error) {
+        console.log(`✅ Successfully upserted user without specifying role (using default)`)
+        return data
+      }
+      
+      console.log(`❌ Failed to upsert user without role:`, error.message)
+    } catch (error) {
+      console.log(`❌ Exception upserting user without role:`, error.message)
+    }
+    
+    // If that fails, try different role values
     const roleValues = [
       userData.role, 
       'user', 'admin', 'operator',  // lowercase
