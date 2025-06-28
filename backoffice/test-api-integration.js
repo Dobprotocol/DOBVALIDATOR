@@ -5,7 +5,8 @@
  * This script tests the connection between backoffice and frontend API
  */
 
-const API_BASE = 'http://localhost:3001/api'
+// For local dev only:
+const API_BASE = process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api';
 
 // Test configuration
 const TEST_CONFIG = {

@@ -51,11 +51,11 @@ class ApiService {
   private getAuthToken: () => string | null
 
   constructor() {
-    // In development, the backoffice runs on port 3000 and frontend API on port 3001
+    // In production, always use Next.js API routes (relative /api)
+    // In development, use NEXT_PUBLIC_API_BASE_URL or fallback to localhost
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? '/api' 
       : process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'
-    
     this.baseUrl = baseUrl
     
     this.getAuthToken = () => {
