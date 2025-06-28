@@ -119,60 +119,104 @@ export async function POST(request: NextRequest) {
     const walletAddress = auth.user.walletAddress
     console.log('🔍 Creating profile for wallet:', walletAddress)
     
-    // Test Supabase connection first
+    // Test Supabase connection first with detailed error logging
     console.log('🔍 Testing Supabase connection...')
-    const { data: testData, error: testError } = await supabase
-      .from('users')
-      .select('count')
-      .limit(1)
+    console.log('🔍 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'present' : 'missing')
+    console.log('🔍 Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'present' : 'missing')
     
-    if (testError) {
-      console.error('❌ Supabase connection failed:', testError)
-      return NextResponse.json(
-        { error: 'Database connection failed', details: testError.message },
-        { status: 500 }
-      )
-    }
-    
-    console.log('✅ Supabase connection successful')
-    
-    // Try to get existing user first
-    console.log('🔍 Checking for existing user...')
-    let user = await supabaseService.getUserByWallet(walletAddress)
-    
-    if (!user) {
-      console.log('🔍 User not found, creating user directly...')
-      
-      // Try to create user directly with minimal data first
-      const { data: newUser, error: userError } = await supabase
+    try {
+      const { data: testData, error: testError } = await supabase
         .from('users')
-        .insert({
-          wallet_address: walletAddress,
-          email: profileData.email,
-          name: profileData.name
-          // Don't specify role - let it use default
-        })
-        .select()
-        .single()
+        .select('count')
+        .limit(1)
       
-      if (userError) {
-        console.error('❌ Failed to create user:', userError)
+      if (testError) {
+        console.error('❌ Supabase connection failed:', testError)
+        console.error('❌ Error code:', testError.code)
+        console.error('❌ Error message:', testError.message)
+        console.error('❌ Error details:', testError.details)
         return NextResponse.json(
-          { error: 'Failed to create user account', details: userError.message },
+          { error: 'Database connection failed', details: testError.message },
           { status: 500 }
         )
       }
       
-      user = newUser
-      console.log('✅ User created successfully:', user)
+      console.log('✅ Supabase connection successful')
+    } catch (connectionError) {
+      console.error('❌ Supabase connection exception:', connectionError)
+      return NextResponse.json(
+        { error: 'Database connection exception', details: connectionError.message },
+        { status: 500 }
+      )
+    }
+    
+    // Try to get existing user first
+    console.log('🔍 Checking for existing user...')
+    let user
+    try {
+      user = await supabaseService.getUserByWallet(walletAddress)
+      console.log('🔍 User lookup result:', user ? 'found' : 'not found')
+    } catch (userError) {
+      console.error('❌ Error getting user by wallet:', userError)
+      return NextResponse.json(
+        { error: 'Failed to check existing user', details: userError.message },
+        { status: 500 }
+      )
+    }
+    
+    if (!user) {
+      console.log('🔍 User not found, creating user directly...')
+      
+      try {
+        // Try to create user directly with minimal data first
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            wallet_address: walletAddress,
+            email: profileData.email,
+            name: profileData.name
+            // Don't specify role - let it use default
+          })
+          .select()
+          .single()
+        
+        if (userError) {
+          console.error('❌ Failed to create user:', userError)
+          console.error('❌ Error code:', userError.code)
+          console.error('❌ Error message:', userError.message)
+          console.error('❌ Error details:', userError.details)
+          return NextResponse.json(
+            { error: 'Failed to create user account', details: userError.message },
+            { status: 500 }
+          )
+        }
+        
+        user = newUser
+        console.log('✅ User created successfully:', user)
+      } catch (createUserError) {
+        console.error('❌ Exception creating user:', createUserError)
+        return NextResponse.json(
+          { error: 'Exception creating user', details: createUserError.message },
+          { status: 500 }
+        )
+      }
     } else {
       console.log('🔍 Existing user found:', user)
     }
     
     // Check if profile already exists
     console.log('🔍 Checking for existing profile...')
-    const existingProfile = await supabaseService.getProfileByUserId(user.id)
-    console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
+    let existingProfile
+    try {
+      existingProfile = await supabaseService.getProfileByUserId(user.id)
+      console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
+    } catch (profileError) {
+      console.error('❌ Error checking existing profile:', profileError)
+      return NextResponse.json(
+        { error: 'Failed to check existing profile', details: profileError.message },
+        { status: 500 }
+      )
+    }
     
     // Prepare profile data for Supabase - updated to match actual schema
     const supabaseProfileData = {
@@ -192,8 +236,17 @@ export async function POST(request: NextRequest) {
 
     // Create or update profile in Supabase
     console.log('🔍 Upserting profile...')
-    const profile = await supabaseService.upsertProfile(supabaseProfileData)
-    console.log('🔍 Profile stored successfully:', profile)
+    let profile
+    try {
+      profile = await supabaseService.upsertProfile(supabaseProfileData)
+      console.log('🔍 Profile stored successfully:', profile)
+    } catch (upsertError) {
+      console.error('❌ Error upserting profile:', upsertError)
+      return NextResponse.json(
+        { error: 'Failed to save profile', details: upsertError.message },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
