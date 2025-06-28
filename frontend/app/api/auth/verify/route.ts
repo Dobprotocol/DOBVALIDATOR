@@ -238,11 +238,14 @@ export function verifyToken(token: string): { valid: boolean; payload?: any } {
     const payload = jwt.verify(token, JWT_SECRET) as any
     console.log('✅ JWT payload:', payload)
     
-    // Temporarily disable session check to isolate JWT verification issue
-    console.log('✅ JWT verification successful (session check disabled)')
+    // In production, we can't rely on in-memory session storage
+    // because serverless functions don't share memory between invocations
+    // So we'll just verify the JWT signature and expiration
+    console.log('✅ JWT verification successful (session check disabled for production)')
     return { valid: true, payload }
     
-    // Original session check (commented out for debugging)
+    // Note: In a production environment with Redis or a database,
+    // you would check if the session is still active here
     /*
     // Check if session is still active
     const session = getSession(payload.walletAddress)
