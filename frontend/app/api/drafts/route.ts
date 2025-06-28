@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Validated data:', validatedData)
     
     // Forward to backend database
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'
     const authToken = request.headers.get('authorization')
     console.log('🔍 Backend URL:', backendUrl)
     console.log('🔍 Auth token present:', !!authToken)
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get('offset') || '0'
     
     // Forward to backend database
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'
     const authToken = request.headers.get('authorization')
     
     const response = await fetch(`${backendUrl}/api/drafts?limit=${limit}&offset=${offset}`, {

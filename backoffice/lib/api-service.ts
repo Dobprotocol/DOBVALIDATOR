@@ -52,9 +52,11 @@ class ApiService {
 
   constructor() {
     // In development, the backoffice runs on port 3000 and frontend API on port 3001
-    this.baseUrl = process.env.NODE_ENV === 'production' 
+    const baseUrl = process.env.NODE_ENV === 'production' 
       ? '/api' 
-      : 'http://localhost:3001/api'
+      : process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'
+    
+    this.baseUrl = baseUrl
     
     this.getAuthToken = () => {
       const authData = localStorage.getItem('authToken')
