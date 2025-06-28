@@ -166,3 +166,4 @@ The DOB Validator serves as the critical first step in the device funding proces
 3. Standardizing the onboarding process
 4. Providing a foundation for automated funding decisions
 5. Creating a trusted source of device information
+# Force Vercel redeploy - Sat Jun 28 15:28:08 -04 2025
