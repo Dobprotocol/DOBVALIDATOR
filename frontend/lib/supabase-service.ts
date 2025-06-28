@@ -29,7 +29,7 @@ export class SupabaseService {
     email?: string
     name?: string
     company?: string
-    role?: 'OPERATOR' | 'ADMIN'
+    role?: 'USER' | 'ADMIN'
   }) {
     const { data, error } = await supabase
       .from('users')
@@ -41,12 +41,22 @@ export class SupabaseService {
     return data
   }
 
-  // Get profile by wallet address
+  // Get profile by wallet address (legacy method)
   async getProfileByWallet(walletAddress: string) {
+    // First get the user by wallet address
+    const user = await this.getUserByWallet(walletAddress)
+    if (!user) return null
+    
+    // Then get the profile by user_id
+    return this.getProfileByUserId(user.id)
+  }
+
+  // Get profile by user ID
+  async getProfileByUserId(userId: string) {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('wallet_address', walletAddress)
+      .eq('user_id', userId)
       .single()
     
     if (error && error.code !== 'PGRST116') throw error // PGRST116 is "not found"
@@ -57,7 +67,7 @@ export class SupabaseService {
   async upsertProfile(profileData: ProfileInsert) {
     const { data, error } = await supabase
       .from('profiles')
-      .upsert(profileData, { onConflict: 'wallet_address' })
+      .upsert(profileData, { onConflict: 'user_id' })
       .select()
       .single()
     
@@ -66,11 +76,11 @@ export class SupabaseService {
   }
 
   // Delete profile
-  async deleteProfile(walletAddress: string) {
+  async deleteProfile(userId: string) {
     const { error } = await supabase
       .from('profiles')
       .delete()
-      .eq('wallet_address', walletAddress)
+      .eq('user_id', userId)
     
     if (error) throw error
     return true
