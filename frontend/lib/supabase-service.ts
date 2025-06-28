@@ -19,7 +19,13 @@ export class SupabaseService {
       .eq('wallet_address', walletAddress)
       .single()
     
-    if (error) throw error
+    if (error) {
+      // PGRST116 is "not found" - this is expected when user doesn't exist
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      throw error
+    }
     return data
   }
 
