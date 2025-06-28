@@ -1,45 +1,44 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { PlusCircle, FileText, Edit, Eye, AlertCircle, Loader2, Trash2 } from "lucide-react"
-import { RejectionReviewModal } from "@/components/ui/rejection-review-modal"
-import { CertificateModal } from "@/components/ui/certificate-modal"
-import { AuthGuard } from "@/components/auth-guard"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { apiService } from '@/lib/api-service'
+import { supabaseService } from "@/lib/supabase-service"
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  FileText, 
+  CheckCircle, 
+  XCircle, 
+  Clock,
+  AlertCircle,
+  Loader2
+} from "lucide-react"
 
 interface Submission {
   id: string
-  deviceName: string
-  deviceType: string
-  customDeviceType?: string
+  device_name: string
+  device_type: string
+  custom_device_type?: string
   location: string
-  submittedAt: string
-  status: 'pending' | 'under review' | 'approved' | 'rejected' | 'draft'
-  certificateId?: string
+  submitted_at: string
+  status: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'
+  certificate_id?: string
 }
 
 interface Draft {
   id: string
-  name: string
-  deviceName: string
-  deviceType: string
-  customDeviceType?: string
+  device_name: string
+  device_type: string
+  custom_device_type?: string
   location: string
-  submittedAt: string
-  updatedAt: string
-  status: 'draft'
-}
-
-const statusColor: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  approved: "default",
-  "under review": "secondary",
-  rejected: "destructive",
-  draft: "secondary",
-  pending: "secondary",
+  created_at: string
+  updated_at: string
 }
 
 export default function DashboardPage() {
@@ -50,118 +49,44 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedRejection, setSelectedRejection] = useState<any>(null)
-  const [selectedCertificate, setSelectedCertificate] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<'submissions' | 'drafts'>('submissions')
 
-  // Fetch submissions and drafts from API
   const fetchData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch submissions from backend database
-      try {
-        const authToken = localStorage.getItem('authToken')
-        if (!authToken) {
-          console.log('No auth token found for submissions')
-          setSubmissions([])
-          return
-        }
-
-        const tokenData = JSON.parse(authToken)
-        console.log('Auth token data:', tokenData)
-        console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
-        console.log('Fetching submissions from backend database...')
-        
-        const submissionsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/api/submissions`, {
-          headers: {
-            'Authorization': `Bearer ${tokenData.token}`
-          }
-        })
-
-        if (submissionsResponse.ok) {
-          const submissionsData = await submissionsResponse.json()
-          console.log('Submissions response:', submissionsData)
-          if (submissionsData.success) {
-            console.log('Setting submissions to:', submissionsData.submissions || [])
-            setSubmissions(submissionsData.submissions || [])
-          } else {
-            console.log('Submissions API returned error:', submissionsData.error)
-            setSubmissions([])
-          }
-        } else {
-          console.log('Submissions API request failed:', submissionsResponse.status, submissionsResponse.statusText)
-          // Fall back to frontend submissions if backend is down
-          console.log('Falling back to frontend submissions...')
-          try {
-            const frontendResponse = await fetch('/api/submissions', {
-              headers: {
-                'Authorization': `Bearer ${tokenData.token}`
-              }
-            })
-            if (frontendResponse.ok) {
-              const frontendData = await frontendResponse.json()
-              if (frontendData.success) {
-                console.log('Using frontend submissions:', frontendData.submissions || [])
-                setSubmissions(frontendData.submissions || [])
-              } else {
-                setSubmissions([])
-              }
-            } else {
-              setSubmissions([])
-            }
-          } catch (fallbackError) {
-            console.error('Fallback submissions failed:', fallbackError)
-            setSubmissions([])
-          }
-        }
-      } catch (submissionError) {
-        console.error('Error fetching submissions:', submissionError)
+      // Get wallet address from localStorage
+      const authToken = localStorage.getItem('authToken')
+      if (!authToken) {
+        console.log('No auth token found')
         setSubmissions([])
-      }
-
-      // Fetch drafts from frontend API routes
-      try {
-        const authToken = localStorage.getItem('authToken')
-        if (!authToken) {
-          console.log('No auth token found for drafts')
-          setDrafts([])
-          return
-        }
-
-        const tokenData = JSON.parse(authToken)
-        console.log('Auth token data:', tokenData)
-        console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
-        console.log('Fetching drafts from frontend API...')
-        
-        const draftsResponse = await fetch('/api/drafts', {
-          headers: {
-            'Authorization': `Bearer ${tokenData.token}`
-          }
-        })
-
-        if (draftsResponse.ok) {
-          const draftsData = await draftsResponse.json()
-          console.log('Drafts response:', draftsData)
-          console.log('Drafts response.success:', draftsData.success)
-          console.log('Drafts response.drafts:', draftsData.drafts)
-          console.log('Drafts response.drafts length:', draftsData.drafts?.length)
-          console.log('Drafts response.drafts type:', typeof draftsData.drafts)
-          if (draftsData.success) {
-            console.log('Setting drafts to:', draftsData.drafts || [])
-            setDrafts(draftsData.drafts || [])
-          } else {
-            console.log('Drafts API returned error:', draftsData.error)
-            setDrafts([])
-          }
-        } else {
-          console.log('Drafts API request failed:', draftsResponse.status, draftsResponse.statusText)
-          setDrafts([])
-        }
-      } catch (draftError) {
-        console.error('Error fetching drafts:', draftError)
         setDrafts([])
+        return
       }
+
+      const tokenData = JSON.parse(authToken)
+      const walletAddress = tokenData.walletAddress
+
+      if (!walletAddress) {
+        console.log('No wallet address found in token')
+        setSubmissions([])
+        setDrafts([])
+        return
+      }
+
+      console.log('Fetching data for wallet:', walletAddress)
+
+      // Fetch submissions and drafts using Supabase service
+      const [submissionsData, draftsData] = await Promise.all([
+        supabaseService.getUserSubmissions(walletAddress),
+        supabaseService.getUserDrafts(walletAddress)
+      ])
+
+      console.log('Submissions data:', submissionsData)
+      console.log('Drafts data:', draftsData)
+
+      setSubmissions(submissionsData || [])
+      setDrafts(draftsData || [])
 
     } catch (err: any) {
       console.error('Error fetching data:', err)
@@ -209,52 +134,15 @@ export default function DashboardPage() {
     }
 
     try {
-      const authToken = localStorage.getItem('authToken')
-      if (!authToken) {
-        console.error('❌ No auth token found for delete')
-        toast({
-          title: "Error",
-          description: "Authentication required",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const tokenData = JSON.parse(authToken)
-      console.log('🔍 Auth token data for delete:', { 
-        hasToken: !!tokenData.token, 
-        walletAddress: tokenData.walletAddress 
-      })
+      await supabaseService.deleteDraft(draftId)
       
-      console.log('🔍 Sending delete request to:', `/api/drafts/${draftId}`)
-      
-      const response = await fetch(`/api/drafts/${draftId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${tokenData.token}`
-        }
+      console.log('✅ Draft deleted successfully')
+      toast({
+        title: "Draft Deleted",
+        description: "The draft has been successfully deleted.",
       })
-
-      console.log('🔍 Delete response status:', response.status)
-      console.log('🔍 Delete response ok:', response.ok)
-
-      if (response.ok) {
-        console.log('✅ Draft deleted successfully')
-        toast({
-          title: "Draft Deleted",
-          description: "The draft has been successfully deleted.",
-        })
-        // Refresh the data to update the dashboard
-        await fetchData()
-      } else {
-        const errorData = await response.json()
-        console.error('❌ Delete failed:', errorData)
-        toast({
-          title: "Error",
-          description: errorData.error || "Failed to delete draft",
-          variant: "destructive",
-        })
-      }
+      // Refresh the data to update the dashboard
+      await fetchData()
     } catch (error) {
       console.error('❌ Error deleting draft:', error)
       toast({
@@ -270,7 +158,8 @@ export default function DashboardPage() {
   }
 
   const handleViewCertificate = (device: any) => {
-    setSelectedCertificate(device.certificateData)
+    // Handle certificate viewing
+    console.log('Viewing certificate for device:', device.id)
   }
 
   const formatDate = (dateString: string) => {
@@ -281,291 +170,217 @@ export default function DashboardPage() {
     })
   }
 
-  // Calculate draft completion percentage
   const calculateDraftCompletion = (draft: any) => {
-    const requiredFields = [
-      'deviceName', 'deviceType', 'location', 'serialNumber', 
-      'manufacturer', 'model', 'yearOfManufacture', 'condition', 
-      'specifications', 'purchasePrice', 'currentValue', 
-      'expectedRevenue', 'operationalCosts'
+    const fields = [
+      draft.device_name,
+      draft.device_type,
+      draft.location,
+      draft.serial_number,
+      draft.manufacturer,
+      draft.model,
+      draft.year_of_manufacture,
+      draft.condition,
+      draft.specifications,
+      draft.purchase_price,
+      draft.current_value,
+      draft.expected_revenue,
+      draft.operational_costs
     ]
     
-    const optionalFields = ['customDeviceType']
-    const allFields = [...requiredFields, ...optionalFields]
+    const filledFields = fields.filter(field => field && field.trim() !== '').length
+    const totalFields = fields.length
+    const percentage = Math.round((filledFields / totalFields) * 100)
     
-    let completedFields = 0
-    allFields.forEach(field => {
-      if (draft[field] && draft[field].toString().trim() !== '') {
-        completedFields++
-      }
-    })
-    
-    // Check if files are uploaded
-    if (draft.files && draft.files.length > 0) {
-      completedFields += 2 // Give extra points for files
-    }
-    
-    const percentage = Math.round((completedFields / (allFields.length + 2)) * 100)
-    return Math.min(percentage, 100)
+    return percentage
   }
 
-  // Get status badge component
   const getStatusBadge = (item: any) => {
-    const completion = item.status === 'draft' ? calculateDraftCompletion(item) : null
-    
-    // Map backend status values to frontend status values
-    let status = item.status
-    if (status === 'PENDING') status = 'pending'
-    if (status === 'UNDER_REVIEW') status = 'under review'
-    if (status === 'APPROVED') status = 'approved'
-    if (status === 'REJECTED') status = 'rejected'
-    
-    switch (status) {
+    switch (item.status) {
+      case 'PENDING':
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
+      case 'UNDER_REVIEW':
+        return <Badge variant="outline"><Eye className="w-3 h-3 mr-1" />Under Review</Badge>
+      case 'APPROVED':
+        return <Badge variant="default" className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>
+      case 'REJECTED':
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
       case 'draft':
-        return (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">
-              Draft
-            </Badge>
-            {completion !== null && (
-              <div className="flex items-center gap-1">
-                <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                  <div 
-                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
-                    style={{ width: `${completion}%` }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground">{completion}%</span>
-              </div>
-            )}
-          </div>
-        )
-      case 'pending':
-        return <Badge variant="outline" className="text-xs">Pending</Badge>
-      case 'under review':
-        return <Badge variant="default" className="text-xs">Under Review</Badge>
-      case 'approved':
-        return <Badge variant="default" className="text-xs bg-green-600">Approved</Badge>
-      case 'rejected':
-        return <Badge variant="destructive" className="text-xs">Rejected</Badge>
+        return <Badge variant="outline"><FileText className="w-3 h-3 mr-1" />Draft</Badge>
       default:
-        return <Badge variant="outline" className="text-xs">{item.status}</Badge>
+        return <Badge variant="secondary">{item.status}</Badge>
     }
   }
-
-  // Only show real submissions (not drafts)
-  const realSubmissions = submissions.filter(s => s.status && [
-    'pending', 'under review', 'approved', 'rejected', 'PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'
-  ].includes(s.status))
-  // Only show drafts
-  const onlyDrafts = drafts.filter(d => d.status && (d.status === 'draft' || d.status === 'DRAFT'))
 
   if (loading) {
-  return (
-      <AuthGuard>
-        <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading your dashboard...</p>
         </div>
-      </AuthGuard>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 mx-auto mb-4 text-red-500" />
+          <p className="text-red-500">Error: {error}</p>
+          <Button onClick={fetchData} className="mt-4">Retry</Button>
+        </div>
+      </div>
     )
   }
 
   return (
-    <AuthGuard>
-      {/* Dashboard Content */}
-      <div className="relative mt-20 z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-end mb-8">
-            <Button
-              onClick={handleCreateDevice}
-              className="inline-flex items-center gap-2 text-base py-3 px-6 rounded-lg font-semibold shadow-md bg-blue-600 text-white hover:animate-neon-glow hover:shadow-[0_0_16px_4px_rgba(59,130,246,0.7)] focus-visible:shadow-[0_0_24px_8px_rgba(59,130,246,0.8)] transition-all duration-200"
-            >
-              <PlusCircle className="h-5 w-5" />
-              Validate New Device
-            </Button>
-          </div>
-
-          {error && (
-            <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg bg-background/90 backdrop-blur-sm">
-              <p className="text-destructive text-center">{error}</p>
-            </div>
-          )}
-
-          {/* Device Submissions Table (no tabs) */}
-          <div className="overflow-x-auto mb-12">
-            <table className="min-w-full divide-y divide-border bg-background/90 backdrop-blur-sm rounded-lg shadow-lg">
-              <thead>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Updated</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {realSubmissions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                      No device submissions yet.
-                    </td>
-                  </tr>
-                ) : (
-                  realSubmissions.map((item: any) => {
-                    console.log('Rendering item:', item)
-                    console.log('Item status:', item.status)
-                    console.log('Item type:', typeof item.status)
-                    
-                    // Handle different data structures from backend vs frontend
-                    const deviceName = item.deviceName || item.name || 'Unknown Device'
-                    const deviceType = item.deviceType || 'Unknown Type'
-                    const location = item.location || 'Not specified' // Now properly stored in database
-                    const status = item.status || 'unknown'
-                    const date = item.updatedAt || item.submittedAt || new Date().toISOString()
-                    
-                    console.log('Processed status:', status)
-                    console.log('Is draft?', status === 'draft')
-                    
-                    return (
-                      <tr key={`${status}-${item.id}`}>
-                        <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">
-                          {deviceName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                          {deviceType}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{location}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(item)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(date)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          {(status === "approved" || item.status === "APPROVED") && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="gap-2"
-                              onClick={() => handleViewCertificate(item)}
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Certificate
-                            </Button>
-                          )}
-                          {(status === "rejected" || item.status === "REJECTED") && (
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              className="gap-2"
-                              onClick={() => handleViewRejection(item)}
-                            >
-                              <AlertCircle className="h-4 w-4" />
-                              Review Reason
-                            </Button>
-                          )}
-                          {((status === "under review" || item.status === "UNDER_REVIEW") || 
-                            (status === "pending" || item.status === "PENDING")) && (
-                            <Button size="sm" variant="ghost" className="gap-2" disabled>
-                              <FileText className="h-4 w-4" />
-                              In Review
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Drafts Section */}
-          {onlyDrafts.length > 0 && (
-            <div className="overflow-x-auto">
-              <h2 className="text-lg font-semibold mb-4">Incomplete Drafts</h2>
-              <table className="min-w-full divide-y divide-border bg-background/90 backdrop-blur-sm rounded-lg shadow-lg">
-                <thead>
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Completion</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Updated</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {onlyDrafts.map((draft: any) => {
-                    const deviceName = draft.deviceName || draft.name || 'Unknown Device'
-                    const deviceType = draft.deviceType || 'Unknown Type'
-                    const location = draft.location || 'Not specified'
-                    const date = draft.updatedAt || draft.submittedAt || new Date().toISOString()
-                    const completion = calculateDraftCompletion(draft)
-                    return (
-                      <tr key={`draft-${draft.id}`}>
-                        <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{deviceName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{deviceType}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{location}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                              <div 
-                                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
-                                style={{ width: `${completion}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground">{completion}%</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(date)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="secondary" 
-                              className="gap-2"
-                              onClick={() => handleEditDevice(draft.id)}
-                            >
-                              <Edit className="h-4 w-4" />
-                              Continue Editing
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              className="gap-2"
-                              onClick={() => handleDeleteDraft(draft.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+    <div className="container mx-auto px-4 py-8 mt-20">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Device Dashboard</h1>
+          <p className="text-muted-foreground">Manage your device submissions and drafts</p>
         </div>
+        <Button onClick={handleCreateDevice} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Create New Device
+        </Button>
       </div>
 
-      {/* Modals */}
-      {selectedRejection && (
-        <RejectionReviewModal
-          isOpen={!!selectedRejection}
-          onClose={() => setSelectedRejection(null)}
-          deviceData={selectedRejection}
-        />
+      {/* Drafts Section */}
+      {drafts.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Drafts ({drafts.length})
+            </CardTitle>
+            <CardDescription>
+              Continue working on your device submissions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {drafts.map((draft) => {
+                const completion = calculateDraftCompletion(draft)
+                return (
+                  <Card key={draft.id} className="relative">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">
+                            {draft.device_name || 'Untitled Device'}
+                          </CardTitle>
+                          <CardDescription>
+                            {draft.device_type || 'No type specified'}
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditDevice(draft.id)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteDraft(draft.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Completion:</span>
+                          <span className="font-medium">{completion}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${completion}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Last updated: {formatDate(draft.updated_at)}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {selectedCertificate && (
-        <CertificateModal
-          isOpen={!!selectedCertificate}
-          onClose={() => setSelectedCertificate(null)}
-          certificateData={selectedCertificate}
-        />
+      {/* Submissions Section */}
+      {submissions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Submissions ({submissions.length})
+            </CardTitle>
+            <CardDescription>
+              Track the status of your submitted devices
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {submissions.map((submission) => (
+                <div
+                  key={submission.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold">{submission.device_name}</h3>
+                      {getStatusBadge(submission)}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {submission.device_type} • {submission.location}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Submitted: {formatDate(submission.submitted_at)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    {submission.status === 'APPROVED' && (
+                      <Button variant="outline" size="sm" onClick={() => handleViewCertificate(submission)}>
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
-    </AuthGuard>
+
+      {/* Empty State */}
+      {drafts.length === 0 && submissions.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No devices yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Get started by creating your first device submission
+            </p>
+            <Button onClick={handleCreateDevice}>
+              Create Your First Device
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   )
 } 
