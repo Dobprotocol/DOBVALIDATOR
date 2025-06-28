@@ -1,12 +1,14 @@
 # Backoffice Deployment Version
 
-## Current Version: 2.0.0
+## Current Version: 2.0.1
 
 ### Changes in this deployment:
 
 - ✅ Updated to work with Supabase backend
 - ✅ Maintained admin functionality for submission review
 - ✅ Updated to handle new database schema
+- ✅ Fixed CORS errors by removing hardcoded localhost URLs
+- ✅ Updated API service to use relative routes
 - ✅ Ready for production deployment
 
 ### Deployment Date: $(date)

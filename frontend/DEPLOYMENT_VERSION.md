@@ -1,6 +1,6 @@
 # Frontend Deployment Version
 
-## Current Version: 2.0.0
+## Current Version: 2.0.1
 
 ### Changes in this deployment:
 
@@ -10,6 +10,7 @@
 - ✅ Updated database schema with all required tables
 - ✅ Fixed frontend hooks to use Next.js API routes
 - ✅ Added production deployment guide
+- ✅ Fixed backoffice CORS issues by removing hardcoded localhost URLs
 
 ### Deployment Date: $(date)
 
