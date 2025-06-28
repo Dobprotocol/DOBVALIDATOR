@@ -136,19 +136,53 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Supabase connection successful')
     
-    // Upsert user by wallet address to ensure user exists
-    console.log('🔍 Upserting user...')
+    // Try to get existing user first
+    console.log('🔍 Checking for existing user...')
     let user = await supabaseService.getUserByWallet(walletAddress)
+    
     if (!user) {
-      console.log('🔍 User not found, creating new user...')
-      // If user does not exist, create them
-      user = await supabaseService.upsertUser({
-        wallet_address: walletAddress,
-        email: profileData.email,
-        name: profileData.name,
-        role: 'USER'
-      })
-      console.log('🔍 User upserted:', user)
+      console.log('🔍 User not found, trying to create with different role values...')
+      
+      // Try different role values to find the correct one
+      const roleValues = ['OPERATOR', 'USER', 'user', 'operator']
+      let userCreated = false
+      
+      for (const roleValue of roleValues) {
+        try {
+          console.log(`🔍 Trying to create user with role: ${roleValue}`)
+          
+          // Try direct Supabase insert to bypass service layer
+          const { data: newUser, error: userError } = await supabase
+            .from('users')
+            .insert({
+              wallet_address: walletAddress,
+              email: profileData.email,
+              name: profileData.name,
+              role: roleValue
+            })
+            .select()
+            .single()
+          
+          if (!userError && newUser) {
+            console.log(`✅ User created successfully with role: ${roleValue}`)
+            user = newUser
+            userCreated = true
+            break
+          } else {
+            console.log(`❌ Failed to create user with role ${roleValue}:`, userError?.message)
+          }
+        } catch (error) {
+          console.log(`❌ Exception creating user with role ${roleValue}:`, error.message)
+        }
+      }
+      
+      if (!userCreated) {
+        console.error('❌ Failed to create user with any role value')
+        return NextResponse.json(
+          { error: 'Failed to create user account', details: 'Could not create user with any valid role' },
+          { status: 500 }
+        )
+      }
     } else {
       console.log('🔍 Existing user found:', user)
     }

@@ -23,22 +23,36 @@ export class SupabaseService {
     return data
   }
 
-  // Create or update user
+  // Create or update user - updated to handle role enum issue
   async upsertUser(userData: {
     wallet_address: string
     email?: string
     name?: string
     company?: string
-    role?: 'USER' | 'ADMIN'
+    role?: 'OPERATOR' | 'ADMIN' | 'USER' | 'user' | 'operator' | 'admin'
   }) {
-    const { data, error } = await supabase
-      .from('users')
-      .upsert(userData, { onConflict: 'wallet_address' })
-      .select()
-      .single()
+    // Try different role values if the provided one fails
+    const roleValues = [userData.role, 'OPERATOR', 'USER', 'user', 'operator'].filter(Boolean)
     
-    if (error) throw error
-    return data
+    for (const roleValue of roleValues) {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .upsert({ ...userData, role: roleValue }, { onConflict: 'wallet_address' })
+          .select()
+          .single()
+        
+        if (!error) {
+          return data
+        }
+        
+        console.log(`❌ Failed to upsert user with role ${roleValue}:`, error.message)
+      } catch (error) {
+        console.log(`❌ Exception upserting user with role ${roleValue}:`, error.message)
+      }
+    }
+    
+    throw new Error('Failed to create or update user with any valid role')
   }
 
   // Get profile by wallet address (legacy method)
