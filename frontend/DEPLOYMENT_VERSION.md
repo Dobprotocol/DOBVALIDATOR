@@ -1,6 +1,6 @@
 # Frontend Deployment Version
 
-## Current Version: 2.0.2
+## Current Version: 2.0.3
 
 ### Changes in this deployment:
 
@@ -12,6 +12,8 @@
 - ✅ Added production deployment guide
 - ✅ Fixed backoffice CORS issues by removing hardcoded localhost URLs
 - ✅ Fixed profile creation API to match actual database schema
+- ✅ Added enhanced error handling and debugging for profile API
+- ✅ Added debug endpoint to test Supabase connection
 
 ### Deployment Date: $(date)
 

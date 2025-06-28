@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
 import { supabaseService } from '@/lib/supabase-service'
+import { supabase } from '@/lib/supabase'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -118,9 +119,28 @@ export async function POST(request: NextRequest) {
     const walletAddress = auth.user.walletAddress
     console.log('🔍 Creating profile for wallet:', walletAddress)
     
+    // Test Supabase connection first
+    console.log('🔍 Testing Supabase connection...')
+    const { data: testData, error: testError } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1)
+    
+    if (testError) {
+      console.error('❌ Supabase connection failed:', testError)
+      return NextResponse.json(
+        { error: 'Database connection failed', details: testError.message },
+        { status: 500 }
+      )
+    }
+    
+    console.log('✅ Supabase connection successful')
+    
     // Upsert user by wallet address to ensure user exists
+    console.log('🔍 Upserting user...')
     let user = await supabaseService.getUserByWallet(walletAddress)
     if (!user) {
+      console.log('🔍 User not found, creating new user...')
       // If user does not exist, create them
       user = await supabaseService.upsertUser({
         wallet_address: walletAddress,
@@ -129,9 +149,12 @@ export async function POST(request: NextRequest) {
         role: 'USER'
       })
       console.log('🔍 User upserted:', user)
+    } else {
+      console.log('🔍 Existing user found:', user)
     }
     
     // Check if profile already exists
+    console.log('🔍 Checking for existing profile...')
     const existingProfile = await supabaseService.getProfileByUserId(user.id)
     console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
     
@@ -152,6 +175,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Profile data to store:', supabaseProfileData)
 
     // Create or update profile in Supabase
+    console.log('🔍 Upserting profile...')
     const profile = await supabaseService.upsertProfile(supabaseProfileData)
     console.log('🔍 Profile stored successfully:', profile)
 
@@ -172,9 +196,10 @@ export async function POST(request: NextRequest) {
       message: existingProfile ? 'Profile updated successfully' : 'Profile created successfully'
     })
   } catch (error) {
-    console.error('Error creating/updating profile:', error)
+    console.error('❌ Error creating/updating profile:', error)
+    console.error('❌ Error stack:', error.stack)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }
