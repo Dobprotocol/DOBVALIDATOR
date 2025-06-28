@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001' // Connect to backend server
+const API_BASE_URL = 'http://localhost:3001' // For backend-only endpoints
 
 class ApiService {
   private baseUrl: string
@@ -24,7 +24,9 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
+    // Use absolute URL for backend-only endpoints, but relative for Next.js API routes
+    const isFrontendApi = endpoint.startsWith('/api/')
+    const url = isFrontendApi ? endpoint : `${this.baseUrl}${endpoint}`
     
     // Add cache-busting headers for browser compatibility
     const headers = {
@@ -62,7 +64,7 @@ class ApiService {
     }
   }
 
-  // Authentication
+  // Authentication (use Next.js API routes)
   async generateChallenge(walletAddress: string) {
     return this.request<{ success: boolean; challenge: string }>('/api/auth/challenge', {
       method: 'POST',
@@ -89,7 +91,7 @@ class ApiService {
     })
   }
 
-  // Submissions
+  // Submissions (use backend API)
   async getSubmissions(options?: {
     status?: string
     limit?: number
@@ -139,6 +141,38 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(submissionData),
     })
+  }
+
+  // Device submission (use frontend API route)
+  async submitDevice(formData: FormData) {
+    const token = this.getAuthToken()
+    const headers: Record<string, string> = {}
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    try {
+      const response = await fetch('/api/submit', {
+        method: 'POST',
+        body: formData,
+        headers,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const error = new Error(data.error || 'Submission failed')
+        ;(error as any).status = response.status
+        ;(error as any).errors = data.errors
+        throw error
+      }
+
+      return data
+    } catch (error) {
+      console.error('Device submission failed:', error)
+      throw error
+    }
   }
 
   // Admin endpoints

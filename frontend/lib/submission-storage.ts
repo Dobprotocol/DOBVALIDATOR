@@ -3,11 +3,11 @@
 
 export interface Submission {
   id: string
+  name: string // Add name field for meaningful draft names
   deviceName: string
   deviceType: string
-  serialNumber: string
-  manufacturer: string
-  model: string
+  customDeviceType: string
+  location: string
   yearOfManufacture: string
   condition: string
   specifications: string
@@ -44,6 +44,11 @@ export const submissionStorage = {
 
   // Get a submission by ID
   get: (id: string): Submission | undefined => {
+    return submissions.get(id)
+  },
+
+  // Get a submission by ID (alias for get)
+  getById: (id: string): Submission | undefined => {
     return submissions.get(id)
   },
 
@@ -85,6 +90,7 @@ export const submissionStorage = {
     status?: string
     limit?: number
     offset?: number
+    excludeDrafts?: boolean
   }): { submissions: Submission[], total: number, hasMore: boolean } => {
     let filteredSubmissions = Array.from(submissions.values())
     
@@ -96,6 +102,11 @@ export const submissionStorage = {
     // Filter by status
     if (options.status) {
       filteredSubmissions = filteredSubmissions.filter(sub => sub.status === options.status)
+    }
+    
+    // Exclude drafts if requested
+    if (options.excludeDrafts) {
+      filteredSubmissions = filteredSubmissions.filter(sub => sub.status !== 'draft')
     }
     
     // Sort by submission date (newest first)

@@ -15,7 +15,8 @@ interface Submission {
   id: string
   deviceName: string
   deviceType: string
-  manufacturer: string
+  customDeviceType?: string
+  location: string
   submittedAt: string
   status: 'pending' | 'under review' | 'approved' | 'rejected' | 'draft'
   certificateId?: string
@@ -23,9 +24,11 @@ interface Submission {
 
 interface Draft {
   id: string
+  name: string
   deviceName: string
   deviceType: string
-  manufacturer: string
+  customDeviceType?: string
+  location: string
   submittedAt: string
   updatedAt: string
   status: 'draft'
@@ -57,24 +60,107 @@ export default function DashboardPage() {
         setLoading(true)
         setError(null)
 
-        // Fetch submissions using apiService
-        const submissionsResponse = await apiService.getSubmissions()
-        if (submissionsResponse.success) {
-          setSubmissions(submissionsResponse.submissions)
-        } else {
-          throw new Error('Failed to fetch submissions')
+        // Fetch submissions from backend database
+        try {
+          const authToken = localStorage.getItem('authToken')
+          if (!authToken) {
+            console.log('No auth token found for submissions')
+            setSubmissions([])
+            return
+          }
+
+          const tokenData = JSON.parse(authToken)
+          console.log('Auth token data:', tokenData)
+          console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
+          console.log('Fetching submissions from backend database...')
+          
+          const submissionsResponse = await fetch('http://localhost:3001/api/submissions', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.token}`
+            }
+          })
+
+          if (submissionsResponse.ok) {
+            const submissionsData = await submissionsResponse.json()
+            console.log('Submissions response:', submissionsData)
+            if (submissionsData.success) {
+              console.log('Setting submissions to:', submissionsData.submissions || [])
+              setSubmissions(submissionsData.submissions || [])
+            } else {
+              console.log('Submissions API returned error:', submissionsData.error)
+              setSubmissions([])
+            }
+          } else {
+            console.log('Submissions API request failed:', submissionsResponse.status, submissionsResponse.statusText)
+            // Fall back to frontend submissions if backend is down
+            console.log('Falling back to frontend submissions...')
+            try {
+              const frontendResponse = await fetch('/api/submissions', {
+                headers: {
+                  'Authorization': `Bearer ${tokenData.token}`
+                }
+              })
+              if (frontendResponse.ok) {
+                const frontendData = await frontendResponse.json()
+                if (frontendData.success) {
+                  console.log('Using frontend submissions:', frontendData.submissions || [])
+                  setSubmissions(frontendData.submissions || [])
+                } else {
+                  setSubmissions([])
+                }
+              } else {
+                setSubmissions([])
+              }
+            } catch (fallbackError) {
+              console.error('Fallback submissions failed:', fallbackError)
+              setSubmissions([])
+            }
+          }
+        } catch (submissionError) {
+          console.error('Error fetching submissions:', submissionError)
+          setSubmissions([])
         }
 
-        // Fetch drafts using apiService
+        // Fetch drafts from frontend API routes
         try {
-          const draftsResponse = await apiService.getDrafts()
-          if (draftsResponse.success) {
-            setDrafts(draftsResponse.drafts)
+          const authToken = localStorage.getItem('authToken')
+          if (!authToken) {
+            console.log('No auth token found for drafts')
+            setDrafts([])
+            return
+          }
+
+          const tokenData = JSON.parse(authToken)
+          console.log('Auth token data:', tokenData)
+          console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
+          console.log('Fetching drafts from frontend API...')
+          
+          const draftsResponse = await fetch('/api/drafts', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.token}`
+            }
+          })
+
+          if (draftsResponse.ok) {
+            const draftsData = await draftsResponse.json()
+            console.log('Drafts response:', draftsData)
+            console.log('Drafts response.success:', draftsData.success)
+            console.log('Drafts response.drafts:', draftsData.drafts)
+            console.log('Drafts response.drafts length:', draftsData.drafts?.length)
+            console.log('Drafts response.drafts type:', typeof draftsData.drafts)
+            if (draftsData.success) {
+              console.log('Setting drafts to:', draftsData.drafts || [])
+              setDrafts(draftsData.drafts || [])
+            } else {
+              console.log('Drafts API returned error:', draftsData.error)
+              setDrafts([])
+            }
+          } else {
+            console.log('Drafts API request failed:', draftsResponse.status, draftsResponse.statusText)
+            setDrafts([])
           }
         } catch (draftError) {
-          // Drafts might not be implemented yet, so we'll ignore this error
-          console.log('Drafts not available:', draftError)
-          // Set empty drafts array to avoid undefined errors
+          console.error('Error fetching drafts:', draftError)
           setDrafts([])
         }
 
@@ -119,6 +205,78 @@ export default function DashboardPage() {
     })
   }
 
+  // Calculate draft completion percentage
+  const calculateDraftCompletion = (draft: any) => {
+    const requiredFields = [
+      'deviceName', 'deviceType', 'location', 'serialNumber', 
+      'manufacturer', 'model', 'yearOfManufacture', 'condition', 
+      'specifications', 'purchasePrice', 'currentValue', 
+      'expectedRevenue', 'operationalCosts'
+    ]
+    
+    const optionalFields = ['customDeviceType']
+    const allFields = [...requiredFields, ...optionalFields]
+    
+    let completedFields = 0
+    allFields.forEach(field => {
+      if (draft[field] && draft[field].toString().trim() !== '') {
+        completedFields++
+      }
+    })
+    
+    // Check if files are uploaded
+    if (draft.files && draft.files.length > 0) {
+      completedFields += 2 // Give extra points for files
+    }
+    
+    const percentage = Math.round((completedFields / (allFields.length + 2)) * 100)
+    return Math.min(percentage, 100)
+  }
+
+  // Get status badge component
+  const getStatusBadge = (item: any) => {
+    const completion = item.status === 'draft' ? calculateDraftCompletion(item) : null
+    
+    // Map backend status values to frontend status values
+    let status = item.status
+    if (status === 'PENDING') status = 'pending'
+    if (status === 'UNDER_REVIEW') status = 'under review'
+    if (status === 'APPROVED') status = 'approved'
+    if (status === 'REJECTED') status = 'rejected'
+    
+    switch (status) {
+      case 'draft':
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              Draft
+            </Badge>
+            {completion !== null && (
+              <div className="flex items-center gap-1">
+                <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                  <div 
+                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
+                    style={{ width: `${completion}%` }}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">{completion}%</span>
+              </div>
+            )}
+          </div>
+        )
+      case 'pending':
+        return <Badge variant="outline" className="text-xs">Pending</Badge>
+      case 'under review':
+        return <Badge variant="default" className="text-xs">Under Review</Badge>
+      case 'approved':
+        return <Badge variant="default" className="text-xs bg-green-600">Approved</Badge>
+      case 'rejected':
+        return <Badge variant="destructive" className="text-xs">Rejected</Badge>
+      default:
+        return <Badge variant="outline" className="text-xs">{item.status}</Badge>
+    }
+  }
+
   if (loading) {
   return (
       <AuthGuard>
@@ -157,70 +315,100 @@ export default function DashboardPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Device Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Manufacturer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Updated</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {/* Show rows for submissions and drafts */}
-                {submissions.concat(drafts).length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                      No device submissions or drafts yet.
-                    </td>
-                  </tr>
-                ) : (
-                  submissions.concat(drafts).map((item: any) => (
-                    <tr key={item.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">{item.deviceName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{item.deviceType}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{item.manufacturer}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(item.updatedAt || item.submittedAt)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {item.status === "approved" && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="gap-2"
-                            onClick={() => handleViewCertificate(item)}
-                          >
-                            <Eye className="h-4 w-4" />
-                            View Certificate
-                          </Button>
-                        )}
-                        {item.status === "rejected" && (
-                          <Button 
-                            size="sm" 
-                            variant="destructive" 
-                            className="gap-2"
-                            onClick={() => handleViewRejection(item)}
-                          >
-                            <AlertCircle className="h-4 w-4" />
-                            Review Reason
-                          </Button>
-                        )}
-                        {(item.status === "under review" || item.status === "pending") && (
-                          <Button size="sm" variant="ghost" className="gap-2" disabled>
-                            <FileText className="h-4 w-4" />
-                            In Review
-                          </Button>
-                        )}
-                        {item.status === "draft" && (
-                          <Button 
-                            size="sm" 
-                            variant="secondary" 
-                            className="gap-2"
-                            onClick={() => handleEditDevice(item.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            Continue Editing
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                {(() => {
+                  const allItems = submissions.concat(drafts)
+                  console.log('All items to display:', allItems)
+                  console.log('Submissions count:', submissions.length)
+                  console.log('Drafts count:', drafts.length)
+                  console.log('Total items:', allItems.length)
+                  
+                  if (allItems.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                          No device submissions or drafts yet.
+                        </td>
+                      </tr>
+                    )
+                  }
+                  
+                  return allItems.map((item: any) => {
+                    console.log('Rendering item:', item)
+                    
+                    // Handle different data structures from backend vs frontend
+                    const deviceName = item.deviceName || item.name || 'Unknown Device'
+                    const deviceType = item.deviceType || 'Unknown Type'
+                    const location = item.location || 'Unknown Location'
+                    const status = item.status || 'unknown'
+                    const date = item.updatedAt || item.submittedAt || new Date().toISOString()
+                    
+                    return (
+                      <tr key={`${status}-${item.id}`}>
+                        <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">
+                          {deviceName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                          {deviceType}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{location}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(item)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{formatDate(date)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          {(status === "approved" || item.status === "APPROVED") && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="gap-2"
+                              onClick={() => handleViewCertificate(item)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Certificate
+                            </Button>
+                          )}
+                          {(status === "rejected" || item.status === "REJECTED") && (
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              className="gap-2"
+                              onClick={() => handleViewRejection(item)}
+                            >
+                              <AlertCircle className="h-4 w-4" />
+                              Review Reason
+                            </Button>
+                          )}
+                          {((status === "under review" || item.status === "UNDER_REVIEW") || 
+                            (status === "pending" || item.status === "PENDING")) && (
+                            <Button size="sm" variant="ghost" className="gap-2" disabled>
+                              <FileText className="h-4 w-4" />
+                              In Review
+                            </Button>
+                          )}
+                          {status === "draft" && (
+                            <Button 
+                              size="sm" 
+                              variant="secondary" 
+                              className="gap-2"
+                              onClick={() => handleEditDevice(item.id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                              Continue Editing
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })
+                })()}
               </tbody>
             </table>
           </div>

@@ -119,6 +119,39 @@ class ApiService {
     }
   }
 
+  // Transform backend submission data to frontend format
+  private transformSubmission(backendSubmission: any): Submission {
+    return {
+      id: backendSubmission.id || '',
+      deviceName: backendSubmission.deviceName || '',
+      deviceType: backendSubmission.deviceType || '',
+      serialNumber: backendSubmission.serialNumber || '',
+      manufacturer: backendSubmission.manufacturer || '',
+      model: backendSubmission.model || '',
+      yearOfManufacture: backendSubmission.yearOfManufacture || '',
+      condition: backendSubmission.condition || '',
+      specifications: backendSubmission.specifications || '',
+      purchasePrice: backendSubmission.purchasePrice || '',
+      currentValue: backendSubmission.currentValue || '',
+      expectedRevenue: backendSubmission.expectedRevenue || '',
+      operationalCosts: backendSubmission.operationalCosts || '',
+      operatorWallet: backendSubmission.user?.walletAddress || backendSubmission.operatorWallet || '',
+      status: backendSubmission.status || 'pending',
+      submittedAt: backendSubmission.submittedAt || '',
+      updatedAt: backendSubmission.updatedAt || '',
+      files: (backendSubmission.files || []).map((file: any) => ({
+        filename: file.filename || '',
+        path: file.path || '',
+        documentType: file.documentType || ''
+      })),
+      adminNotes: backendSubmission.adminReview?.notes || backendSubmission.adminNotes || null,
+      adminScore: backendSubmission.adminReview?.overallScore || backendSubmission.adminScore || null,
+      adminDecision: backendSubmission.adminReview?.decision?.toLowerCase() || backendSubmission.adminDecision || null,
+      adminDecisionAt: backendSubmission.adminReview?.decisionAt || backendSubmission.adminDecisionAt || null,
+      certificateId: backendSubmission.certificate?.id || backendSubmission.certificateId || null
+    }
+  }
+
   // Get all submissions (admin only)
   async getSubmissions(params?: {
     status?: string
@@ -133,12 +166,38 @@ class ApiService {
 
     const endpoint = `/submissions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
     
-    return this.makeRequest<SubmissionsResponse>(endpoint)
+    const response = await this.makeRequest<any>(endpoint)
+    
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: {
+          submissions: response.data.submissions?.map((s: any) => this.transformSubmission(s)) || [],
+          pagination: {
+            total: response.data.total || 0,
+            limit: response.data.limit || 10,
+            offset: response.data.offset || 0,
+            hasMore: response.data.hasMore || false
+          }
+        }
+      }
+    }
+    
+    return response as ApiResponse<SubmissionsResponse>
   }
 
   // Get a specific submission by ID
   async getSubmission(id: string): Promise<ApiResponse<Submission>> {
-    return this.makeRequest<Submission>(`/submissions/${id}`)
+    const response = await this.makeRequest<any>(`/submissions/${id}`)
+    
+    if (response.success && response.data?.submission) {
+      return {
+        success: true,
+        data: this.transformSubmission(response.data.submission)
+      }
+    }
+    
+    return response as ApiResponse<Submission>
   }
 
   // Update a submission (admin only)
@@ -146,10 +205,39 @@ class ApiService {
     id: string, 
     updates: Partial<Submission>
   ): Promise<ApiResponse<Submission>> {
-    return this.makeRequest<Submission>(`/submissions/${id}`, {
+    // Transform frontend updates to backend format
+    const backendUpdates: any = { ...updates }
+    
+    // Handle admin review data
+    if (updates.adminNotes !== undefined) {
+      backendUpdates.adminNotes = updates.adminNotes
+    }
+    
+    if (updates.adminScore !== undefined) {
+      backendUpdates.adminScore = updates.adminScore
+    }
+    
+    if (updates.adminDecision !== undefined) {
+      backendUpdates.adminDecision = updates.adminDecision
+    }
+    
+    if (updates.adminDecisionAt !== undefined) {
+      backendUpdates.adminDecisionAt = updates.adminDecisionAt
+    }
+    
+    const response = await this.makeRequest<any>(`/submissions/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(updates)
+      body: JSON.stringify(backendUpdates)
     })
+    
+    if (response.success && response.data?.submission) {
+      return {
+        success: true,
+        data: this.transformSubmission(response.data.submission)
+      }
+    }
+    
+    return response as ApiResponse<Submission>
   }
 
   // Get user profile

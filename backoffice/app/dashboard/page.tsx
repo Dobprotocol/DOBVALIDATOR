@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { BackOfficeDashboard } from "@/components/backoffice-dashboard"
+import { StellarWallet } from "@/components/stellar-wallet"
 import { Button } from "@/components/ui/button"
-import { LogOut, User, Wallet } from "lucide-react"
+import { LogOut, User, Wallet, Loader2 } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,32 +19,67 @@ export default function DashboardPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authCheckComplete, setAuthCheckComplete] = useState(false)
 
   useEffect(() => {
-    // Check if user is authenticated
+    // Check authentication status
+    const authToken = localStorage.getItem('authToken')
     const publicKey = localStorage.getItem('stellarPublicKey')
-    const cookie = document.cookie.includes('stellarPublicKey')
-    
-    console.log('Dashboard auth check:', {
+
+    console.log('🔍 Dashboard auth check:', {
+      hasAuthToken: !!authToken,
       hasPublicKey: !!publicKey,
-      hasCookie: cookie,
+      authTokenLength: authToken?.length,
+      publicKeyValue: publicKey,
       timestamp: new Date().toISOString()
     })
 
-    if (!publicKey || !cookie) {
-      console.log('User not authenticated, redirecting to landing page...')
-      // Clear any stale data
-      localStorage.removeItem('stellarPublicKey')
-      localStorage.removeItem('stellarWallet')
-      document.cookie = 'stellarPublicKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-      // Force redirect to landing page
-      window.location.href = '/'
-    } else {
-      console.log('User authenticated, showing dashboard...')
-      setWalletAddress(publicKey)
-      setIsLoading(false)
+    if (!authToken || !publicKey) {
+      console.log('❌ No authentication data found...')
+      setIsAuthenticated(false)
+      setAuthCheckComplete(true)
+      return
     }
-  }, [router])
+
+    try {
+      const tokenData = JSON.parse(authToken)
+      // Check if token is expired
+      const now = Date.now()
+      const isExpired = tokenData.expiresAt ? now > tokenData.expiresAt : true
+      
+      console.log('🔍 Token data:', {
+        expiresAt: tokenData.expiresAt,
+        now,
+        isExpired,
+        timeRemaining: tokenData.expiresAt ? tokenData.expiresAt - now : 'N/A'
+      })
+      
+      if (isExpired) {
+        console.log('❌ Token expired, clearing data...')
+        // Clear expired data
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('stellarPublicKey')
+        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'stellarPublicKey=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        
+        // Force re-render
+        setAuthCheckComplete(true)
+        return
+      } else {
+        console.log('✅ User authenticated, showing dashboard...')
+        setIsAuthenticated(true)
+        setWalletAddress(publicKey)
+        setAuthCheckComplete(true)
+      }
+    } catch (error) {
+      console.error('❌ Error parsing auth token:', error)
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('stellarPublicKey')
+      setIsAuthenticated(false)
+      setAuthCheckComplete(true)
+    }
+  }, [])
 
   const truncateAddress = (address: string) => {
     if (!address) return ''
@@ -72,11 +108,24 @@ export default function DashboardPage() {
     }
   }
 
-  if (isLoading) {
+  // Show loading while checking authentication
+  if (!authCheckComplete) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-muted-foreground">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show wallet connection if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-md mx-auto">
+          <StellarWallet />
         </div>
       </div>
     )

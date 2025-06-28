@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
-import type { DeviceData } from '@/components/device-verification-flow'
+import type { DeviceData } from '@/components/enhanced-device-verification-flow'
 
 interface Draft {
   id: string
+  name: string
   deviceName: string
   deviceType: string
-  serialNumber: string
-  manufacturer: string
-  model: string
+  customDeviceType: string
+  location: string
   yearOfManufacture: string
   condition: string
   specifications: string
@@ -71,8 +71,14 @@ export function useDraft() {
         })
       })
 
+      // Create a meaningful draft name based on device name
+      const draftName = deviceData.deviceName 
+        ? `${deviceData.deviceName} - ${deviceData.deviceType || 'Device'}`
+        : 'Untitled Draft'
+
       const requestBody = {
         draftId,
+        name: draftName,
         ...deviceData,
         files
       }
@@ -99,24 +105,14 @@ export function useDraft() {
         throw new Error(data.error || 'Failed to save draft')
       }
 
-      toast({
-        title: "Draft Saved",
-        description: draftId ? "Draft updated successfully" : "Draft saved successfully",
-      })
-
       return data.draft
     } catch (error: any) {
       console.error('Error saving draft:', error)
-      toast({
-        title: "Error",
-        description: error.message || 'Failed to save draft',
-        variant: "destructive",
-      })
       throw error
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   // Load draft by ID
   const loadDraft = useCallback(async (draftId: string): Promise<DeviceData | null> => {
@@ -129,6 +125,8 @@ export function useDraft() {
 
       const tokenData = JSON.parse(authToken)
       
+      console.log('🔍 Loading draft with ID:', draftId)
+      
       // Get all drafts and find the specific one
       const response = await fetch('/api/drafts', {
         headers: {
@@ -137,36 +135,47 @@ export function useDraft() {
       })
 
       const data = await response.json()
+      console.log('🔍 API response:', data)
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load drafts')
       }
 
+      console.log('🔍 Looking for draft with ID:', draftId)
+      console.log('🔍 Available drafts:', data.drafts)
+      
       const draft = data.drafts.find((d: Draft) => d.id === draftId)
+      console.log('🔍 Found draft:', draft)
+      
       if (!draft) {
+        console.log('🔍 Draft not found in list')
         throw new Error('Draft not found')
       }
 
       // Convert draft back to DeviceData format
       // Note: Files will need to be re-uploaded since we can't store File objects
       const deviceData: DeviceData = {
-        deviceName: draft.deviceName,
-        deviceType: draft.deviceType,
-        serialNumber: draft.serialNumber,
-        manufacturer: draft.manufacturer,
-        model: draft.model,
-        yearOfManufacture: draft.yearOfManufacture,
-        condition: draft.condition,
-        specifications: draft.specifications,
-        purchasePrice: draft.purchasePrice,
-        currentValue: draft.currentValue,
-        expectedRevenue: draft.expectedRevenue,
-        operationalCosts: draft.operationalCosts,
+        deviceName: draft.deviceName || '',
+        deviceType: draft.deviceType || '',
+        customDeviceType: draft.customDeviceType || '',
+        location: draft.location || '',
+        serialNumber: draft.serialNumber || '',
+        manufacturer: draft.manufacturer || '',
+        model: draft.model || '',
+        yearOfManufacture: draft.yearOfManufacture || '',
+        condition: draft.condition || '',
+        specifications: draft.specifications || '',
+        purchasePrice: draft.purchasePrice || '',
+        currentValue: draft.currentValue || '',
+        expectedRevenue: draft.expectedRevenue || '',
+        operationalCosts: draft.operationalCosts || '',
         technicalCertification: null, // Will need to be re-uploaded
         purchaseProof: null, // Will need to be re-uploaded
         maintenanceRecords: null, // Will need to be re-uploaded
         deviceImages: [], // Will need to be re-uploaded
       }
+
+      console.log('🔍 Converted device data:', deviceData)
 
       toast({
         title: "Draft Loaded",

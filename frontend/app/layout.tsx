@@ -63,17 +63,23 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               // Prevent white flash by setting dark theme immediately
-              document.documentElement.classList.add('dark');
-              document.documentElement.style.backgroundColor = '#0a0a0a';
-              document.body.style.backgroundColor = '#0a0a0a';
-              
-              // Ensure content is visible
-              document.body.style.opacity = '1';
-              
-              // Add loaded class after a short delay
-              setTimeout(() => {
-                document.body.classList.add('loaded');
-              }, 100);
+              if (typeof document !== 'undefined') {
+                document.documentElement.classList.add('dark');
+                if (document.documentElement) {
+                  document.documentElement.style.backgroundColor = '#0a0a0a';
+                }
+                if (document.body) {
+                  document.body.style.backgroundColor = '#0a0a0a';
+                  document.body.style.opacity = '1';
+                  
+                  // Add loaded class after a short delay
+                  setTimeout(() => {
+                    if (document.body) {
+                      document.body.classList.add('loaded');
+                    }
+                  }, 100);
+                }
+              }
             `,
           }}
         />

@@ -3,7 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { prisma } from './lib/database'
-import { userService, profileService, submissionService, authService } from './lib/database'
+import { userService, profileService, submissionService, authService, adminReviewService } from './lib/database'
 import { env } from './lib/env-validation'
 
 const app = express()
@@ -158,7 +158,15 @@ app.post('/api/auth/verify', async (req, res) => {
     // Clean up challenge
     await authService.deleteChallenge(challenge)
 
-    res.json({ success: true, token, user })
+    // Calculate expiresIn in seconds
+    const expiresIn = env.JWT_EXPIRES_IN || '7d'
+    const expiresInSeconds = expiresIn.includes('d') 
+      ? parseInt(expiresIn) * 24 * 60 * 60 
+      : expiresIn.includes('h') 
+        ? parseInt(expiresIn) * 60 * 60 
+        : parseInt(expiresIn)
+
+    res.json({ success: true, token, expiresIn: expiresInSeconds.toString(), user })
     return
   } catch (error) {
     console.error('Verification error:', error)
@@ -392,6 +400,57 @@ app.put('/api/submissions/:id/status', async (req, res) => {
   }
 })
 
+// General submission update endpoint (admin only)
+app.put('/api/submissions/:id', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.***REMOVED***)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (user?.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Admin access required' })
+      return
+    }
+
+    const { id } = req.params
+    const updates = req.body
+
+    // Handle admin review data separately
+    const { adminNotes, adminScore, adminDecision, adminDecisionAt, ...submissionUpdates } = updates
+
+    // Create admin review data if provided
+    if (adminNotes !== undefined || adminScore !== undefined || adminDecision !== undefined) {
+      const adminReviewData: any = {}
+      
+      if (adminNotes !== undefined) adminReviewData.notes = adminNotes
+      if (adminScore !== undefined) adminReviewData.overallScore = adminScore
+      if (adminDecision !== undefined) adminReviewData.decision = adminDecision.toUpperCase()
+      if (adminDecisionAt !== undefined) adminReviewData.decisionAt = new Date(adminDecisionAt)
+
+      await adminReviewService.upsert(id, adminReviewData)
+    }
+
+    // Update submission
+    const submission = await submissionService.update(id, submissionUpdates)
+
+    res.json({ success: true, submission })
+    return
+  } catch (error) {
+    console.error('Submission update error:', error)
+    res.status(500).json({ error: 'Failed to update submission' })
+    return
+  }
+})
+
 // Drafts endpoints
 app.get('/api/drafts', async (req, res) => {
   try {
@@ -444,6 +503,57 @@ app.get('/api/drafts', async (req, res) => {
 
 app.post('/api/drafts', async (req, res) => {
   try {
+    console.log('🔍 Draft POST request received')
+    console.log('🔍 Request body:', req.body)
+    
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ No authorization header')
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    console.log('🔍 Token received:', token.substring(0, 20) + '...')
+    
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.***REMOVED***)
+    console.log('🔍 JWT decoded:', decoded)
+    const { walletAddress } = decoded
+
+    console.log('🔍 Looking for user with wallet:', walletAddress)
+    const user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      console.log('❌ User not found for wallet:', walletAddress)
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+    console.log('🔍 User found:', user.id)
+
+    const draftData = req.body
+    console.log('🔍 Creating draft with data:', draftData)
+    
+    const draft = await prisma.draft.create({
+      data: {
+        userId: user.id,
+        ...draftData
+      }
+    })
+
+    console.log('🔍 Draft created successfully:', draft.id)
+    res.json({ success: true, draft })
+    return
+  } catch (error: any) {
+    console.error('❌ Draft creation error:', error)
+    console.error('❌ Error stack:', error.stack)
+    res.status(500).json({ error: 'Failed to create draft' })
+    return
+  }
+})
+
+app.get('/api/drafts/:id', async (req, res) => {
+  try {
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({ error: 'Authorization header required' })
@@ -462,19 +572,129 @@ app.post('/api/drafts', async (req, res) => {
       return
     }
 
-    const draftData = req.body
-    const draft = await prisma.draft.create({
-      data: {
-        userId: user.id,
-        ...draftData
+    const { id } = req.params
+
+    // Get draft by ID and user
+    const draft = await prisma.draft.findFirst({
+      where: {
+        id: id,
+        userId: user.id
       }
     })
+
+    if (!draft) {
+      res.status(404).json({ error: 'Draft not found' })
+      return
+    }
 
     res.json({ success: true, draft })
     return
   } catch (error) {
-    console.error('Draft creation error:', error)
-    res.status(500).json({ error: 'Failed to create draft' })
+    console.error('Draft fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch draft' })
+    return
+  }
+})
+
+app.put('/api/drafts/:id', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.***REMOVED***)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    const { id } = req.params
+    const updateData = req.body
+
+    // Check if draft exists and belongs to user
+    const existingDraft = await prisma.draft.findFirst({
+      where: {
+        id: id,
+        userId: user.id
+      }
+    })
+
+    if (!existingDraft) {
+      res.status(404).json({ error: 'Draft not found' })
+      return
+    }
+
+    // Update the draft
+    const updatedDraft = await prisma.draft.update({
+      where: { id: id },
+      data: {
+        ...updateData,
+        updatedAt: new Date()
+      }
+    })
+
+    res.json({ success: true, draft: updatedDraft })
+    return
+  } catch (error) {
+    console.error('Draft update error:', error)
+    res.status(500).json({ error: 'Failed to update draft' })
+    return
+  }
+})
+
+app.delete('/api/drafts/:id', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.***REMOVED***)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    const { id } = req.params
+
+    // Check if draft exists and belongs to user
+    const existingDraft = await prisma.draft.findFirst({
+      where: {
+        id: id,
+        userId: user.id
+      }
+    })
+
+    if (!existingDraft) {
+      res.status(404).json({ error: 'Draft not found' })
+      return
+    }
+
+    // Delete the draft
+    await prisma.draft.delete({
+      where: { id: id }
+    })
+
+    res.json({ success: true, message: 'Draft deleted successfully' })
+    return
+  } catch (error) {
+    console.error('Draft deletion error:', error)
+    res.status(500).json({ error: 'Failed to delete draft' })
     return
   }
 })

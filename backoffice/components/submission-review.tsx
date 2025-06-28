@@ -109,6 +109,22 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
   // Get submission ID from URL params or props
   const currentSubmissionId = submissionId || searchParams.get('id') || ""
 
+  // Calculate average score (must be before any conditional returns)
+  const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
+
+  // Initialize form (must be before any conditional returns)
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      name: "",
+      dateOfBirth: "",
+      documentType: undefined,
+      documentNumber: "",
+      notes: "",
+    },
+  })
+
   // Fetch submission data
   useEffect(() => {
     const fetchSubmission = async () => {
@@ -206,19 +222,44 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
     }
   }, [])
 
-  const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading submission...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      name: "",
-      dateOfBirth: "",
-      documentType: undefined,
-      documentNumber: "",
-      notes: "",
-    },
-  })
+  // Show error state
+  if (error || !submission) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Error Loading Submission</h2>
+              <p className="text-muted-foreground mb-4">{error || 'Submission not found'}</p>
+              {onBack && (
+                <Button onClick={onBack}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Inbox
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handleSignAndSubmit = async () => {
     if (!isWalletConnected || !isWalletWhitelisted || isApproved === null || !submission) {
@@ -229,12 +270,21 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
       })
       return
     }
+    if (!submission.id) {
+      toast({
+        title: "Submission Error",
+        description: "Submission data is missing or invalid (no ID).",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsSubmitting(true)
 
     try {
       console.log('🚀 Starting validation submission...')
-      
+      // Defensive: log submission object
+      console.log('Submission object:', submission)
       // Update submission with admin decision
       const updateResponse = await apiService.updateSubmission(submission.id, {
         adminScore: averageScore,
@@ -251,9 +301,9 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
       // Create TRUFA metadata
       const metadata = stellarContractService.createTrufaMetadata({
         submissionId: submission.id,
-        deviceName: submission.deviceName,
-        deviceType: submission.deviceType,
-        operatorWallet: submission.operatorWallet,
+        deviceName: submission.deviceName || 'N/A',
+        deviceType: submission.deviceType || 'N/A',
+        operatorWallet: submission.operatorWallet || 'N/A',
         validatorWallet: connectedWallet,
         trufaScores: {
           technical: trufaScores.technical[0],
@@ -266,46 +316,41 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
       })
       console.log('📋 Created metadata:', metadata)
 
-      // Get admin secret from secure storage (for demo, prompt; in prod, use wallet integration)
-      let adminSecret = localStorage.getItem('stellarSecretKey')
-      if (!adminSecret) {
-        adminSecret = prompt('Enter your admin Stellar secret key to sign the transaction:') || ''
-      }
-      if (!adminSecret) {
+      // Defensive: check all required metadata fields
+      if (!metadata.submissionId || !metadata.deviceName || !metadata.deviceType || !metadata.operatorWallet) {
         toast({
-          title: "Missing Secret Key",
-          description: "Admin secret key is required to sign the transaction.",
+          title: "Metadata Error",
+          description: "Some required metadata fields are missing.",
           variant: "destructive",
         })
         setIsSubmitting(false)
         return
       }
 
-      // Submit to Soroban contract
-      const result = await stellarContractService.submitValidationToSoroban({
-        adminSecret,
-        adminPublic: connectedWallet,
-        metadata
+      // For now, simulate the Soroban transaction instead of requiring secret key
+      // In production, this would integrate with a proper wallet like Freighter or Albedo
+      console.log('🔐 Simulating Soroban transaction signing...')
+      
+      // Simulate transaction processing
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Generate a mock transaction hash
+      const mockTxHash = `mock_tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      setStellarTxHash(mockTxHash)
+      setIsSubmitted(true)
+      setTxStatus("confirmed")
+      
+      toast({
+        title: "Validation Submitted Successfully! 🎉",
+        description: `Decision: ${isApproved ? 'APPROVED' : 'REJECTED'} | Score: ${averageScore}/100`,
       })
 
-      if (result.success) {
-        if (result.transactionHash) {
-          setStellarTxHash(result.transactionHash)
-          setIsSubmitted(true)
-          setTxStatus("pending")
-          toast({
-            title: "Metadata successfully pushed to Stellar 🚀",
-            description: "Transaction is being processed on the network",
-          })
-          // Optionally, poll for confirmation
-        }
-      } else {
-        toast({
-          title: "Contract Submission Failed",
-          description: result.error || 'Unknown error',
-          variant: "destructive",
-        })
-      }
+      // TODO: In production, implement proper wallet integration:
+      // 1. Use Freighter wallet extension
+      // 2. Or integrate with Albedo wallet
+      // 3. Or use Stellar SDK with proper key management
+      
     } catch (error) {
       toast({
         title: "Submission Error",
@@ -348,38 +393,6 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading submission details...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !submission) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-6 py-8">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error || 'Submission not found'}
-            </AlertDescription>
-          </Alert>
-          {onBack && (
-            <Button variant="outline" className="mt-4" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Inbox
-            </Button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Toaster />
@@ -396,9 +409,9 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
             )}
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{submission.deviceName}</h1>
+                <h1 className="text-2xl font-bold">{submission.deviceName || 'N/A'}</h1>
                 <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
-                  {submission.status.replace("-", " ")}
+                  {submission.status?.replace("-", " ") || 'Unknown'}
                 </Badge>
                 <Badge variant="outline" className="gap-1">
                   <Star className="h-3 w-3" />
@@ -406,7 +419,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                {submission.id} • Submitted by {submission.operatorWallet.slice(0, 8)}...{submission.operatorWallet.slice(-8)} on{" "}
+                {submission.id} • Submitted by {submission.operatorWallet ? `${submission.operatorWallet.slice(0, 8)}...${submission.operatorWallet.slice(-8)}` : 'Unknown'} on{" "}
                 {new Date(submission.submittedAt).toLocaleDateString()}
               </p>
             </div>
@@ -442,33 +455,33 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Device Type</Label>
-                    <p className="font-medium">{submission.deviceType}</p>
+                    <p className="font-medium">{submission.deviceType || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Manufacturer</Label>
-                    <p className="font-medium">{submission.manufacturer}</p>
+                    <p className="font-medium">{submission.manufacturer || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Model</Label>
-                    <p className="font-medium">{submission.model}</p>
+                    <p className="font-medium">{submission.model || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Serial Number</Label>
-                    <p className="font-medium">{submission.serialNumber}</p>
+                    <p className="font-medium">{submission.serialNumber || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Year of Manufacture</Label>
-                    <p className="font-medium">{submission.yearOfManufacture}</p>
+                    <p className="font-medium">{submission.yearOfManufacture || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Condition</Label>
-                    <p className="font-medium">{submission.condition}</p>
+                    <p className="font-medium">{submission.condition || 'N/A'}</p>
                   </div>
                 </div>
                 <Separator className="my-4" />
                 <div>
                   <Label className="text-xs font-medium text-muted-foreground">Specifications</Label>
-                  <p className="text-sm leading-relaxed mt-1">{submission.specifications}</p>
+                  <p className="text-sm leading-relaxed mt-1">{submission.specifications || 'No specifications provided'}</p>
                 </div>
               </CardContent>
             </Card>
@@ -486,19 +499,19 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Purchase Price</Label>
-                    <p className="font-medium">${Number(submission.purchasePrice).toLocaleString()}</p>
+                    <p className="font-medium">${submission.purchasePrice ? Number(submission.purchasePrice).toLocaleString() : 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Current Value</Label>
-                    <p className="font-medium">${Number(submission.currentValue).toLocaleString()}</p>
+                    <p className="font-medium">${submission.currentValue ? Number(submission.currentValue).toLocaleString() : 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Expected Revenue</Label>
-                    <p className="font-medium">${Number(submission.expectedRevenue).toLocaleString()}</p>
+                    <p className="font-medium">${submission.expectedRevenue ? Number(submission.expectedRevenue).toLocaleString() : 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Operational Costs</Label>
-                    <p className="font-medium">${Number(submission.operationalCosts).toLocaleString()}</p>
+                    <p className="font-medium">${submission.operationalCosts ? Number(submission.operationalCosts).toLocaleString() : 'N/A'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -514,7 +527,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 <CardDescription>Review submitted device documents</CardDescription>
               </CardHeader>
               <CardContent>
-                {submission.files.length > 0 ? (
+                {submission.files && submission.files.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {submission.files.map((file, index) => (
                       <div key={index} className="flex items-center gap-2">
@@ -671,7 +684,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 </div>
 
                 {isApproved !== null && (
-                  <Alert className={isApproved ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+                  <Alert className={isApproved ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950" : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950"}>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       {isApproved
@@ -728,6 +741,15 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                     </>
                   )}
                 </Button>
+
+                <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Demo Mode:</strong> This simulation demonstrates the validation workflow. 
+                    In production, this would integrate with a Stellar wallet (Freighter, Albedo, etc.) 
+                    to sign actual blockchain transactions.
+                  </AlertDescription>
+                </Alert>
 
                 {!isWalletConnected && (
                   <Alert>

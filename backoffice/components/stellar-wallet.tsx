@@ -1,256 +1,286 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import Cookies from 'js-cookie'
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Wallet, Loader2, CheckCircle, AlertCircle, Shield, Crown } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { adminConfigService } from "@/lib/admin-config"
 
-const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
-
-// ASCII Art for wallet connection
-const WALLET_ASCII = `
-                  .*%@@@@@@@@@#:                  
-              .-@@@@@@@@@%@@@@@@@@+.     .:*@#    
-            .#@@@@#:.        ..+*.    .+@@@@@#    
-           =@@@@:                 .-%@@@@@#-      
-          #@@@.                .*@@@@@@=.    .    
-         #@@%              .=%@@@@@*.    .+@@#    
-        =@@@           ..@@@@@@@:    .:@@@@@@*    
-        %@@=        .*@@@@@@=.    .*@@@@@@@.      
-       .@@@.    .:@@@@@@%     .-@@@@@@#%@@+       
-       :@@@  .#@@@@@%-     :#@@@@@@-.  #@@+       
-       :@@@@@@@@@*.    .=@@@@@@+.      %@@=       
-      =@@@@@@%:.    =%@@@@@*:.        -@@@.       
-    -@@@@%=.    :#@@@@@%=            .%@@+        
-    -@+..   .+@@@@@@+.               @@@#         
-         -%@@@@@#:.               .=@@@*          
-      #@@@@@@-.                  -@@@@-           
-    -@@@@*.    .+@@#-.      .-*@@@@@=.            
-    -@.         +@@@@@@@@@@@@@@@@%.               
-                   .-+#@@@@#*=:.                  
-`
-
-const WALLET_TEXT = `
-   __      ___                  ___ _         _      _         _      
-   \\ \\    / / |_  ___ _ _ ___  | _ ) |___  __| |____| |_  __ _(_)_ _  
-    \\ \\/\\/ /| ' \\/ -_) '_/ -_) | _ \\ / _ \\/ _| / / _| ' \\/ _\` | | ' \\ 
-  __ \\_/\\_/ |_||_\\___|_| \\___|_|___/_\\___/\\__|_\\_\\__|_||_\\__,_|_|_||_|
- |  \\/  |___ ___| |_ ___ | |_| |_  ___  | _ \\___ __ _| |              
- | |\\/| / -_) -_)  _(_-< |  _| ' \\/ -_) |   / -_) _\` | |              
- |_|  |_\\___\\___|\\__/__/  \\__|_||_\\___| |_|_\\___\\__,_|_|              
- \\ \\    / /__ _ _| |__| |                                             
-  \\ \\/\\/ / _ \\ '_| / _\` |_                                            
-   \\_/\\_/\\___/_| |_\\__,_(_)                                           
-`
-
-// Helper function to truncate wallet address
-function truncateAddress(address: string): string {
-  if (!address) return ''
-  return `${address.slice(0, 4)}...${address.slice(-4)}`
+interface AuthToken {
+  token: string
+  expiresIn: string
+  walletAddress: string
+  expiresAt: number
 }
 
-// Create a custom event for wallet state changes
-const walletStateChangeEvent = new Event('walletStateChange')
-
 export function StellarWallet() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [publicKey, setPublicKey] = useState<string | null>(null)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const { toast } = useToast()
   const router = useRouter()
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminRole, setAdminRole] = useState<string | null>(null)
+  const [permissions, setPermissions] = useState<string[]>([])
+  const [authToken, setAuthToken] = useState<AuthToken | null>(null)
+  const { toast } = useToast()
 
-  // Load saved public key on mount
+  // Check for existing authentication on mount
   useEffect(() => {
-    const savedKey = localStorage.getItem('stellarPublicKey')
-    if (savedKey) {
-      setPublicKey(savedKey)
-      console.log('Wallet loaded:', {
-        address: savedKey,
-        truncated: truncateAddress(savedKey),
-        timestamp: new Date().toISOString()
-      })
-      // Set cookie for middleware
-      Cookies.set('stellarPublicKey', savedKey, { expires: 7 }) // Expires in 7 days
+    const storedAuth = localStorage.getItem('authToken')
+    const storedWallet = localStorage.getItem('stellarPublicKey')
+    
+    if (storedAuth && storedWallet) {
+      try {
+        const authData = JSON.parse(storedAuth)
+        const now = Date.now()
+        
+        // Check if token is still valid
+        if (authData.expiresAt > now) {
+          setAuthToken(authData)
+          setWalletAddress(storedWallet)
+          setIsAuthenticated(true)
+          
+          // Check admin status
+          const adminWallet = adminConfigService.getAdminWallet(storedWallet)
+          if (adminWallet) {
+            setIsAdmin(true)
+            setAdminRole(adminWallet.role)
+            setPermissions(adminWallet.permissions)
+          }
+        } else {
+          // Token expired, clear storage
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('stellarPublicKey')
+        }
+      } catch (error) {
+        console.error('Error parsing stored auth:', error)
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('stellarPublicKey')
+      }
     }
   }, [])
 
-  // Handle messages from Simple Signer
-  useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
-      // Reject messages that are not coming from Simple Signer
-      if (e.origin !== SIMPLE_SIGNER_URL) {
-        return
-      }
-
-      const messageEvent = e.data
-
-      if (messageEvent.type === 'onConnect') {
-        const publicKey = messageEvent.message.publicKey
-        const wallet = messageEvent.message.wallet
-        
-        console.log('Wallet connected:', {
-          address: publicKey,
-          truncated: truncateAddress(publicKey),
-          walletType: wallet,
-          timestamp: new Date().toISOString()
-        })
-        
-        // Store the public key and wallet type
-        localStorage.setItem('stellarPublicKey', publicKey)
-        localStorage.setItem('stellarWallet', wallet)
-        // Set cookie for middleware
-        Cookies.set('stellarPublicKey', publicKey, { expires: 7 }) // Expires in 7 days
-        setPublicKey(publicKey)
-        setIsOpen(false)
-        setIsConnecting(false)
-        toast({
-          title: "Connected successfully",
-          description: `Connected with ${wallet} wallet`,
-        })
-        // Dispatch wallet state change event
-        window.dispatchEvent(walletStateChangeEvent)
-        // Redirect to dashboard after successful connection
-        window.location.href = '/dashboard'
-      } else if (messageEvent.type === 'onCancel') {
-        setIsConnecting(false)
-        console.log('Wallet connection cancelled by user')
-        toast({
-          title: "Connection cancelled",
-          description: "Wallet connection was cancelled.",
-        })
-      }
-    }
-
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [toast])
-
-  const handleConnect = () => {
+  const connectWallet = async () => {
     setIsConnecting(true)
-    console.log('Initiating wallet connection...')
-    console.log(WALLET_ASCII)
-    console.log(WALLET_TEXT)
-    const connectWindow = window.open(
-      `${SIMPLE_SIGNER_URL}/connect`,
-      'Connect_Window',
-      'width=360, height=450'
-    )
-
-    // Configure available wallets
-    window.addEventListener('message', (e) => {
-      if (
-        e.origin === SIMPLE_SIGNER_URL &&
-        e.data.type === 'onReady' &&
-        e.data.page === 'connect'
-      ) {
-        console.log('Simple Signer ready, configuring available wallets...')
-        connectWindow?.postMessage(
-          { wallets: ['freighter', 'xbull', 'albedo'] },
-          SIMPLE_SIGNER_URL
-        )
-      }
-    })
-  }
-
-  const handleDisconnect = () => {
-    console.log('=== Starting Wallet Disconnection ===')
-    console.log('Current wallet state:', {
-      publicKey,
-      isOpen,
-      isConnecting,
-      timestamp: new Date().toISOString()
-    })
-
+    
     try {
-      // Clear all wallet-related data
-      console.log('Clearing localStorage...')
-      localStorage.removeItem('stellarPublicKey')
-      localStorage.removeItem('stellarWallet')
-      
-      console.log('Removing cookie...')
-      Cookies.remove('stellarPublicKey')
-      
-      console.log('Clearing component state...')
-      setPublicKey(null)
-      setIsOpen(false)
-      
-      console.log('Dispatching wallet state change event...')
-      window.dispatchEvent(walletStateChangeEvent)
-      
-      console.log('Showing disconnect toast...')
-      toast({
-        title: "Disconnected",
-        description: "Your wallet has been disconnected.",
+      // For demo purposes, we'll use a mock wallet address
+      // In production, this would come from the actual wallet
+      const mockWalletAddress = "GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN"
+
+      // Request wallet connection
+      const response = await fetch('http://localhost:3001/api/auth/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ walletAddress: mockWalletAddress })
       })
 
-      console.log('Redirecting to landing page...')
-      // Force a hard redirect to ensure clean state
-      window.location.href = '/'
+      if (!response.ok) {
+        throw new Error('Failed to get challenge')
+      }
+
+      const { challenge } = await response.json()
+
       
-      console.log('=== Wallet Disconnection Complete ===')
-    } catch (error) {
-      console.error('Error during wallet disconnection:', error)
-      toast({
-        title: "Error",
-        description: "Failed to disconnect wallet. Please try again.",
-        variant: "destructive"
+      // For demo purposes, we'll simulate signing the challenge
+      // In production, this would be done by the actual wallet
+      const mockSignature = "mock_signature_" + Date.now()
+
+      // Verify the signature
+      const verifyResponse = await fetch('http://localhost:3001/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: mockWalletAddress,
+          challenge,
+          signature: mockSignature
+        })
       })
+
+      if (!verifyResponse.ok) {
+        throw new Error('Failed to verify signature')
+      }
+
+      const { token, expiresIn } = await verifyResponse.json()
+
+      // Store authentication data
+      const authData: AuthToken = {
+        token,
+        expiresIn,
+        walletAddress: mockWalletAddress,
+        expiresAt: Date.now() + (parseInt(expiresIn.toString()) * 1000)
+      }
+
+      // Store in localStorage
+      localStorage.setItem('authToken', JSON.stringify(authData))
+      localStorage.setItem('stellarPublicKey', mockWalletAddress)
+
+      // Store in cookies for middleware
+      document.cookie = `authToken=${token}; path=/; max-age=${expiresIn}; SameSite=Lax`
+      document.cookie = `stellarPublicKey=${mockWalletAddress}; path=/; max-age=${expiresIn}; SameSite=Lax`
+
+      setAuthToken(authData)
+      setWalletAddress(mockWalletAddress)
+      setIsAuthenticated(true)
+
+      // Check admin status
+      const adminWallet = adminConfigService.getAdminWallet(mockWalletAddress)
+      if (adminWallet) {
+        setIsAdmin(true)
+        setAdminRole(adminWallet.role)
+        setPermissions(adminWallet.permissions)
+      } else {
+        setIsAdmin(false)
+        setAdminRole(null)
+        setPermissions([])
+      }
+
+      toast({
+        title: "Wallet Connected",
+        description: `Connected as ${adminWallet ? adminWallet.role : 'User'}`,
+      })
+
+      // Use router.push instead of window.location.href to avoid page reload
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Wallet connection error:', error)
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to connect wallet",
+        variant: "destructive",
+      })
+    } finally {
+      setIsConnecting(false)
     }
   }
 
-  // Expose the disconnect function globally
-  useEffect(() => {
-    console.log('Setting up global disconnect handler...')
-    // @ts-ignore
-    window.handleWalletDisconnect = handleDisconnect
-    return () => {
-      console.log('Cleaning up global disconnect handler...')
-      // @ts-ignore
-      delete window.handleWalletDisconnect
+  const disconnectWallet = () => {
+    // Clear localStorage
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('stellarPublicKey')
+
+    // Clear cookies
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'stellarPublicKey=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+
+    // Clear state
+    setAuthToken(null)
+    setWalletAddress(null)
+    setIsAuthenticated(false)
+    setIsAdmin(false)
+    setAdminRole(null)
+    setPermissions([])
+
+    toast({
+      title: "Wallet Disconnected",
+      description: "You have been disconnected from your wallet",
+    })
+
+    // Use router.push instead of window.location.href
+    router.push('/')
+  }
+
+  const truncateAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`
+  }
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return <Crown className="h-4 w-4 text-yellow-500" />
+      case 'VALIDATOR':
+        return <Shield className="h-4 w-4 text-blue-500" />
+      case 'REVIEWER':
+        return <Shield className="h-4 w-4 text-green-500" />
+      default:
+        return <Shield className="h-4 w-4 text-gray-500" />
     }
-  }, [handleDisconnect])
+  }
+
+  if (isAuthenticated && walletAddress) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            Wallet Connected
+          </CardTitle>
+          <CardDescription>
+            You are authenticated and can access the dashboard
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                <span className="font-mono text-sm">{truncateAddress(walletAddress)}</span>
+              </div>
+              <Button variant="outline" onClick={disconnectWallet}>
+                Disconnect
+              </Button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                <span className="text-sm font-medium">Admin Status</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {isAdmin ? (
+                  <>
+                    {getRoleIcon(adminRole || '')}
+                    <span className="text-sm text-green-600 font-medium">
+                      {adminRole?.replace('_', ' ')}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm text-red-600 font-medium">Not Admin</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
-    <>
-      <Button
-        onClick={() => setIsOpen(true)}
-        variant="outline"
-        className="w-full"
-      >
-        {publicKey ? truncateAddress(publicKey) : "Connect Wallet"}
-      </Button>
-
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Connect Wallet</DialogTitle>
-            <DialogDescription>
-              You will be redirected to sign with a Stellar-compatible web3 wallet (Freighter, xBull, or Albedo) to connect your account.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {publicKey ? (
-              <Button
-                onClick={handleDisconnect}
-                className="w-full"
-                variant="destructive"
-              >
-                Disconnect Wallet
-              </Button>
-            ) : (
-              <Button
-                onClick={handleConnect}
-                className="w-full"
-                disabled={isConnecting}
-              >
-                {isConnecting ? "Connecting..." : "Connect Wallet"}
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Wallet className="h-5 w-5" />
+          Connect Stellar Wallet
+        </CardTitle>
+        <CardDescription>
+          Connect your Stellar wallet to access the backoffice dashboard
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button 
+          onClick={connectWallet} 
+          disabled={isConnecting}
+          className="w-full"
+        >
+          {isConnecting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <Wallet className="mr-2 h-4 w-4" />
+              Connect Wallet
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   )
 } 

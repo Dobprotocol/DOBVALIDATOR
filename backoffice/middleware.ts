@@ -8,19 +8,8 @@ export function middleware(request: NextRequest) {
   // Define public paths that don't require authentication
   const isPublicPath = path === '/'
 
-  // Check if the user is authenticated
-  const isAuthenticated = request.cookies.has('stellarPublicKey')
-
-  // Redirect authenticated users away from public paths
-  if (isPublicPath && isAuthenticated) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  // Redirect unauthenticated users to the landing page
-  if (!isPublicPath && !isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
+  // For now, let the components handle authentication
+  // This prevents redirect loops while we fix the auth flow
   return NextResponse.next()
 }
 

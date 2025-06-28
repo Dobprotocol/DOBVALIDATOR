@@ -14,10 +14,12 @@ const deviceSchema = z.object({
   // Basic info
   deviceName: z.string().min(2, "Device name must be at least 2 characters"),
   deviceType: z.string().min(1, "Device type is required"),
-  serialNumber: z.string().min(3, "Serial number must be at least 3 characters"),
-  manufacturer: z.string().min(2, "Manufacturer must be at least 2 characters"),
+  customDeviceType: z.string().optional(),
+  location: z.string().min(2, "Location must be at least 2 characters"),
 
   // Technical info
+  serialNumber: z.string().min(3, "Serial number must be at least 3 characters"),
+  manufacturer: z.string().min(2, "Manufacturer must be at least 2 characters"),
   model: z.string().min(1, "Model is required"),
   yearOfManufacture: z.string().regex(/^\d{4}$/, "Invalid year format"),
   condition: z.string().min(1, "Condition is required"),
@@ -119,9 +121,18 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const data = Object.fromEntries(formData.entries())
     
+    console.log('🔍 Received form data:', data)
+    console.log('🔍 Form data keys:', Object.keys(data))
+    console.log('🔍 Device name:', data.deviceName)
+    console.log('🔍 Device type:', data.deviceType)
+    console.log('🔍 Serial number:', data.serialNumber)
+    console.log('🔍 Manufacturer:', data.manufacturer)
+    console.log('🔍 Model:', data.model)
+    
     // Validate form data
     const validationResult = deviceSchema.safeParse(data)
     if (!validationResult.success) {
+      console.log('🔍 Validation failed:', validationResult.error.format())
       return NextResponse.json(
         { error: 'Invalid form data', details: validationResult.error.format() },
         { status: 400 }
@@ -194,6 +205,8 @@ export async function POST(request: NextRequest) {
       id: submissionId,
       deviceName: validatedData.deviceName,
       deviceType: validatedData.deviceType,
+      customDeviceType: validatedData.customDeviceType,
+      location: validatedData.location,
       serialNumber: validatedData.serialNumber,
       manufacturer: validatedData.manufacturer,
       model: validatedData.model,
@@ -221,8 +234,55 @@ export async function POST(request: NextRequest) {
       certificateId: null,
     }
 
-    // Store the submission
+    // Store the submission in frontend storage
     const createdSubmission = submissionStorage.create(submission)
+
+    // Also send to backend database
+    try {
+      const authHeader = request.headers.get('authorization')
+      if (authHeader) {
+        console.log('Sending submission to backend database...')
+        
+        const backendResponse = await fetch('http://localhost:3001/api/submissions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify({
+            deviceName: validatedData.deviceName,
+            deviceType: validatedData.deviceType,
+            customDeviceType: validatedData.customDeviceType,
+            location: validatedData.location,
+            serialNumber: validatedData.serialNumber,
+            manufacturer: validatedData.manufacturer,
+            model: validatedData.model,
+            yearOfManufacture: validatedData.yearOfManufacture,
+            condition: validatedData.condition,
+            specifications: validatedData.specifications,
+            purchasePrice: validatedData.purchasePrice,
+            currentValue: validatedData.currentValue,
+            expectedRevenue: validatedData.expectedRevenue,
+            operationalCosts: validatedData.operationalCosts,
+            files: storedFiles.map(file => ({
+              filename: file.filename,
+              path: file.path,
+              documentType: file.metadata.documentType
+            }))
+          })
+        })
+
+        if (backendResponse.ok) {
+          const backendData = await backendResponse.json()
+          console.log('Backend submission response:', backendData)
+        } else {
+          console.error('Backend submission failed:', backendResponse.status, backendResponse.statusText)
+        }
+      }
+    } catch (backendError) {
+      console.error('Error sending to backend:', backendError)
+      // Don't fail the submission if backend is down, just log the error
+    }
 
     // Return success response with submission information
     return NextResponse.json({

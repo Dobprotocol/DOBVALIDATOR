@@ -19,6 +19,13 @@ export const ADMIN_WALLETS: AdminWallet[] = [
     isActive: true
   },
   {
+    address: 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN',
+    name: 'Current User',
+    role: 'SUPER_ADMIN',
+    permissions: ['approve', 'reject', 'review', 'manage_users', 'view_stats'],
+    isActive: true
+  },
+  {
     address: 'GDGYOBHJVNGVBCIHKDR7H6NNYRSPPK2TWANH6SIY34DJLSXUOJNXA2SN',
     name: 'Whitelist 1',
     role: 'VALIDATOR',
