@@ -6,62 +6,68 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Enum debug endpoint called')
+    console.log('🔍 Debug enum endpoint called')
     
-    // Test different enum values for user_role
-    const testValues = ['USER', 'OPERATOR', 'ADMIN', 'user', 'operator', 'admin']
+    // Test different role values to see which ones work
+    const roleValues = [
+      'USER', 'user', 'ADMIN', 'admin', 'OPERATOR', 'operator',
+      'standard', 'STANDARD', 'basic', 'BASIC', 'member', 'MEMBER'
+    ]
     
-    const results = {}
+    const results = []
     
-    for (const roleValue of testValues) {
-      console.log(`🔍 Testing role value: ${roleValue}`)
-      
-      const testWallet = `TEST_WALLET_${roleValue}_${Date.now()}`
-      
-      const { data: user, error: error } = await supabase
-        .from('users')
-        .insert({
-          wallet_address: testWallet,
-          email: `test-${roleValue}@example.com`,
-          name: `Test ${roleValue}`,
-          role: roleValue
+    for (const role of roleValues) {
+      try {
+        const testWalletAddress = `TEST_WALLET_${role}_${Date.now()}`
+        
+        const { data, error } = await supabase
+          .from('users')
+          .insert({
+            wallet_address: testWalletAddress,
+            email: `test-${role}@example.com`,
+            name: `Test ${role}`,
+            role: role
+          })
+          .select()
+          .single()
+        
+        // Clean up test data
+        await supabase.from('users').delete().eq('wallet_address', testWalletAddress)
+        
+        results.push({
+          role,
+          success: !error,
+          error: error?.message || null,
+          data: data || null
         })
-        .select()
-        .single()
-      
-      results[roleValue] = {
-        success: !error,
-        error: error?.message,
-        data: user
+        
+        console.log(`🔍 Tested role "${role}":`, { success: !error, error: error?.message })
+      } catch (error) {
+        results.push({
+          role,
+          success: false,
+          error: error.message,
+          data: null
+        })
+        console.log(`❌ Exception testing role "${role}":`, error.message)
       }
-      
-      // Clean up if successful
-      if (user) {
-        await supabase.from('users').delete().eq('id', user.id)
-      }
-      
-      console.log(`🔍 Result for ${roleValue}:`, results[roleValue])
     }
     
-    // Also try to get existing users to see what roles they have
-    const { data: existingUsers, error: existingUsersError } = await supabase
-      .from('users')
-      .select('role')
-      .limit(10)
-    
-    console.log('🔍 Existing users roles:', { existingUsers, existingUsersError })
+    // Also try to get the enum values from the database schema
+    const { data: enumData, error: enumError } = await supabase
+      .rpc('get_enum_values', { enum_name: 'user_role' })
     
     return NextResponse.json({
       success: true,
-      enumTests: results,
-      existingUsers: {
-        success: !existingUsersError,
-        error: existingUsersError?.message,
-        data: existingUsers
+      roleTests: results,
+      enumValues: {
+        success: !enumError,
+        error: enumError?.message,
+        data: enumData
       }
     })
   } catch (error) {
-    console.error('❌ Error in enum debug endpoint:', error)
+    console.error('❌ Error in debug enum endpoint:', error)
     return NextResponse.json(
       { 
         success: false,

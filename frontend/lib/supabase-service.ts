@@ -38,7 +38,13 @@ export class SupabaseService {
     role?: 'OPERATOR' | 'ADMIN' | 'USER' | 'user' | 'operator' | 'admin'
   }) {
     // Try different role values if the provided one fails
-    const roleValues = [userData.role, 'OPERATOR', 'USER', 'user', 'operator'].filter(Boolean)
+    // Based on the error, let's try lowercase values first
+    const roleValues = [
+      userData.role, 
+      'user', 'admin', 'operator',  // lowercase
+      'USER', 'ADMIN', 'OPERATOR',  // uppercase
+      'standard', 'basic', 'member' // alternative values
+    ].filter(Boolean)
     
     for (const roleValue of roleValues) {
       try {
@@ -49,6 +55,7 @@ export class SupabaseService {
           .single()
         
         if (!error) {
+          console.log(`✅ Successfully upserted user with role: ${roleValue}`)
           return data
         }
         
