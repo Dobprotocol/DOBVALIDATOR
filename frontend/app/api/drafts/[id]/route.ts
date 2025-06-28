@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '../../auth/verify/route'
-import { submissionStorage } from '@/lib/submission-storage'
 
+// Delete a draft by ID
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🔍 Draft DELETE request received for ID:', params.id)
+    
     // Verify authentication
     const auth = getAuthenticatedUser(request)
+    console.log('🔍 Auth result:', { valid: auth.valid, user: auth.user })
+    
     if (!auth.valid) {
+      console.log('❌ Authentication failed')
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -17,31 +22,34 @@ export async function DELETE(
     }
 
     const draftId = params.id
+    console.log('🔍 Deleting draft ID:', draftId)
 
-    // Check if draft exists and belongs to user
-    const draft = submissionStorage.getById(draftId)
-    if (!draft) {
+    // Forward to backend database
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
+    const authToken = request.headers.get('authorization')
+    console.log('🔍 Backend URL:', backendUrl)
+    console.log('🔍 Auth token present:', !!authToken)
+    
+    const response = await fetch(`${backendUrl}/api/drafts/${draftId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': authToken || ''
+      }
+    })
+
+    console.log('🔍 Backend response status:', response.status)
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('❌ Backend delete error:', errorData)
       return NextResponse.json(
-        { error: 'Draft not found' },
-        { status: 404 }
+        { error: errorData.error || 'Failed to delete draft' },
+        { status: response.status }
       )
     }
 
-    if (draft.operatorWallet !== auth.user.walletAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      )
-    }
-
-    // Delete the draft
-    const deleted = submissionStorage.delete(draftId)
-    if (!deleted) {
-      return NextResponse.json(
-        { error: 'Failed to delete draft' },
-        { status: 500 }
-      )
-    }
+    const data = await response.json()
+    console.log('✅ Draft deleted successfully from backend')
 
     return NextResponse.json({
       success: true,
@@ -49,7 +57,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Error deleting draft:', error)
+    console.error('❌ Error deleting draft:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

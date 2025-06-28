@@ -59,32 +59,59 @@ export default function Home() {
 
   useEffect(() => {
     const checkUserProfile = async () => {
-      if (isCheckingProfile.current) return
-      if (hasRedirected.current) return
+      console.log('🔍 Starting profile check...')
+      if (isCheckingProfile.current) {
+        console.log('⏳ Already checking profile, skipping')
+        return
+      }
+      if (hasRedirected.current) {
+        console.log('⏳ Already redirected, skipping')
+        return
+      }
       const now = Date.now()
-      if (now - lastCheckTime.current < 2000) return
+      if (now - lastCheckTime.current < 2000) {
+        console.log('⏳ Too soon since last check, skipping')
+        return
+      }
       lastCheckTime.current = now
-      if (!isAuthenticated()) return
+      if (!isAuthenticated()) {
+        console.log('❌ Not authenticated, skipping')
+        return
+      }
       const authData = getAuthToken()
-      if (!authData?.token) return
+      if (!authData?.token) {
+        console.log('❌ No auth token, skipping')
+        return
+      }
       if (!isValidJWT(authData.token)) {
+        console.log('❌ Invalid JWT, clearing storage')
         clearAllLocalStorage()
         return
       }
+      console.log('✅ Authentication valid, checking profile...')
       isCheckingProfile.current = true
       setLoading(true)
       try {
-        await apiService.getProfile()
+        const response = await apiService.getProfile()
+        console.log('✅ Profile found, redirecting to dashboard')
         hasRedirected.current = true
         router.push('/dashboard')
       } catch (error: any) {
-        if (error.message?.includes('404') || error.message?.includes('Profile not found')) {
+        console.log('🔍 Profile check error:', error.message)
+        if (error.message?.includes('404') || 
+            error.message?.includes('Profile not found') || 
+            error.message?.includes('Endpoint not found')) {
+          console.log('❌ Profile not found, redirecting to profile creation')
           hasRedirected.current = true
           router.push('/profile')
         } else if (error.message?.includes('401') || error.message?.includes('Authentication')) {
+          console.log('❌ Authentication failed, clearing storage')
           clearAllLocalStorage()
         } else {
-          console.error('Error checking user profile:', error)
+          console.error('❌ Unexpected error checking user profile:', error)
+          // For unexpected errors, still try to redirect to profile creation
+          hasRedirected.current = true
+          router.push('/profile')
         }
       } finally {
         isCheckingProfile.current = false

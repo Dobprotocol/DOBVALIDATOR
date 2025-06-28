@@ -17,9 +17,10 @@ interface DeviceDocumentationProps {
   onNext: () => void
   onBack: () => void
   onSaveDraft?: () => Promise<void>
+  onAutoSave?: () => void
 }
 
-export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft }: DeviceDocumentationProps) {
+export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft, onAutoSave }: DeviceDocumentationProps) {
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
@@ -32,7 +33,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     deviceImages: deviceData.deviceImages || []
   })
 
-  // Only update local state from props on mount
+  // Only sync on draftId change, not on parent state changes
   useEffect(() => {
     setLocalData({
       technicalCertification: deviceData.technicalCertification || null,
@@ -40,8 +41,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
       maintenanceRecords: deviceData.maintenanceRecords || null,
       deviceImages: deviceData.deviceImages || []
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [deviceData.draftId]) // Only reset if draftId changes
 
   const handleInputChange = (field: string, value: any) => {
     setLocalData(prev => ({ ...prev, [field]: value }))

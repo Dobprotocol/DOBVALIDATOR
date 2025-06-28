@@ -19,10 +19,11 @@ interface DeviceBasicInfoProps {
   updateDeviceData: (data: Partial<DeviceData>) => void
   onNext: () => void
   onBack?: () => void
-  onSaveDraft?: () => Promise<void>
+  onSaveDraft?: (data: Partial<DeviceData>) => Promise<void>
+  onAutoSave?: () => void
 }
 
-export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft }: DeviceBasicInfoProps) {
+export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft, onAutoSave }: DeviceBasicInfoProps) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
   const [showExplosion, setShowExplosion] = useState(false)
   const [explosionPosition, setExplosionPosition] = useState({ x: 0, y: 0 })
@@ -39,29 +40,15 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
     location: deviceData.location || ""
   })
 
-  // On mount, restore from localStorage if available
+  // Only sync on draftId change, not on parent state changes
   useEffect(() => {
-    const backup = localStorage.getItem('dobFormStep1Backup')
-    if (backup) {
-      try {
-        const restoredData = JSON.parse(backup)
-        console.log('🔍 Restoring step 1 data from localStorage:', restoredData)
-        setLocalData(restoredData)
-      } catch (error) {
-        console.error('🔍 Error parsing step 1 backup:', error)
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Debounce localStorage update after user stops typing
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.log('🔍 Saving step 1 data to localStorage:', localData)
-      localStorage.setItem('dobFormStep1Backup', JSON.stringify(localData))
-    }, 500)
-    return () => clearTimeout(timeout)
-  }, [localData])
+    setLocalData({
+      deviceName: deviceData.deviceName || "",
+      deviceType: deviceData.deviceType || "",
+      customDeviceType: deviceData.customDeviceType || "",
+      location: deviceData.location || ""
+    })
+  }, [deviceData.draftId]) // Only reset if draftId changes
 
   // Check if user has seen the welcome modal in this session
   useEffect(() => {
@@ -89,11 +76,8 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
     
     setIsSaving(true)
     try {
-      // Update parent state with current local data
-      updateDeviceData(localData)
-      
-      // Save draft (parent handles toast)
-      await onSaveDraft()
+      // Pass current local data directly to save function without updating parent state
+      await onSaveDraft(localData)
     } catch (error) {
       toast({
         title: "Save Failed",
@@ -110,8 +94,6 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
     if (validate()) {
       // Only now update parent state
       updateDeviceData(localData)
-      // Clear backup after successful submit
-      localStorage.removeItem('dobFormStep1Backup')
       onNext()
     }
   }

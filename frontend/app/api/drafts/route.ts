@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
-import { submissionStorage } from '@/lib/submission-storage'
 
 // Draft schema (very flexible for partial data - drafts are works in progress)
 const draftSchema = z.object({
-  name: z.string().optional(),
   deviceName: z.string().optional(),
   deviceType: z.string().optional(),
-  customDeviceType: z.string().optional(),
   location: z.string().optional(),
+  serialNumber: z.string().optional(),
+  manufacturer: z.string().optional(),
+  model: z.string().optional(),
   yearOfManufacture: z.string().optional(),
   condition: z.string().optional(),
   specifications: z.string().optional(),
@@ -17,19 +17,19 @@ const draftSchema = z.object({
   currentValue: z.string().optional(),
   expectedRevenue: z.string().optional(),
   operationalCosts: z.string().optional(),
-  files: z.array(z.object({
-    filename: z.string(),
-    path: z.string(),
-    documentType: z.string()
-  })).optional(),
 })
 
 // Create or update a draft
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Draft POST request received')
+    
     // Verify authentication
     const auth = getAuthenticatedUser(request)
+    console.log('🔍 Auth result:', { valid: auth.valid, user: auth.user })
+    
     if (!auth.valid) {
+      console.log('❌ Authentication failed')
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -37,12 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('🔍 Request body:', body)
     const { draftId, ...draftData } = body
 
     // Validate draft data
     const validationResult = draftSchema.safeParse(draftData)
     if (!validationResult.success) {
-      console.error('Draft validation failed:', validationResult.error.format())
+      console.error('❌ Draft validation failed:', validationResult.error.format())
       return NextResponse.json(
         { error: 'Invalid draft data', details: validationResult.error.format() },
         { status: 400 }
@@ -50,122 +51,84 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedData = validationResult.data
+    console.log('🔍 Validated data:', validatedData)
+    
+    // Forward to backend database
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
+    const authToken = request.headers.get('authorization')
+    console.log('🔍 Backend URL:', backendUrl)
+    console.log('🔍 Auth token present:', !!authToken)
     
     if (draftId) {
       // Update existing draft
       console.log('🔍 Updating existing draft:', draftId)
-      const existingDraft = submissionStorage.get(draftId)
-      if (!existingDraft) {
-        console.log('🔍 Draft not found:', draftId)
-        return NextResponse.json(
-          { error: 'Draft not found' },
-          { status: 404 }
-        )
-      }
-
-      if (existingDraft.operatorWallet !== auth.user.walletAddress) {
-        console.log('🔍 Unauthorized access to draft:', draftId)
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 403 }
-        )
-      }
-
-      if (existingDraft.status !== 'draft') {
-        console.log('🔍 Can only update draft submissions:', existingDraft.status)
-        return NextResponse.json(
-          { error: 'Can only update draft submissions' },
-          { status: 400 }
-        )
-      }
-
-      const updatedDraft = submissionStorage.update(draftId, {
-        name: validatedData.name || '',
-        deviceName: validatedData.deviceName || '',
-        deviceType: validatedData.deviceType || '',
-        customDeviceType: validatedData.customDeviceType || '',
-        location: validatedData.location || '',
-        serialNumber: validatedData.serialNumber || '',
-        manufacturer: validatedData.manufacturer || '',
-        model: validatedData.model || '',
-        yearOfManufacture: validatedData.yearOfManufacture || '',
-        condition: validatedData.condition || '',
-        specifications: validatedData.specifications || '',
-        purchasePrice: validatedData.purchasePrice || '',
-        currentValue: validatedData.currentValue || '',
-        expectedRevenue: validatedData.expectedRevenue || '',
-        operationalCosts: validatedData.operationalCosts || '',
-        files: (validatedData.files?.filter(file => file.filename && file.path && file.documentType) || []) as Array<{
-          filename: string
-          path: string
-          documentType: string
-        }>,
-        updatedAt: new Date().toISOString()
+      
+      const updateResponse = await fetch(`${backendUrl}/api/drafts/${draftId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken || ''
+        },
+        body: JSON.stringify(validatedData)
       })
 
-      console.log('🔍 Draft updated successfully:', updatedDraft?.id)
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json()
+        return NextResponse.json(
+          { error: errorData.error || 'Failed to update draft' },
+          { status: updateResponse.status }
+        )
+      }
+
+      const updatedDraft = await updateResponse.json()
+      console.log('🔍 Draft updated successfully:', updatedDraft.draft?.id)
 
       return NextResponse.json({
         success: true,
         draft: {
-          id: updatedDraft!.id,
-          name: updatedDraft!.name,
-          deviceName: updatedDraft!.deviceName,
-          status: updatedDraft!.status,
-          updatedAt: updatedDraft!.updatedAt
+          id: updatedDraft.draft.id,
+          name: updatedDraft.draft.deviceName ? `${updatedDraft.draft.deviceName} - ${updatedDraft.draft.deviceType || 'Device'}` : 'Untitled Draft',
+          deviceName: updatedDraft.draft.deviceName,
+          status: 'draft',
+          updatedAt: updatedDraft.draft.updatedAt
         },
         message: 'Draft updated successfully'
       })
     } else {
       // Create new draft
       console.log('🔍 Creating new draft')
-      const draftId = `DRAFT_${Date.now()}_${Math.random().toString(36).substring(2)}`
-      console.log('🔍 Generated draft ID:', draftId)
       
-      const draft = {
-        id: draftId,
-        name: validatedData.name || '',
-        deviceName: validatedData.deviceName || '',
-        deviceType: validatedData.deviceType || '',
-        customDeviceType: validatedData.customDeviceType || '',
-        location: validatedData.location || '',
-        serialNumber: validatedData.serialNumber || '',
-        manufacturer: validatedData.manufacturer || '',
-        model: validatedData.model || '',
-        yearOfManufacture: validatedData.yearOfManufacture || '',
-        condition: validatedData.condition || '',
-        specifications: validatedData.specifications || '',
-        purchasePrice: validatedData.purchasePrice || '',
-        currentValue: validatedData.currentValue || '',
-        expectedRevenue: validatedData.expectedRevenue || '',
-        operationalCosts: validatedData.operationalCosts || '',
-        operatorWallet: auth.user.walletAddress,
-        status: 'draft' as const,
-        submittedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        files: (validatedData.files?.filter(file => file.filename && file.path && file.documentType) || []) as Array<{
-          filename: string
-          path: string
-          documentType: string
-        }>,
-        // Admin fields (not applicable for drafts)
-        adminNotes: null,
-        adminScore: null,
-        adminDecision: null,
-        adminDecisionAt: null,
-        certificateId: null,
+      const createResponse = await fetch(`${backendUrl}/api/drafts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken || ''
+        },
+        body: JSON.stringify(validatedData)
+      })
+
+      console.log('🔍 Backend response status:', createResponse.status)
+      
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json()
+        console.error('❌ Backend error:', errorData)
+        return NextResponse.json(
+          { error: errorData.error || 'Failed to create draft' },
+          { status: createResponse.status }
+        )
       }
 
-      const createdDraft = submissionStorage.create(draft)
+      const createdDraft = await createResponse.json()
+      console.log('🔍 Draft created successfully:', createdDraft.draft?.id)
 
       return NextResponse.json({
         success: true,
         draft: {
-          id: createdDraft.id,
-          name: createdDraft.name,
-          deviceName: createdDraft.deviceName,
-          status: createdDraft.status,
-          submittedAt: createdDraft.submittedAt
+          id: createdDraft.draft.id,
+          name: createdDraft.draft.deviceName ? `${createdDraft.draft.deviceName} - ${createdDraft.draft.deviceType || 'Device'}` : 'Untitled Draft',
+          deviceName: createdDraft.draft.deviceName,
+          status: 'draft',
+          submittedAt: createdDraft.draft.createdAt
         },
         message: 'Draft created successfully'
       })
@@ -193,51 +156,47 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const limit = searchParams.get('limit') || '10'
+    const offset = searchParams.get('offset') || '0'
     
-    // Get drafts using shared storage
-    const result = submissionStorage.getPaginated({
-      walletAddress: auth.user.walletAddress,
-      status: 'draft',
-      limit,
-      offset
+    // Forward to backend database
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001'
+    const authToken = request.headers.get('authorization')
+    
+    const response = await fetch(`${backendUrl}/api/drafts?limit=${limit}&offset=${offset}`, {
+      headers: {
+        'Authorization': authToken || ''
+      }
     })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      return NextResponse.json(
+        { error: errorData.error || 'Failed to fetch drafts' },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+    console.log('🔍 Backend drafts data:', data)
+    
+    // Add status field to drafts since backend doesn't have it
+    const draftsWithStatus = (data.drafts || []).map((draft: any) => ({
+      ...draft,
+      status: 'draft'
+    }))
+    
+    console.log('🔍 Drafts with status:', draftsWithStatus)
     
     return NextResponse.json({
       success: true,
-      drafts: result.submissions.map(draft => ({
-        id: draft.id,
-        name: draft.name,
-        deviceName: draft.deviceName,
-        deviceType: draft.deviceType,
-        customDeviceType: draft.customDeviceType,
-        location: draft.location,
-        serialNumber: draft.serialNumber,
-        manufacturer: draft.manufacturer,
-        model: draft.model,
-        yearOfManufacture: draft.yearOfManufacture,
-        condition: draft.condition,
-        specifications: draft.specifications,
-        purchasePrice: draft.purchasePrice,
-        currentValue: draft.currentValue,
-        expectedRevenue: draft.expectedRevenue,
-        operationalCosts: draft.operationalCosts,
-        files: draft.files,
-        status: draft.status,
-        submittedAt: draft.submittedAt,
-        updatedAt: draft.updatedAt
-      })),
-      pagination: {
-        total: result.total,
-        limit,
-        offset,
-        hasMore: result.hasMore
-      }
+      drafts: draftsWithStatus,
+      total: data.total || 0,
+      hasMore: data.hasMore || false
     })
-    
+
   } catch (error) {
-    console.error('Error retrieving drafts:', error)
+    console.error('Error fetching drafts:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

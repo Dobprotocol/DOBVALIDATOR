@@ -17,11 +17,12 @@ interface DeviceTechnicalInfoProps {
   deviceData: DeviceData
   updateDeviceData: (data: Partial<DeviceData>) => void
   onNext: () => void
-  onBack: () => void
-  onSaveDraft?: () => Promise<void>
+  onBack?: () => void
+  onSaveDraft?: (data: Partial<DeviceData>) => Promise<void>
+  onAutoSave?: () => void
 }
 
-export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft }: DeviceTechnicalInfoProps) {
+export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft, onAutoSave }: DeviceTechnicalInfoProps) {
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
@@ -37,7 +38,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
     specifications: deviceData.specifications || ""
   })
 
-  // Only update local state from props on mount
+  // Only sync on draftId change, not on parent state changes
   useEffect(() => {
     setLocalData({
       serialNumber: deviceData.serialNumber || "",
@@ -47,8 +48,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
       condition: deviceData.condition || "",
       specifications: deviceData.specifications || ""
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [deviceData.draftId]) // Only reset if draftId changes
 
   const handleInputChange = (field: string, value: string) => {
     setLocalData(prev => ({ ...prev, [field]: value }))
@@ -80,16 +80,8 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
     
     setIsSaving(true)
     try {
-      // Update parent state with current local data
-      updateDeviceData(localData)
-      
-      // Save draft
-      await onSaveDraft()
-      
-      toast({
-        title: "Draft Saved",
-        description: "Your progress has been automatically saved.",
-      })
+      // Pass current local data directly to save function without updating parent state
+      await onSaveDraft(localData)
     } catch (error) {
       toast({
         title: "Save Failed",
