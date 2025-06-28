@@ -35,38 +35,13 @@ export class SupabaseService {
     email?: string
     name?: string
     company?: string
-    role?: 'OPERATOR' | 'ADMIN' | 'USER' | 'user' | 'operator' | 'admin'
+    role?: 'OPERATOR' | 'ADMIN'
   }) {
-    // First, try without specifying role (let database use default)
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .upsert({ 
-          wallet_address: userData.wallet_address,
-          email: userData.email,
-          name: userData.name,
-          company: userData.company
-          // No role specified - let database use default
-        }, { onConflict: 'wallet_address' })
-        .select()
-        .single()
-      
-      if (!error) {
-        console.log(`✅ Successfully upserted user without specifying role (using default)`)
-        return data
-      }
-      
-      console.log(`❌ Failed to upsert user without role:`, error.message)
-    } catch (error) {
-      console.log(`❌ Exception upserting user without role:`, error.message)
-    }
-    
-    // If that fails, try different role values
+    // Use the correct enum values: OPERATOR and ADMIN
     const roleValues = [
       userData.role, 
-      'user', 'admin', 'operator',  // lowercase
-      'USER', 'ADMIN', 'OPERATOR',  // uppercase
-      'standard', 'basic', 'member' // alternative values
+      'OPERATOR',  // Default for regular users
+      'ADMIN'      // For admin users
     ].filter(Boolean)
     
     for (const roleValue of roleValues) {
