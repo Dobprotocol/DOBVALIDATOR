@@ -7,7 +7,7 @@ import {
   StoredFile 
 } from '@/lib/fileStorage'
 import { getAuthenticatedUser } from '../auth/verify/route'
-import { submissionStorage } from '@/lib/submission-storage'
+import { supabaseService } from '@/lib/supabase-service'
 
 // Define validation schemas
 const deviceSchema = z.object({
@@ -199,129 +199,53 @@ export async function POST(request: NextRequest) {
       storedFiles.push(...results.filter(r => r.file).map(r => r.file!))
     }
 
-    // Create submission record
-    const submissionId = `SUB_${Date.now()}_${Math.random().toString(36).substring(2)}`
-    const submission = {
-      id: submissionId,
-      name: validatedData.deviceName,
-      deviceName: validatedData.deviceName,
-      deviceType: validatedData.deviceType,
-      customDeviceType: validatedData.customDeviceType,
-      location: validatedData.location,
-      serialNumber: validatedData.serialNumber,
-      manufacturer: validatedData.manufacturer,
-      model: validatedData.model,
-      yearOfManufacture: validatedData.yearOfManufacture,
-      condition: validatedData.condition,
-      specifications: validatedData.specifications,
-      purchasePrice: validatedData.purchasePrice,
-      currentValue: validatedData.currentValue,
-      expectedRevenue: validatedData.expectedRevenue,
-      operationalCosts: validatedData.operationalCosts,
-      operatorWallet: auth.user.walletAddress,
-      status: 'pending' as const,
-      submittedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      files: storedFiles.map(file => ({
-        filename: file.filename,
-        path: file.path,
-        documentType: file.metadata.documentType
-      })),
-      // Admin fields (only for admin users)
-      adminNotes: null,
-      adminScore: null,
-      adminDecision: null,
-      adminDecisionAt: null,
-      certificateId: null,
+    // Get user by wallet address
+    const user = await supabaseService.getUserByWallet(auth.user.walletAddress)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
     }
 
-    // First, delete any existing draft for this user
+    // Prepare submission data for Supabase
+    const supabaseSubmissionData = {
+      user_id: user.id,
+      device_name: validatedData.deviceName,
+      device_type: validatedData.deviceType,
+      custom_device_type: validatedData.customDeviceType || null,
+      location: validatedData.location,
+      serial_number: validatedData.serialNumber,
+      manufacturer: validatedData.manufacturer,
+      model: validatedData.model,
+      year_of_manufacture: validatedData.yearOfManufacture,
+      condition: validatedData.condition,
+      specifications: validatedData.specifications,
+      purchase_price: validatedData.purchasePrice,
+      current_value: validatedData.currentValue,
+      expected_revenue: validatedData.expectedRevenue,
+      operational_costs: validatedData.operationalCosts,
+      status: 'PENDING',
+      submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    // Create submission in Supabase
+    const createdSubmission = await supabaseService.createSubmission(supabaseSubmissionData)
+    console.log('🔍 Created submission in Supabase:', createdSubmission)
+
+    // Delete any existing draft for this user
     try {
       const draftId = formData.get('draftId') as string
       if (draftId) {
         console.log('Deleting existing draft before submission:', draftId)
-        const deleteResponse = await fetch(`http://localhost:3001/api/drafts/${draftId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': request.headers.get('authorization') || ''
-          }
-        })
-        if (deleteResponse.ok) {
-          console.log('Draft deleted successfully')
-        } else {
-          console.warn('Failed to delete draft, but continuing with submission')
-        }
+        await supabaseService.deleteDraft(draftId)
+        console.log('Draft deleted successfully')
       }
     } catch (deleteError) {
       console.error('Error deleting draft:', deleteError)
       // Continue with submission even if draft deletion fails
     }
-
-    // Send to backend database FIRST
-    let backendSubmission = null
-    try {
-      const authHeader = request.headers.get('authorization')
-      if (authHeader) {
-        console.log('Sending submission to backend database...')
-        
-        const backendResponse = await fetch('http://localhost:3001/api/submissions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader
-          },
-          body: JSON.stringify({
-            deviceName: validatedData.deviceName,
-            deviceType: validatedData.deviceType,
-            customDeviceType: validatedData.customDeviceType,
-            location: validatedData.location,
-            serialNumber: validatedData.serialNumber,
-            manufacturer: validatedData.manufacturer,
-            model: validatedData.model,
-            yearOfManufacture: validatedData.yearOfManufacture,
-            condition: validatedData.condition,
-            specifications: validatedData.specifications,
-            purchasePrice: validatedData.purchasePrice,
-            currentValue: validatedData.currentValue,
-            expectedRevenue: validatedData.expectedRevenue,
-            operationalCosts: validatedData.operationalCosts,
-            files: storedFiles.map(file => ({
-              filename: file.filename,
-              path: file.path,
-              size: file.size,
-              mimeType: file.mimeType,
-              documentType: file.metadata.documentType
-            }))
-          })
-        })
-
-        if (backendResponse.ok) {
-          const backendData = await backendResponse.json()
-          console.log('Backend submission response:', backendData)
-          backendSubmission = backendData.submission
-        } else {
-          console.error('Backend submission failed:', backendResponse.status, backendResponse.statusText)
-          return NextResponse.json(
-            { error: 'Failed to submit to backend database' },
-            { status: 500 }
-          )
-        }
-      } else {
-        return NextResponse.json(
-          { error: 'No authorization header' },
-          { status: 401 }
-        )
-      }
-    } catch (backendError) {
-      console.error('Error sending to backend:', backendError)
-      return NextResponse.json(
-        { error: 'Failed to submit to backend database' },
-        { status: 500 }
-      )
-    }
-
-    // Only create frontend storage entry if backend submission was successful
-    const createdSubmission = submissionStorage.create(submission)
 
     // Return success response with submission information
     return NextResponse.json({
@@ -329,9 +253,9 @@ export async function POST(request: NextRequest) {
       message: 'Form submitted successfully',
       submission: {
         id: createdSubmission.id,
-        deviceName: createdSubmission.deviceName,
+        deviceName: createdSubmission.device_name,
         status: createdSubmission.status,
-        submittedAt: createdSubmission.submittedAt
+        submittedAt: createdSubmission.submitted_at
       },
       data: {
         ...validatedData,

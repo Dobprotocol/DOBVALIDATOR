@@ -41,6 +41,50 @@ export interface Database {
           updated_at?: string
         }
       }
+      profiles: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          company: string | null
+          email: string
+          wallet_address: string
+          phone: string | null
+          website: string | null
+          bio: string | null
+          profile_image: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          company?: string | null
+          email: string
+          wallet_address: string
+          phone?: string | null
+          website?: string | null
+          bio?: string | null
+          profile_image?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          company?: string | null
+          email?: string
+          wallet_address?: string
+          phone?: string | null
+          website?: string | null
+          bio?: string | null
+          profile_image?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       submissions: {
         Row: {
           id: string
@@ -163,6 +207,41 @@ export interface Database {
           created_at?: string
           updated_at?: string
           user_id?: string
+        }
+      }
+      certificates: {
+        Row: {
+          id: string
+          certificate_hash: string
+          stellar_tx_hash: string | null
+          issued_at: string
+          expires_at: string | null
+          status: 'ACTIVE' | 'EXPIRED' | 'REVOKED'
+          submission_id: string
+          user_id: string
+          metadata: any
+        }
+        Insert: {
+          id?: string
+          certificate_hash: string
+          stellar_tx_hash?: string | null
+          issued_at?: string
+          expires_at?: string | null
+          status?: 'ACTIVE' | 'EXPIRED' | 'REVOKED'
+          submission_id: string
+          user_id: string
+          metadata?: any
+        }
+        Update: {
+          id?: string
+          certificate_hash?: string
+          stellar_tx_hash?: string | null
+          issued_at?: string
+          expires_at?: string | null
+          status?: 'ACTIVE' | 'EXPIRED' | 'REVOKED'
+          submission_id?: string
+          user_id?: string
+          metadata?: any
         }
       }
     }

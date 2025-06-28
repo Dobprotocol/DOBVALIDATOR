@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../../auth/verify/route'
+import { supabaseService } from '@/lib/supabase-service'
+import crypto from 'crypto'
 
 // Certificate generation schema
 const certificateSchema = z.object({
@@ -11,9 +13,6 @@ const certificateSchema = z.object({
   certificateType: z.enum(['technical', 'financial', 'comprehensive']),
   metadata: z.record(z.any()).optional(),
 })
-
-// Mock certificate data storage (in production, use database)
-const certificates = new Map<string, any>()
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,28 +37,42 @@ export async function POST(request: NextRequest) {
 
     const { deviceId, deviceName, operatorName, validationDate, certificateType, metadata } = validationResult.data
     
-    // Generate unique certificate ID
-    const certificateId = `CERT_${Date.now()}_${Math.random().toString(36).substring(2)}`
-    
-    // Create certificate data
-    const certificate = {
-      id: certificateId,
-      deviceId,
-      deviceName,
-      operatorName,
-      operatorWallet: auth.user.walletAddress,
-      validationDate,
-      certificateType,
-      issuedAt: new Date().toISOString(),
-      status: 'issued',
-      metadata: metadata || {},
-      // TODO: Add PDF generation logic here
-      pdfUrl: `/api/certificates/${certificateId}/pdf`,
-      verificationUrl: `/api/certificates/${certificateId}/verify`,
+    // Get user by wallet address
+    const user = await supabaseService.getUserByWallet(auth.user.walletAddress)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
     }
     
-    // Store certificate
-    certificates.set(certificateId, certificate)
+    // Generate certificate hash for blockchain verification
+    const certificateHash = crypto
+      .createHash('sha256')
+      .update(`${deviceId}-${deviceName}-${operatorName}-${validationDate}-${Date.now()}`)
+      .digest('hex')
+    
+    // Prepare certificate data for Supabase
+    const supabaseCertificateData = {
+      certificate_hash: certificateHash,
+      stellar_tx_hash: null, // Will be set when blockchain transaction is completed
+      issued_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+      status: 'ACTIVE',
+      submission_id: deviceId, // Assuming deviceId is actually submission_id
+      user_id: user.id,
+      // Additional metadata can be stored in a separate field or as JSON
+      metadata: {
+        deviceName,
+        operatorName,
+        validationDate,
+        certificateType,
+        ...metadata
+      }
+    }
+    
+    // Create certificate in Supabase
+    const createdCertificate = await supabaseService.createCertificate(supabaseCertificateData)
     
     // TODO: Generate actual PDF certificate
     // This would involve:
@@ -70,7 +83,19 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      certificate,
+      certificate: {
+        id: createdCertificate.id,
+        certificateHash: createdCertificate.certificate_hash,
+        deviceId,
+        deviceName,
+        operatorName,
+        validationDate,
+        certificateType,
+        issuedAt: createdCertificate.issued_at,
+        status: createdCertificate.status,
+        pdfUrl: `/api/certificates/${createdCertificate.id}/pdf`,
+        verificationUrl: `/api/certificates/${createdCertificate.certificate_hash}/verify`,
+      },
       message: 'Certificate generated successfully'
     })
     
@@ -96,7 +121,7 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    const certificate = certificates.get(certificateId)
+    const certificate = await supabaseService.getCertificateById(certificateId)
     if (!certificate) {
       return NextResponse.json(
         { error: 'Certificate not found' },
@@ -106,7 +131,15 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      certificate
+      certificate: {
+        id: certificate.id,
+        certificateHash: certificate.certificate_hash,
+        stellarTxHash: certificate.stellar_tx_hash,
+        issuedAt: certificate.issued_at,
+        expiresAt: certificate.expires_at,
+        status: certificate.status,
+        metadata: certificate.metadata
+      }
     })
     
   } catch (error) {

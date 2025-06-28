@@ -5,6 +5,10 @@ type Submission = Database['public']['Tables']['submissions']['Row']
 type SubmissionInsert = Database['public']['Tables']['submissions']['Insert']
 type Draft = Database['public']['Tables']['drafts']['Row']
 type DraftInsert = Database['public']['Tables']['drafts']['Insert']
+type Profile = Database['public']['Tables']['profiles']['Row']
+type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
+type Certificate = Database['public']['Tables']['certificates']['Row']
+type CertificateInsert = Database['public']['Tables']['certificates']['Insert']
 
 export class SupabaseService {
   // Get user by wallet address
@@ -35,6 +39,41 @@ export class SupabaseService {
     
     if (error) throw error
     return data
+  }
+
+  // Get profile by wallet address
+  async getProfileByWallet(walletAddress: string) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('wallet_address', walletAddress)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') throw error // PGRST116 is "not found"
+    return data
+  }
+
+  // Create or update profile
+  async upsertProfile(profileData: ProfileInsert) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(profileData, { onConflict: 'wallet_address' })
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  // Delete profile
+  async deleteProfile(walletAddress: string) {
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('wallet_address', walletAddress)
+    
+    if (error) throw error
+    return true
   }
 
   // Create submission
@@ -188,6 +227,60 @@ export class SupabaseService {
       .eq('id', submissionId)
       .select()
       .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  // Create certificate
+  async createCertificate(certificateData: CertificateInsert) {
+    const { data, error } = await supabase
+      .from('certificates')
+      .insert(certificateData)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  // Get certificate by ID
+  async getCertificateById(certificateId: string) {
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .eq('id', certificateId)
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  // Get certificate by hash
+  async getCertificateByHash(certificateHash: string) {
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .eq('certificate_hash', certificateHash)
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  // Get user's certificates by wallet address
+  async getUserCertificates(walletAddress: string) {
+    // First get the user by wallet address
+    const user = await this.getUserByWallet(walletAddress)
+    if (!user) {
+      return []
+    }
+
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('issued_at', { ascending: false })
     
     if (error) throw error
     return data

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-// Mock certificate data storage (in production, use database)
-const certificates = new Map<string, any>()
+import { supabaseService } from '@/lib/supabase-service'
 
 export async function GET(
   request: NextRequest,
@@ -17,8 +15,8 @@ export async function GET(
       )
     }
     
-    // In production, fetch from database
-    const certificate = certificates.get(certificateId)
+    // Fetch from Supabase database
+    const certificate = await supabaseService.getCertificateById(certificateId)
     
     if (!certificate) {
       return NextResponse.json(
@@ -32,7 +30,7 @@ export async function GET(
     }
     
     // Verify certificate status
-    if (certificate.status !== 'issued') {
+    if (certificate.status !== 'ACTIVE') {
       return NextResponse.json({
         valid: false,
         error: 'Certificate not valid',
@@ -40,7 +38,22 @@ export async function GET(
         certificate: {
           id: certificate.id,
           status: certificate.status,
-          issuedAt: certificate.issuedAt
+          issuedAt: certificate.issued_at
+        }
+      })
+    }
+    
+    // Check if certificate has expired
+    if (certificate.expires_at && new Date(certificate.expires_at) < new Date()) {
+      return NextResponse.json({
+        valid: false,
+        error: 'Certificate expired',
+        message: 'This certificate has expired',
+        certificate: {
+          id: certificate.id,
+          status: certificate.status,
+          issuedAt: certificate.issued_at,
+          expiresAt: certificate.expires_at
         }
       })
     }
@@ -50,13 +63,13 @@ export async function GET(
       valid: true,
       certificate: {
         id: certificate.id,
-        deviceName: certificate.deviceName,
-        operatorName: certificate.operatorName,
-        validationDate: certificate.validationDate,
-        certificateType: certificate.certificateType,
-        issuedAt: certificate.issuedAt,
+        certificateHash: certificate.certificate_hash,
+        stellarTxHash: certificate.stellar_tx_hash,
+        issuedAt: certificate.issued_at,
+        expiresAt: certificate.expires_at,
         status: certificate.status,
-        // Don't expose sensitive data like wallet addresses in public verification
+        metadata: certificate.metadata
+        // Don't expose sensitive data like user IDs in public verification
       },
       message: 'Certificate is valid and authentic'
     })
