@@ -107,15 +107,25 @@ export async function POST(request: NextRequest) {
     const walletAddress = auth.user.walletAddress
     console.log('🔍 Creating profile for wallet:', walletAddress)
     
+    // Fetch user by wallet address to get user_id
+    const user = await supabaseService.getUserByWallet(walletAddress)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+    
     // Check if profile already exists
     const existingProfile = await supabaseService.getProfileByWallet(walletAddress)
     console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
     
     // Prepare profile data for Supabase
     const supabaseProfileData = {
+      user_id: user.id,
       wallet_address: walletAddress,
       name: profileData.name,
-      company: profileData.company,
+      company: profileData.company || null,
       email: profileData.email,
       phone: profileData.phone || null,
       website: profileData.website || null,
