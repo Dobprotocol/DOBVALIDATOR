@@ -203,6 +203,7 @@ export async function POST(request: NextRequest) {
     const submissionId = `SUB_${Date.now()}_${Math.random().toString(36).substring(2)}`
     const submission = {
       id: submissionId,
+      name: validatedData.deviceName,
       deviceName: validatedData.deviceName,
       deviceType: validatedData.deviceType,
       customDeviceType: validatedData.customDeviceType,
@@ -234,10 +235,30 @@ export async function POST(request: NextRequest) {
       certificateId: null,
     }
 
-    // Store the submission in frontend storage
-    const createdSubmission = submissionStorage.create(submission)
+    // First, delete any existing draft for this user
+    try {
+      const draftId = formData.get('draftId') as string
+      if (draftId) {
+        console.log('Deleting existing draft before submission:', draftId)
+        const deleteResponse = await fetch(`http://localhost:3001/api/drafts/${draftId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': request.headers.get('authorization') || ''
+          }
+        })
+        if (deleteResponse.ok) {
+          console.log('Draft deleted successfully')
+        } else {
+          console.warn('Failed to delete draft, but continuing with submission')
+        }
+      }
+    } catch (deleteError) {
+      console.error('Error deleting draft:', deleteError)
+      // Continue with submission even if draft deletion fails
+    }
 
-    // Also send to backend database
+    // Send to backend database FIRST
+    let backendSubmission = null
     try {
       const authHeader = request.headers.get('authorization')
       if (authHeader) {
@@ -267,6 +288,8 @@ export async function POST(request: NextRequest) {
             files: storedFiles.map(file => ({
               filename: file.filename,
               path: file.path,
+              size: file.size,
+              mimeType: file.mimeType,
               documentType: file.metadata.documentType
             }))
           })
@@ -275,14 +298,30 @@ export async function POST(request: NextRequest) {
         if (backendResponse.ok) {
           const backendData = await backendResponse.json()
           console.log('Backend submission response:', backendData)
+          backendSubmission = backendData.submission
         } else {
           console.error('Backend submission failed:', backendResponse.status, backendResponse.statusText)
+          return NextResponse.json(
+            { error: 'Failed to submit to backend database' },
+            { status: 500 }
+          )
         }
+      } else {
+        return NextResponse.json(
+          { error: 'No authorization header' },
+          { status: 401 }
+        )
       }
     } catch (backendError) {
       console.error('Error sending to backend:', backendError)
-      // Don't fail the submission if backend is down, just log the error
+      return NextResponse.json(
+        { error: 'Failed to submit to backend database' },
+        { status: 500 }
+      )
     }
+
+    // Only create frontend storage entry if backend submission was successful
+    const createdSubmission = submissionStorage.create(submission)
 
     // Return success response with submission information
     return NextResponse.json({

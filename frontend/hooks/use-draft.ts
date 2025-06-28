@@ -35,11 +35,22 @@ export function useDraft() {
     try {
       const authToken = localStorage.getItem('authToken')
       if (!authToken) {
+        console.error('❌ No authentication token found')
         throw new Error('No authentication token found')
       }
 
       const tokenData = JSON.parse(authToken)
+      console.log('🔍 Auth token data:', { 
+        hasToken: !!tokenData.token, 
+        walletAddress: tokenData.walletAddress,
+        tokenLength: tokenData.token?.length 
+      })
       
+      if (!tokenData.token) {
+        console.error('❌ Invalid auth token data')
+        throw new Error('Invalid authentication token')
+      }
+
       // Convert File objects to file metadata for draft storage
       const files = []
       if (deviceData.technicalCertification) {
@@ -76,11 +87,26 @@ export function useDraft() {
         ? `${deviceData.deviceName} - ${deviceData.deviceType || 'Device'}`
         : 'Untitled Draft'
 
+      // Only send fields that exist in the database schema
+      const draftData = {
+        deviceName: deviceData.deviceName || '',
+        deviceType: deviceData.deviceType || '',
+        location: deviceData.location || '',
+        serialNumber: deviceData.serialNumber || '',
+        manufacturer: deviceData.manufacturer || '',
+        model: deviceData.model || '',
+        yearOfManufacture: deviceData.yearOfManufacture || '',
+        condition: deviceData.condition || '',
+        specifications: deviceData.specifications || '',
+        purchasePrice: deviceData.purchasePrice || '',
+        currentValue: deviceData.currentValue || '',
+        expectedRevenue: deviceData.expectedRevenue || '',
+        operationalCosts: deviceData.operationalCosts || '',
+      }
+
       const requestBody = {
         draftId,
-        name: draftName,
-        ...deviceData,
-        files
+        ...draftData
       }
 
       console.log('Saving draft with data:', requestBody)
@@ -127,48 +153,45 @@ export function useDraft() {
       
       console.log('🔍 Loading draft with ID:', draftId)
       
-      // Get all drafts and find the specific one
-      const response = await fetch('/api/drafts', {
+      // Get draft directly from backend database
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+      const response = await fetch(`${backendUrl}/api/drafts/${draftId}`, {
         headers: {
           'Authorization': `Bearer ${tokenData.token}`
         }
       })
 
       const data = await response.json()
-      console.log('🔍 API response:', data)
+      console.log('🔍 Backend API response:', data)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load drafts')
+        throw new Error(data.error || 'Failed to load draft')
       }
 
-      console.log('🔍 Looking for draft with ID:', draftId)
-      console.log('🔍 Available drafts:', data.drafts)
+      console.log('🔍 Found draft:', data.draft)
       
-      const draft = data.drafts.find((d: Draft) => d.id === draftId)
-      console.log('🔍 Found draft:', draft)
-      
-      if (!draft) {
-        console.log('🔍 Draft not found in list')
+      if (!data.draft) {
+        console.log('🔍 Draft not found')
         throw new Error('Draft not found')
       }
 
       // Convert draft back to DeviceData format
       // Note: Files will need to be re-uploaded since we can't store File objects
       const deviceData: DeviceData = {
-        deviceName: draft.deviceName || '',
-        deviceType: draft.deviceType || '',
-        customDeviceType: draft.customDeviceType || '',
-        location: draft.location || '',
-        serialNumber: draft.serialNumber || '',
-        manufacturer: draft.manufacturer || '',
-        model: draft.model || '',
-        yearOfManufacture: draft.yearOfManufacture || '',
-        condition: draft.condition || '',
-        specifications: draft.specifications || '',
-        purchasePrice: draft.purchasePrice || '',
-        currentValue: draft.currentValue || '',
-        expectedRevenue: draft.expectedRevenue || '',
-        operationalCosts: draft.operationalCosts || '',
+        deviceName: data.draft.deviceName || '',
+        deviceType: data.draft.deviceType || '',
+        customDeviceType: '', // Not stored in database
+        location: data.draft.location || '', // Now stored in database
+        serialNumber: data.draft.serialNumber || '',
+        manufacturer: data.draft.manufacturer || '',
+        model: data.draft.model || '',
+        yearOfManufacture: data.draft.yearOfManufacture || '',
+        condition: data.draft.condition || '',
+        specifications: data.draft.specifications || '',
+        purchasePrice: data.draft.purchasePrice || '',
+        currentValue: data.draft.currentValue || '',
+        expectedRevenue: data.draft.expectedRevenue || '',
+        operationalCosts: data.draft.operationalCosts || '',
         technicalCertification: null, // Will need to be re-uploaded
         purchaseProof: null, // Will need to be re-uploaded
         maintenanceRecords: null, // Will need to be re-uploaded

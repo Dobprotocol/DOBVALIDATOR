@@ -5,30 +5,26 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function fixAdminRole() {
-  console.log('🔧 Fixing admin user role...')
-
   try {
-    const adminWallet = 'GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ'
+    console.log('🔧 Fixing admin user role...')
     
-    // Check current admin user
-    const currentAdmin = await prisma.user.findUnique({
-      where: { walletAddress: adminWallet }
+    // Update the user with the wallet address being used in testing
+    const adminUser = await prisma.user.upsert({
+      where: { walletAddress: 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN' },
+      update: { 
+        role: 'ADMIN',
+        updatedAt: new Date()
+      },
+      create: {
+        walletAddress: 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN',
+        email: 'admin@dobvalidator.com',
+        name: 'DOB Validator Admin',
+        company: 'DOB Protocol',
+        role: 'ADMIN'
+      }
     })
-    
-    console.log('🔍 Current admin user:', currentAdmin)
-    
-    if (currentAdmin) {
-      // Force update to ADMIN role
-      const updatedAdmin = await prisma.user.update({
-        where: { walletAddress: adminWallet },
-        data: { role: 'ADMIN' }
-      })
-      
-      console.log('✅ Updated admin user:', updatedAdmin)
-    } else {
-      console.log('❌ Admin user not found')
-    }
-    
+
+    console.log('✅ Updated admin user:', adminUser)
   } catch (error) {
     console.error('❌ Error fixing admin role:', error)
   } finally {

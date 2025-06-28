@@ -42,6 +42,9 @@ export type DeviceData = {
   purchaseProof: File | null
   maintenanceRecords: File | null
   deviceImages: File[]
+
+  // Draft ID for state sync
+  draftId?: string | null
 }
 
 export function EnhancedDeviceVerificationFlow() {
@@ -65,13 +68,16 @@ export function EnhancedDeviceVerificationFlow() {
     purchaseProof: null,
     maintenanceRecords: null,
     deviceImages: [],
+    draftId: null,
   })
   const [walletConnected, setWalletConnected] = useState(false)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
   const [submissionSuccess, setSubmissionSuccess] = useState(false)
-  const [hasShownFirstSaveToast, setHasShownFirstSaveToast] = useState(false)
   const [failedSaveAttempts, setFailedSaveAttempts] = useState(0)
+  const [hasShownFirstSaveToast, setHasShownFirstSaveToast] = useState(false)
+  const [draftLoadKey, setDraftLoadKey] = useState(0)
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
   
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -110,11 +116,13 @@ export function EnhancedDeviceVerificationFlow() {
             purchaseProof: null,
             maintenanceRecords: null,
             deviceImages: [],
+            draftId: null,
           }
-          const mergedData = { ...defaultState, ...loadedData }
+          const mergedData = { ...defaultState, ...loadedData, draftId: editId }
           console.log('🔍 Setting device data to:', mergedData)
           setDeviceData(mergedData)
           setCurrentDraftId(editId)
+          setDraftLoadKey(prev => prev + 1) // Force re-render of step components
           toast({
             title: "Draft Loaded",
             description: "Your draft has been loaded. Please re-upload any files.",
@@ -126,29 +134,33 @@ export function EnhancedDeviceVerificationFlow() {
         setIsLoadingDraft(false)
       })
     } else {
-      console.log('🔍 No edit mode, checking for localStorage backup')
-      // Check for localStorage backup if no edit mode
-      try {
-        const backup = localStorage.getItem('dobFormBackup')
-        if (backup) {
-          const backupData = JSON.parse(backup)
-          const backupAge = Date.now() - backupData.timestamp
-          
-          // Only restore if backup is less than 1 hour old
-          if (backupAge < 3600000 && backupData.deviceData) {
-            console.log('🔍 Restoring form data from localStorage backup')
-            setDeviceData(backupData.deviceData)
-            // Don't restore the draft ID - let it create a new draft
-            setCurrentDraftId(null)
-            toast({
-              title: "Form Restored",
-              description: "Your form data has been restored from backup.",
-            })
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to restore form from localStorage backup:', error)
-      }
+      console.log('🔍 No edit mode - creating new project with clean slate')
+      // Clear any existing draft ID to ensure new draft creation
+      setCurrentDraftId(null)
+      // Reset form to clean state
+      setDeviceData({
+        deviceName: '',
+        deviceType: '',
+        customDeviceType: '',
+        location: '',
+        serialNumber: '',
+        manufacturer: '',
+        model: '',
+        yearOfManufacture: '',
+        condition: '',
+        specifications: '',
+        purchasePrice: '',
+        currentValue: '',
+        expectedRevenue: '',
+        operationalCosts: '',
+        technicalCertification: null,
+        purchaseProof: null,
+        maintenanceRecords: null,
+        deviceImages: [],
+        draftId: null,
+      })
+      setHasShownFirstSaveToast(false)
+      setFailedSaveAttempts(0)
     }
   }, [searchParams, loadDraft, toast])
 
@@ -156,11 +168,31 @@ export function EnhancedDeviceVerificationFlow() {
     setDeviceData((prev) => ({ ...prev, ...data }))
   }, [])
 
-  const handleSaveDraft = async (showToast = true) => {
+  const handleSaveDraft = async (currentStepData?: Partial<DeviceData>) => {
     try {
       console.log('🔍 Saving draft with ID:', currentDraftId)
-      console.log('🔍 Current device data:', deviceData)
-      const savedDraft = await saveDraft(deviceData, currentDraftId || undefined)
+      
+      // Use current step data if provided, otherwise use deviceData
+      const dataToSave = currentStepData ? { ...deviceData, ...currentStepData } : deviceData
+      
+      console.log('🔍 Current device data:', dataToSave)
+      console.log('🔍 Device data fields:', {
+        deviceName: dataToSave.deviceName,
+        deviceType: dataToSave.deviceType,
+        location: dataToSave.location,
+        serialNumber: dataToSave.serialNumber,
+        manufacturer: dataToSave.manufacturer,
+        model: dataToSave.model,
+        yearOfManufacture: dataToSave.yearOfManufacture,
+        condition: dataToSave.condition,
+        specifications: dataToSave.specifications,
+        purchasePrice: dataToSave.purchasePrice,
+        currentValue: dataToSave.currentValue,
+        expectedRevenue: dataToSave.expectedRevenue,
+        operationalCosts: dataToSave.operationalCosts,
+      })
+      
+      const savedDraft = await saveDraft(dataToSave, currentDraftId || undefined)
       console.log('🔍 Save response:', savedDraft)
       if (!currentDraftId && savedDraft) {
         console.log('🔍 Setting new draft ID:', savedDraft.id)
@@ -171,7 +203,7 @@ export function EnhancedDeviceVerificationFlow() {
       setFailedSaveAttempts(0)
       
       // Only show toast on first save or when explicitly requested
-      if (showToast && !hasShownFirstSaveToast) {
+      if (!hasShownFirstSaveToast) {
         setHasShownFirstSaveToast(true)
         toast({
           title: "Draft Saved",
@@ -186,48 +218,32 @@ export function EnhancedDeviceVerificationFlow() {
     }
   }
 
-  // Auto-save functionality to prevent data loss (silent)
-  useEffect(() => {
-    // Auto-save every 10 seconds if there's data (silent) - more frequent than before
-    const autoSaveInterval = setInterval(() => {
+  // Debounced auto-save function
+  const debouncedAutoSave = useCallback(() => {
+    // Clear existing timeout
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout)
+    }
+    
+    // Set new timeout to save after 2 seconds of no typing
+    const timeout = setTimeout(() => {
       const hasData = deviceData.deviceName || deviceData.deviceType || deviceData.location
-      // Stop auto-save if we've had too many failed attempts
       if (hasData && walletConnected && failedSaveAttempts < 3) {
-        handleSaveDraft(false) // Silent save
+        handleSaveDraft()
       }
-    }, 10000) // 10 seconds instead of 30
+    }, 2000)
+    
+    setAutoSaveTimeout(timeout)
+  }, [deviceData, walletConnected, failedSaveAttempts, handleSaveDraft])
 
-    // Save to localStorage as backup every 5 seconds
-    const localStorageInterval = setInterval(() => {
-      const hasData = deviceData.deviceName || deviceData.deviceType || deviceData.location
-      if (hasData) {
-        try {
-          localStorage.setItem('dobFormBackup', JSON.stringify({
-            deviceData,
-            timestamp: Date.now()
-          }))
-        } catch (error) {
-          console.warn('Failed to save form backup to localStorage:', error)
-        }
-      }
-    }, 5000) // 5 seconds
-
-    // Save when user leaves the page (silent)
-    const handleBeforeUnload = () => {
-      const hasData = deviceData.deviceName || deviceData.deviceType || deviceData.location
-      if (hasData && walletConnected) {
-        handleSaveDraft(false) // Silent save
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-
+  // Clean up timeout on unmount
+  useEffect(() => {
     return () => {
-      clearInterval(autoSaveInterval)
-      clearInterval(localStorageInterval)
-      window.removeEventListener('beforeunload', handleBeforeUnload)
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout)
+      }
     }
-  }, [walletConnected, handleSaveDraft, currentDraftId, failedSaveAttempts])
+  }, [autoSaveTimeout])
 
   // Always start at step 1 when wallet connects
   useEffect(() => {
@@ -250,12 +266,16 @@ export function EnhancedDeviceVerificationFlow() {
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
+      // Save current step data before moving to next step
+      handleSaveDraft()
       setCurrentStep((prev) => prev + 1)
     }
   }
 
   const prevStep = () => {
     if (currentStep > 1) {
+      // Save current step data before moving to previous step
+      handleSaveDraft()
       setCurrentStep(currentStep - 1)
     }
   }
@@ -313,6 +333,54 @@ export function EnhancedDeviceVerificationFlow() {
 
   const handleSubmissionSuccess = () => {
     setSubmissionSuccess(true)
+    // Redirect to dashboard after a short delay to show the new submission
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 2000) // 2 second delay to show success message
+  }
+
+  const handleNewProject = () => {
+    // Clear all localStorage backups
+    localStorage.removeItem('dobFormStep1Backup')
+    localStorage.removeItem('dobFormStep2Backup')
+    localStorage.removeItem('dobFormStep3Backup')
+    localStorage.removeItem('dobFormStep4Backup')
+    localStorage.removeItem('dobFormBackup')
+    
+    // Reset form state
+    setDeviceData({
+      deviceName: '',
+      deviceType: '',
+      customDeviceType: '',
+      location: '',
+      serialNumber: '',
+      manufacturer: '',
+      model: '',
+      yearOfManufacture: '',
+      condition: '',
+      specifications: '',
+      purchasePrice: '',
+      currentValue: '',
+      expectedRevenue: '',
+      operationalCosts: '',
+      technicalCertification: null,
+      purchaseProof: null,
+      maintenanceRecords: null,
+      deviceImages: [],
+      draftId: null,
+    })
+    
+    // Clear current draft ID to force creation of new draft
+    setCurrentDraftId(null)
+    setHasShownFirstSaveToast(false)
+    setFailedSaveAttempts(0)
+    
+    // Reset to step 1
+    setCurrentStep(1)
+    setSubmissionSuccess(false)
+    
+    // Navigate to form
+    router.push('/form')
   }
 
   if (!walletConnected) {
@@ -372,62 +440,70 @@ export function EnhancedDeviceVerificationFlow() {
 
   // Multi-step View Component (show all cards for scrolling)
   const MultiStepView = () => (
-    <div className="relative space-y-12">
-      {/* Step 1 */}
-      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+    <div className="space-y-8">
+      {/* Step 1: Basic Information */}
+      <div className={`transition-opacity duration-300 ${currentStep >= 1 ? 'opacity-100' : 'opacity-50'}`}>
         <DeviceBasicInfo 
+          key={`basic-${currentDraftId || 'new'}-${draftLoadKey}`}
           deviceData={deviceData} 
           updateDeviceData={updateDeviceData} 
           onNext={nextStep}
           onSaveDraft={handleSaveDraft}
+          onAutoSave={debouncedAutoSave}
         />
       </div>
 
-      {/* Step 2 */}
-      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+      {/* Step 2: Technical Information */}
+      <div className={`transition-opacity duration-300 ${currentStep >= 2 ? 'opacity-100' : 'opacity-50'}`}>
         <DeviceTechnicalInfo
+          key={`technical-${currentDraftId || 'new'}-${draftLoadKey}`}
           deviceData={deviceData}
           updateDeviceData={updateDeviceData}
           onNext={nextStep}
           onBack={prevStep}
           onSaveDraft={handleSaveDraft}
+          onAutoSave={debouncedAutoSave}
         />
       </div>
 
-      {/* Step 3 */}
-      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+      {/* Step 3: Financial Information */}
+      <div className={`transition-opacity duration-300 ${currentStep >= 3 ? 'opacity-100' : 'opacity-50'}`}>
         <DeviceFinancialInfo
+          key={`financial-${currentDraftId || 'new'}-${draftLoadKey}`}
           deviceData={deviceData}
           updateDeviceData={updateDeviceData}
           onNext={nextStep}
           onBack={prevStep}
           onSaveDraft={handleSaveDraft}
+          onAutoSave={debouncedAutoSave}
         />
       </div>
 
-      {/* Step 4 */}
-      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+      {/* Step 4: Documentation */}
+      <div className={`transition-opacity duration-300 ${currentStep >= 4 ? 'opacity-100' : 'opacity-50'}`}>
         <DeviceDocumentation
+          key={`documentation-${currentDraftId || 'new'}-${draftLoadKey}`}
           deviceData={deviceData}
           updateDeviceData={updateDeviceData}
           onNext={nextStep}
           onBack={prevStep}
           onSaveDraft={handleSaveDraft}
+          onAutoSave={debouncedAutoSave}
         />
       </div>
 
-      {/* Step 5 */}
-      <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+      {/* Step 5: Review */}
+      <div className={`transition-opacity duration-300 ${currentStep >= 5 ? 'opacity-100' : 'opacity-50'}`}>
         <DeviceReview
+          key={`review-${currentDraftId || 'new'}-${draftLoadKey}`}
           deviceData={deviceData}
           onNext={nextStep}
           onBack={prevStep}
-          onSaveDraft={handleSaveDraft}
           onSubmissionSuccess={handleSubmissionSuccess}
         />
       </div>
 
-      {/* Step 6 */}
+      {/* Step 6: Success */}
       {submissionSuccess && (
         <div className="w-full max-w-2xl mx-auto p-8 bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
           <DeviceSuccess />
@@ -456,7 +532,7 @@ export function EnhancedDeviceVerificationFlow() {
 
               {currentStep < 5 && (
                 <Button
-                  onClick={handleSaveDraft}
+                  onClick={() => handleSaveDraft()}
                   disabled={draftLoading}
                   variant="outline"
                   size="sm"

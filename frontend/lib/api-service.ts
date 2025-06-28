@@ -50,9 +50,6 @@ class ApiService {
       })
       
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Endpoint not found')
-        }
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }

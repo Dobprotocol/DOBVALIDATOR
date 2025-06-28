@@ -1,12 +1,13 @@
 "use client"
 
-import type { DeviceData } from "@/components/device-verification-flow"
+import type { DeviceData } from "@/components/enhanced-device-verification-flow"
 import { Button } from "@/components/ui/button"
-import { FileText, Image as ImageIcon } from "lucide-react"
+import { FileText, Image as ImageIcon, Send } from "lucide-react"
 import { useState } from "react"
 import Image from 'next/image'
 import { useToast } from "@/components/ui/use-toast"
 import { apiService } from '@/lib/api-service'
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface DeviceReviewProps {
   deviceData: DeviceData
@@ -35,9 +36,33 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
     setError('')
     setValidationErrors([])
 
+    // Validate required fields before submission
+    const requiredFields = [
+      'deviceName', 'deviceType', 'location', 'serialNumber', 'manufacturer', 
+      'model', 'yearOfManufacture', 'condition', 'specifications',
+      'purchasePrice', 'currentValue', 'expectedRevenue', 'operationalCosts'
+    ]
+    
+    const missingFields = requiredFields.filter(field => {
+      const value = deviceData[field as keyof DeviceData]
+      return !value || (typeof value === 'string' && value.trim() === '')
+    })
+    
+    if (missingFields.length > 0) {
+      setError(`Please complete the following fields: ${missingFields.join(', ')}`)
+      setLoading(false)
+      return
+    }
+
     try {
       // Create FormData for submission
       const formData = new FormData()
+      
+      // Add draft ID if it exists
+      const draftId = localStorage.getItem('currentDraftId')
+      if (draftId) {
+        formData.append('draftId', draftId)
+      }
       
       // Add all device data to formData
       Object.entries(deviceData).forEach(([key, value]) => {
@@ -65,24 +90,9 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
       const response = await apiService.submitDevice(formData)
 
       if (response.success) {
-        // Delete the draft after successful submission
-        try {
-          const draftId = localStorage.getItem('currentDraftId')
-          if (draftId) {
-            console.log('Deleting draft after successful submission:', draftId)
-            await fetch(`/api/drafts/${draftId}`, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${JSON.parse(localStorage.getItem('authToken') || '{}').token}`
-              }
-            })
-            localStorage.removeItem('currentDraftId')
-            console.log('Draft deleted successfully')
-          }
-        } catch (deleteError) {
-          console.error('Error deleting draft:', deleteError)
-          // Don't fail the submission if draft deletion fails
-        }
+        // Clear the draft ID from localStorage after successful submission
+        localStorage.removeItem('currentDraftId')
+        console.log('Draft ID cleared after successful submission')
 
         setSuccess(true)
         toast({
@@ -123,6 +133,32 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
   return (
     <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
       <h2 className="text-xl font-medium text-white mb-6">Review Information</h2>
+
+      {/* Check for missing required fields */}
+      {(() => {
+        const requiredFields = [
+          'deviceName', 'deviceType', 'location', 'serialNumber', 'manufacturer', 
+          'model', 'yearOfManufacture', 'condition', 'specifications',
+          'purchasePrice', 'currentValue', 'expectedRevenue', 'operationalCosts'
+        ]
+        
+        const missingFields = requiredFields.filter(field => {
+          const value = deviceData[field as keyof DeviceData]
+          return !value || (typeof value === 'string' && value.trim() === '')
+        })
+        
+        if (missingFields.length > 0) {
+          return (
+            <div className="mb-6 p-4 bg-yellow-900/50 border border-yellow-700/50 rounded-lg backdrop-blur-sm">
+              <h3 className="text-yellow-200 font-medium mb-2">⚠️ Incomplete Form</h3>
+              <p className="text-yellow-300 text-sm">
+                Please complete the following fields before submitting: <strong>{missingFields.join(', ')}</strong>
+              </p>
+            </div>
+          )
+        }
+        return null
+      })()}
 
       {validationErrors.length > 0 && (
         <div className="mb-6 p-4 bg-red-900/50 border border-red-700/50 rounded-lg backdrop-blur-sm">
@@ -195,19 +231,27 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
           <div className="grid grid-cols-2 gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-4 rounded-lg">
             <div>
               <p className="text-sm text-gray-300">Purchase Price</p>
-              <p className="font-medium text-white">{formatCurrency(deviceData.purchasePrice)}</p>
+              <p className={`font-medium ${!deviceData.purchasePrice ? 'text-red-400' : 'text-white'}`}>
+                {deviceData.purchasePrice ? formatCurrency(deviceData.purchasePrice) : 'Missing'}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Current Value</p>
-              <p className="font-medium">{formatCurrency(deviceData.currentValue)}</p>
+              <p className="text-sm text-gray-300">Current Value</p>
+              <p className={`font-medium ${!deviceData.currentValue ? 'text-red-400' : 'text-white'}`}>
+                {deviceData.currentValue ? formatCurrency(deviceData.currentValue) : 'Missing'}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Expected Annual Revenue</p>
-              <p className="font-medium">{formatCurrency(deviceData.expectedRevenue)}</p>
+              <p className="text-sm text-gray-300">Expected Annual Revenue</p>
+              <p className={`font-medium ${!deviceData.expectedRevenue ? 'text-red-400' : 'text-white'}`}>
+                {deviceData.expectedRevenue ? formatCurrency(deviceData.expectedRevenue) : 'Missing'}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Annual Operational Costs</p>
-              <p className="font-medium">{formatCurrency(deviceData.operationalCosts)}</p>
+              <p className="text-sm text-gray-300">Annual Operational Costs</p>
+              <p className={`font-medium ${!deviceData.operationalCosts ? 'text-red-400' : 'text-white'}`}>
+                {deviceData.operationalCosts ? formatCurrency(deviceData.operationalCosts) : 'Missing'}
+              </p>
             </div>
           </div>
         </section>
@@ -273,7 +317,17 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
           onClick={handleFinalSubmit}
           disabled={loading}
         >
-          {loading ? "Submitting..." : "Submit for Verification"}
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              {useIsMobile() ? "" : "Submitting..."}
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4 mr-2 md:mr-2" />
+              {useIsMobile() ? "" : "Submit for Verification"}
+            </>
+          )}
         </Button>
       </div>
 

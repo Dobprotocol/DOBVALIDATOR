@@ -12,6 +12,48 @@ export interface AdminWallet {
 // In production, this would be stored in a database or environment variables
 export const ADMIN_WALLETS: AdminWallet[] = [
   {
+    address: 'GAAKZ5PTQ7YLHTWQJQWEPAFOHEYFADEPB4DCBE4JWT63JCYJTCGULCAC',
+    name: 'Forecast',
+    role: 'SUPER_ADMIN',
+    permissions: ['approve', 'reject', 'review', 'manage_users', 'view_stats'],
+    isActive: true
+  },
+  {
+    address: 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN',
+    name: 'Current User',
+    role: 'SUPER_ADMIN',
+    permissions: ['approve', 'reject', 'review', 'manage_users', 'view_stats'],
+    isActive: true
+  },
+  {
+    address: 'GDGYOBHJVNGVBCIHKDR7H6NNYRSPPK2TWANH6SIY34DJLSXUOJNXA2SN',
+    name: 'Whitelist 1',
+    role: 'VALIDATOR',
+    permissions: ['approve', 'reject', 'review'],
+    isActive: true
+  },
+  {
+    address: 'GCLASRLEFVHLLYHIMTAC36E42OTZPKQDAL52AEKBVTIWNPVEC4GXMAFG',
+    name: 'Whitelist 2',
+    role: 'VALIDATOR',
+    permissions: ['approve', 'reject', 'review'],
+    isActive: true
+  },
+  {
+    address: 'GC6GCTEW7Y4GA6DH7WM26NEKSW4RPI3ZVN6E3FLW3ZVNILKLV77I43BK',
+    name: 'User 1',
+    role: 'VALIDATOR',
+    permissions: ['approve', 'reject', 'review'],
+    isActive: true
+  },
+  {
+    address: 'GCGZFA2PFQYHPGWCOL36J7DXQ3O3TFNIN24QAQ7J4BWQYH6OIGA7THOY',
+    name: 'User 2',
+    role: 'VALIDATOR',
+    permissions: ['approve', 'reject', 'review'],
+    isActive: true
+  },
+  {
     address: 'GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ',
     name: 'Primary Validator',
     role: 'SUPER_ADMIN',
