@@ -6,59 +6,113 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 RLS debug endpoint called')
+    console.log('🔍 Debug RLS endpoint called')
     
-    // Check what enum values actually exist in the database
-    const { data: enumValues, error: enumError } = await supabase
-      .rpc('get_enum_values', { enum_name: 'user_role' })
+    // Check if RLS is enabled on users table
+    const { data: rlsEnabled, error: rlsError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name, row_security')
+      .eq('table_schema', 'public')
+      .eq('table_name', 'users')
     
-    console.log('🔍 Enum values:', { enumValues, enumError })
+    console.log('🔍 RLS enabled check:', { rlsEnabled, rlsError })
     
-    // Check RLS policies
+    // Try to get RLS policies using raw SQL
     const { data: policies, error: policiesError } = await supabase
-      .rpc('get_rls_policies', { table_name: 'users' })
+      .rpc('sql', { 
+        query: `
+          SELECT 
+            schemaname,
+            tablename,
+            policyname,
+            permissive,
+            roles,
+            cmd,
+            qual,
+            with_check
+          FROM pg_policies 
+          WHERE tablename = 'users'
+        `
+      })
     
     console.log('🔍 RLS policies:', { policies, policiesError })
     
-    // Try to get the actual table definition
-    const { data: tableDef, error: tableDefError } = await supabase
-      .rpc('get_table_definition', { table_name: 'users' })
+    // Try to create a user with different approaches
+    const testWalletAddress = `TEST_WALLET_RLS_${Date.now()}`
     
-    console.log('🔍 Table definition:', { tableDef, tableDefError })
+    // Approach 1: Try with explicit role specification
+    const { data: user1, error: error1 } = await supabase
+      .from('users')
+      .insert({
+        wallet_address: testWalletAddress + '_1',
+        email: 'test1@example.com',
+        name: 'Test User 1',
+        role: 'OPERATOR'
+      })
+      .select()
+      .single()
     
-    // Check if we can query the enum type directly
-    const { data: enumType, error: enumTypeError } = await supabase
-      .from('pg_enum')
-      .select('enumlabel')
-      .eq('enumtypid', '(SELECT oid FROM pg_type WHERE typname = \'user_role\')')
+    // Approach 2: Try without role (let database use default)
+    const { data: user2, error: error2 } = await supabase
+      .from('users')
+      .insert({
+        wallet_address: testWalletAddress + '_2',
+        email: 'test2@example.com',
+        name: 'Test User 2'
+        // No role specified
+      })
+      .select()
+      .single()
     
-    console.log('🔍 Enum type:', { enumType, enumTypeError })
+    // Approach 3: Try with ADMIN role
+    const { data: user3, error: error3 } = await supabase
+      .from('users')
+      .insert({
+        wallet_address: testWalletAddress + '_3',
+        email: 'test3@example.com',
+        name: 'Test User 3',
+        role: 'ADMIN'
+      })
+      .select()
+      .single()
+    
+    // Clean up any created users
+    if (user1) await supabase.from('users').delete().eq('wallet_address', testWalletAddress + '_1')
+    if (user2) await supabase.from('users').delete().eq('wallet_address', testWalletAddress + '_2')
+    if (user3) await supabase.from('users').delete().eq('wallet_address', testWalletAddress + '_3')
     
     return NextResponse.json({
       success: true,
-      enumValues: {
-        success: !enumError,
-        error: enumError?.message,
-        data: enumValues
+      rlsEnabled: {
+        success: !rlsError,
+        error: rlsError?.message,
+        data: rlsEnabled
       },
-      rlsPolicies: {
+      policies: {
         success: !policiesError,
         error: policiesError?.message,
         data: policies
       },
-      tableDefinition: {
-        success: !tableDefError,
-        error: tableDefError?.message,
-        data: tableDef
-      },
-      enumType: {
-        success: !enumTypeError,
-        error: enumTypeError?.message,
-        data: enumType
+      userCreationTests: {
+        withOperatorRole: {
+          success: !error1,
+          error: error1?.message,
+          data: user1
+        },
+        withoutRole: {
+          success: !error2,
+          error: error2?.message,
+          data: user2
+        },
+        withAdminRole: {
+          success: !error3,
+          error: error3?.message,
+          data: user3
+        }
       }
     })
   } catch (error) {
-    console.error('❌ Error in RLS debug endpoint:', error)
+    console.error('❌ Error in debug RLS endpoint:', error)
     return NextResponse.json(
       { 
         success: false,
