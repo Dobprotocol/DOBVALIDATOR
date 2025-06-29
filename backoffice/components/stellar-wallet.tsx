@@ -8,6 +8,32 @@ import { Wallet, Loader2, CheckCircle, AlertCircle, Shield, Crown } from "lucide
 import { useToast } from "@/hooks/use-toast"
 import { adminConfigService } from "@/lib/admin-config"
 
+// TypeScript declaration for Simple Signer
+declare global {
+  interface Window {
+    simpleSigner: {
+      connect: (options: {
+        networks: string[]
+        accounts: string[]
+        dApp: string
+      }) => Promise<{
+        success: boolean
+        publicKey?: string
+        error?: string
+      }>
+      sign: (options: {
+        xdr: string
+        publicKey: string
+        network: string
+      }) => Promise<{
+        success: boolean
+        signedXDR?: string
+        error?: string
+      }>
+    }
+  }
+}
+
 interface AuthToken {
   token: string
   expiresIn: string
@@ -66,9 +92,10 @@ export function StellarWallet() {
     setIsConnecting(true)
     
     try {
-      // For demo purposes, we'll use a mock wallet address
-      // In production, this would come from the actual wallet
-      const mockWalletAddress = "GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN"
+      // Check if Simple Signer is available
+      if (typeof window !== 'undefined' && !window.simpleSigner) {
+        throw new Error('Simple Signer not available. Please install the Simple Signer extension.')
+      }
 
       // Request wallet connection
       const response = await fetch('/api/auth/challenge', {
@@ -76,7 +103,7 @@ export function StellarWallet() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ walletAddress: mockWalletAddress })
+        body: JSON.stringify({ walletAddress: null }) // Will be provided by wallet
       })
 
       if (!response.ok) {
@@ -85,10 +112,29 @@ export function StellarWallet() {
 
       const { challenge } = await response.json()
 
-      
-      // For demo purposes, we'll simulate signing the challenge
-      // In production, this would be done by the actual wallet
-      const mockSignature = "mock_signature_" + Date.now()
+      // Request wallet connection through Simple Signer
+      const connectResult = await window.simpleSigner.connect({
+        networks: ['testnet', 'public'],
+        accounts: ['G*'],
+        dApp: 'DOB Validator Backoffice'
+      })
+
+      if (!connectResult.success) {
+        throw new Error('Failed to connect wallet: ' + connectResult.error)
+      }
+
+      const walletAddress = connectResult.publicKey
+
+      // Request signature for the challenge
+      const signResult = await window.simpleSigner.sign({
+        xdr: challenge,
+        publicKey: walletAddress,
+        network: 'testnet'
+      })
+
+      if (!signResult.success) {
+        throw new Error('Failed to sign challenge: ' + signResult.error)
+      }
 
       // Verify the signature
       const verifyResponse = await fetch('/api/auth/verify', {
@@ -97,9 +143,9 @@ export function StellarWallet() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          walletAddress: mockWalletAddress,
+          walletAddress: walletAddress,
           challenge,
-          signature: mockSignature
+          signature: signResult.signedXDR
         })
       })
 
@@ -113,24 +159,24 @@ export function StellarWallet() {
       const authData: AuthToken = {
         token,
         expiresIn,
-        walletAddress: mockWalletAddress,
+        walletAddress: walletAddress,
         expiresAt: Date.now() + (parseInt(expiresIn.toString()) * 1000)
       }
 
       // Store in localStorage
       localStorage.setItem('authToken', JSON.stringify(authData))
-      localStorage.setItem('stellarPublicKey', mockWalletAddress)
+      localStorage.setItem('stellarPublicKey', walletAddress)
 
       // Store in cookies for middleware
       document.cookie = `authToken=${token}; path=/; max-age=${expiresIn}; SameSite=Lax`
-      document.cookie = `stellarPublicKey=${mockWalletAddress}; path=/; max-age=${expiresIn}; SameSite=Lax`
+      document.cookie = `stellarPublicKey=${walletAddress}; path=/; max-age=${expiresIn}; SameSite=Lax`
 
       setAuthToken(authData)
-      setWalletAddress(mockWalletAddress)
+      setWalletAddress(walletAddress)
       setIsAuthenticated(true)
 
       // Check admin status
-      const adminWallet = adminConfigService.getAdminWallet(mockWalletAddress)
+      const adminWallet = adminConfigService.getAdminWallet(walletAddress)
       if (adminWallet) {
         setIsAdmin(true)
         setAdminRole(adminWallet.role)
