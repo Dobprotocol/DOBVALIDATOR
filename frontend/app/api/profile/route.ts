@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import jwt from 'jsonwebtoken'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,26 +23,73 @@ const isSupabaseConfigured = () => {
   )
 }
 
-// Mock authentication for testing
-function getAuthenticatedUser(request: NextRequest) {
+// Mock authentication for development/testing
+async function getAuthenticatedUser(request: NextRequest) {
+  console.log('🔍 Getting authenticated user from request...')
+  
   const authHeader = request.headers.get('authorization')
+  console.log('🔍 Auth header:', authHeader ? 'present' : 'missing')
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ Invalid or missing authorization header')
     return null
   }
   
   const token = authHeader.substring(7)
+  console.log('🔍 Extracted token:', token.substring(0, 20) + '...')
   
-  // For testing, accept any token that looks like our mock format
-  if (token.startsWith('mock_access_token_')) {
+  // Check if this is a fallback development token
+  if (token.startsWith('dev_fallback_token_')) {
+    console.log('🔧 Development fallback token detected')
+    
+    // Extract wallet address from token (simple format: dev_fallback_token_timestamp)
+    const timestamp = token.replace('dev_fallback_token_', '')
+    const walletAddress = 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3BAL3ZN' // Default for development
+    
+    console.log('✅ Development authentication successful')
     return {
-      id: 'mock_user_id',
-      email: 'mock@stellar.wallet',
-      wallet_address: 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3BAL3ZN'
+      id: walletAddress,
+      email: `${walletAddress}@stellar.wallet`,
+      wallet_address: walletAddress
     }
   }
   
-  return null
+  // Check if this is a mock token
+  if (token.startsWith('mock_access_token_')) {
+    console.log('🔧 Mock token detected')
+    
+    // Extract wallet address from token or use default
+    const walletAddress = 'GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3BAL3ZN'
+    
+    console.log('✅ Mock authentication successful')
+    return {
+      id: walletAddress,
+      email: `${walletAddress}@stellar.wallet`,
+      wallet_address: walletAddress
+    }
+  }
+  
+  console.log('🔍 Verifying JWT token...')
+  console.log('🔍 JWT_SECRET being used:', process.env.JWT_SECRET?.substring(0, 10) + '...')
+  console.log('🔍 Token being verified:', token.substring(0, 20) + '...')
+  
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'dob-validator-dev-secret') as any
+    console.log('✅ JWT payload:', payload)
+    
+    // In production, we can't rely on in-memory session storage {
+    // so we'll use the JWT payload directly
+    return {
+      id: payload.walletAddress,
+      email: payload.email || `${payload.walletAddress}@stellar.wallet`,
+      wallet_address: payload.walletAddress
+    }
+  } catch (error) {
+    console.log('❌ JWT verification failed:', error)
+    console.log('❌ Error name:', error.constructor.name)
+    console.log('❌ Error message:', error.message)
+    return null
+  }
 }
 
 // Real Supabase authentication
