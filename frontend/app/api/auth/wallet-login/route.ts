@@ -1,25 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-// Try using require instead of import for JWT
-const jwt = require('jsonwebtoken')
-import { getChallenge, removeChallenge, storeSession, getSession } from '@/lib/auth-storage'
 import { TransactionBuilder, Networks } from '@stellar/stellar-sdk'
+import { getChallenge, removeChallenge } from '@/lib/auth-storage'
 
-// Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
 
-// Verification schema validation
-const verificationSchema = z.object({
+const walletLoginSchema = z.object({
   walletAddress: z.string().min(1, "Wallet address is required"),
   signature: z.string().min(1, "Signature (XDR transaction) is required"),
   challenge: z.string().min(1, "Challenge is required"),
 })
 
-// JWT secret (in production, use environment variable)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-const JWT_EXPIRES_IN = '7d' // 7 days
-
-// Helper function to verify XDR transaction
+// Helper function to verify XDR transaction (reused from your existing code)
 function verifyXDRTransaction(walletAddress: string, signedXDR: string, challenge: string): boolean {
   console.log('🔍 Verifying XDR transaction...')
   console.log('🔍 Wallet address:', walletAddress)
@@ -152,15 +144,12 @@ function verifyXDRTransaction(walletAddress: string, signedXDR: string, challeng
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Verify POST request received')
-    console.log('🔍 Request URL:', request.url)
-    console.log('🔍 Request method:', request.method)
-    console.log('🔍 Environment:', process.env.NODE_ENV)
+    console.log('🔍 Wallet login POST request received')
     
     const body = await request.json()
     console.log('🔍 Request body:', body)
     
-    const validationResult = verificationSchema.safeParse(body)
+    const validationResult = walletLoginSchema.safeParse(body)
     
     if (!validationResult.success) {
       console.log('❌ Validation failed:', validationResult.error.format())
@@ -172,15 +161,6 @@ export async function POST(request: NextRequest) {
 
     const { walletAddress, signature, challenge } = validationResult.data
     console.log('🔍 Validated data:', { walletAddress, signature: signature.substring(0, 20) + '...', challenge })
-    
-    // Debug: Check stored challenges before verification
-    const { getDebugInfo } = await import('@/lib/auth-storage')
-    const debugInfo = getDebugInfo()
-    console.log('🔍 Debug info before verification:', {
-      challengesCount: debugInfo.challengesCount,
-      hasChallenge: debugInfo.challenges.some(([addr]) => addr === walletAddress),
-      allChallenges: debugInfo.challenges.map(([addr, data]) => ({ addr, challenge: data.challenge }))
-    })
     
     // Verify XDR transaction
     console.log('🔍 Calling verifyXDRTransaction...')
@@ -196,123 +176,36 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('✅ Generating JWT token...')
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        walletAddress,
-        type: 'user',
-        iat: Math.floor(Date.now() / 1000),
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    )
+    console.log('✅ Wallet verification successful, creating mock session...')
     
-    // Store session using shared storage
-    const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
-    storeSession(walletAddress, token, expiresAt)
+    // For testing purposes, create a mock session
+    // In production, this would create a real Supabase session
+    const mockSession = {
+      access_token: 'mock_access_token_' + Date.now(),
+      refresh_token: 'mock_refresh_token_' + Date.now(),
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: {
+        id: walletAddress,
+        email: `${walletAddress}@stellar.wallet`,
+        user_metadata: {
+          wallet_address: walletAddress,
+          provider: 'stellar'
+        }
+      }
+    }
     
-    console.log('✅ Authentication successful, returning token')
+    console.log('✅ Mock session created successfully')
+    
     return NextResponse.json({
       success: true,
-      token,
-      expiresIn: JWT_EXPIRES_IN,
-      message: 'Authentication successful'
+      message: 'Wallet login successful (mock mode)',
+      session: mockSession,
+      note: 'This is a mock session for testing. In production, this would be a real Supabase session.'
     })
     
   } catch (error) {
-    console.error('❌ Error verifying signature:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
-}
-
-// Helper function to verify JWT token (used by other endpoints)
-export function verifyToken(token: string): { valid: boolean; payload?: any } {
-  console.log('🔍 Verifying JWT token...')
-  console.log('🔍 JWT_SECRET being used:', JWT_SECRET ? JWT_SECRET.substring(0, 10) + '...' : 'No JWT_SECRET')
-  console.log('🔍 Token being verified:', token ? token.substring(0, 20) + '...' : 'No token')
-  
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as any
-    console.log('✅ JWT payload:', payload)
-    
-    // In production, we can't rely on in-memory session storage
-    // because serverless functions don't share memory between invocations
-    // So we'll just verify the JWT signature and expiration
-    console.log('✅ JWT verification successful (session check disabled for production)')
-    return { valid: true, payload }
-    
-    // Note: In a production environment with Redis or a database,
-    // you would check if the session is still active here
-    /*
-    // Check if session is still active
-    const session = getSession(payload.walletAddress)
-    if (!session) {
-      console.log('❌ No active session found for wallet:', payload.walletAddress)
-      return { valid: false }
-    }
-    
-    console.log('✅ Session found and valid')
-    return { valid: true, payload }
-    */
-  } catch (error) {
-    console.log('❌ JWT verification failed:', error)
-    console.log('❌ Error name:', error.name)
-    console.log('❌ Error message:', error.message)
-    return { valid: false }
-  }
-}
-
-// Helper function to get authenticated user from request
-export function getAuthenticatedUser(request: NextRequest): { valid: boolean; user?: any } {
-  console.log('🔍 Getting authenticated user from request...')
-  const authHeader = request.headers.get('authorization')
-  console.log('🔍 Auth header:', authHeader ? 'present' : 'missing')
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('❌ Invalid or missing authorization header')
-    return { valid: false }
-  }
-  
-  const token = authHeader.substring(7)
-  console.log('🔍 Extracted token:', token ? `${token.substring(0, 20)}...` : 'empty')
-  
-  const result = verifyToken(token)
-  console.log('🔍 Verification result:', result)
-  
-  if (result.valid) {
-    return { valid: true, user: result.payload }
-  } else {
-    return { valid: false }
-  }
-}
-
-// Debug endpoint to check stored challenges
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const debug = searchParams.get('debug')
-    
-    if (debug === 'challenges') {
-      const { getDebugInfo } = await import('@/lib/auth-storage')
-      const debugInfo = getDebugInfo()
-      
-      return NextResponse.json({
-        success: true,
-        debug: debugInfo,
-        message: 'Debug information retrieved'
-      })
-    }
-    
-    return NextResponse.json(
-      { error: 'Invalid debug parameter' },
-      { status: 400 }
-    )
-  } catch (error) {
-    console.error('❌ Error in debug endpoint:', error)
+    console.error('❌ Error in wallet login:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

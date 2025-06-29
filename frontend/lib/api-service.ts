@@ -12,7 +12,18 @@ class ApiService {
       const authData = localStorage.getItem('authToken')
       if (authData) {
         const parsedAuth = JSON.parse(authData)
-        return parsedAuth.token || null
+        
+        // Handle both real auth token format and mock token format
+        if (parsedAuth.token) {
+          // Real auth token format: { token: string, expiresIn: string, walletAddress: string, expiresAt: number }
+          return parsedAuth.token
+        } else if (parsedAuth.access_token) {
+          // Mock session format: { access_token: string, refresh_token: string, ... }
+          return parsedAuth.access_token
+        } else if (typeof parsedAuth === 'string') {
+          // Direct token string
+          return parsedAuth
+        }
       }
     } catch (error) {
       console.error('Failed to parse auth token:', error)
