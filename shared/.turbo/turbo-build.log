@@ -1,0 +1,20 @@
+
+> @dob-validator/shared@1.0.0 build /Users/JoaquinNam/Desktop/MENTE_MAESTRA/1CLIENTS/DOBPROTOCOL/DOBVALIDATOR/shared
+> tsup
+
+[34mCLI[39m Building entry: src/index.ts
+[34mCLI[39m Using tsconfig: tsconfig.json
+[34mCLI[39m tsup v8.5.0
+[34mCLI[39m Using tsup config: /Users/JoaquinNam/Desktop/MENTE_MAESTRA/1CLIENTS/DOBPROTOCOL/DOBVALIDATOR/shared/tsup.config.ts
+[34mCLI[39m Target: es2020
+[34mCLI[39m Cleaning output folder
+[34mCJS[39m Build start
+[34mESM[39m Build start
+Generated an empty chunk: "index".
+Generated an empty chunk: "index".
+[32mCJS[39m [1mdist/index.js     [22m[32m82.00 B[39m
+[32mCJS[39m [1mdist/index.js.map [22m[32m69.00 B[39m
+[32mCJS[39m ⚡️ Build success in 78ms
+[32mESM[39m [1mdist/index.mjs     [22m[32m70.00 B[39m
+[32mESM[39m [1mdist/index.mjs.map [22m[32m70.00 B[39m
+[32mESM[39m ⚡️ Build success in 80ms

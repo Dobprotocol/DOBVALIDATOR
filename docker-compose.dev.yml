@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://dob_user:dob_password@dob-validator-db:5432/dob_validator
+      - JWT_SECRET=dev_jwt_secret_key
+      - FRONTEND_URL=http://localhost:3000
+      - BACKOFFICE_URL=http://localhost:3001
+      - BACKEND_URL=http://localhost:3005
+    volumes:
+      - ./frontend:/app/frontend
+      - ./shared:/app/shared
+      - /app/frontend/node_modules
+      - /app/shared/node_modules
+    depends_on:
+      - backend
+    command: pnpm dev
+
+  backoffice:
+    build:
+      context: .
+      dockerfile: backoffice/Dockerfile.dev
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://dob_user:dob_password@dob-validator-db:5432/dob_validator
+      - JWT_SECRET=dev_jwt_secret_key
+      - FRONTEND_URL=http://localhost:3000
+      - BACKOFFICE_URL=http://localhost:3001
+      - BACKEND_URL=http://localhost:3005
+    volumes:
+      - ./backoffice:/app/backoffice
+      - ./shared:/app/shared
+      - /app/backoffice/node_modules
+      - /app/backoffice/node_modules
+    depends_on:
+      - backend
+    command: pnpm dev
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    ports:
+      - "3005:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://dob_user:dob_password@dob-validator-db:5432/dob_validator
+      - JWT_SECRET=dev_jwt_secret_key
+      - FRONTEND_URL=http://localhost:3000
+      - BACKOFFICE_URL=http://localhost:3001
+      - BACKEND_URL=http://localhost:3005
+    volumes:
+      - ./backend:/app/backend
+      - ./shared:/app/shared
+      - /app/backend/node_modules
+      - /app/shared/node_modules
+    command: pnpm dev
+
+  # Note: Using local PostgreSQL database on port 5432
+  # Make sure the local database container is running: docker run --name dob-validator-db -e POSTGRES_DB=dob_validator -e POSTGRES_USER=dob_user -e POSTGRES_PASSWORD=dob_password -p 5432:5432 -d postgres:15-alpine

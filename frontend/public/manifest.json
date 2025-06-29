@@ -1,0 +1,16 @@
+{
+  "short_name": "DOB Validator",
+  "name": "DOB Validator - Core Verification Engine for RWA Tokens",
+  "description": "DOB Validator is the core verification engine for RWA tokens in the DOB Protocol ecosystem. It ensures the authenticity, revenue flow, and trustless status of Infrastructure Tokens. Built on Stellar Blockchain.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+} 

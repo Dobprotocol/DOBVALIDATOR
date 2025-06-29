@@ -1,0 +1,97 @@
+version: "3.8"
+
+services:
+  # Cloud SQL Proxy (for local development/testing)
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.1
+    container_name: cloud-sql-proxy
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./keys:/keys
+    command: --credentials-file=/keys/service-account.json dobprotocol:us-central1:dob-validator-db
+    restart: unless-stopped
+    profiles:
+      - local-proxy
+
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: dob-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:3001
+      - NEXT_PUBLIC_BACKOFFICE_URL=http://backoffice:3002
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - dob-network
+
+  # Backoffice Application
+  backoffice:
+    build:
+      context: .
+      dockerfile: backoffice/Dockerfile
+    container_name: dob-backoffice
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - dob-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: dob-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://dobprotocol:Ct>OQu.f)3r0\4nU@cloud-sql-proxy:5432/dob-validator?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-production-jwt-secret}
+      - PORT=3001
+    depends_on:
+      - cloud-sql-proxy
+    restart: unless-stopped
+    networks:
+      - dob-network
+    volumes:
+      - ./uploads:/app/uploads
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: dob-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backoffice
+      - backend
+    restart: unless-stopped
+    networks:
+      - dob-network
+
+networks:
+  dob-network:
+    driver: bridge
+
+volumes:
+  uploads:

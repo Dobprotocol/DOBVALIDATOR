@@ -1,0 +1,391 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: #1a1a1a;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    --card-background: #2a2a2a;
+    --card-border: #3a3a3a;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+    height: auto;
+  }
+  
+  html {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    height: auto;
+  }
+  
+  #__next {
+    min-height: 100vh;
+    height: auto;
+  }
+}
+
+/* Prevent FOUC */
+html.no-js {
+  visibility: hidden;
+}
+
+html.js-ready {
+  visibility: visible;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Ensure content is hidden until styles are loaded */
+html:not(.ready) .animate-fade-in {
+  opacity: 0;
+  filter: blur(10px);
+}
+
+/* Dark mode adjustments */
+.dark .bg-background {
+  background-color: var(--background);
+}
+
+.dark .bg-card {
+  background-color: var(--card-background);
+  border-color: var(--card-border);
+}
+
+/* Spline Background Effects */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) scale(1.2);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.spline-background {
+  animation: float 6s ease-in-out infinite;
+}
+
+.spline-content {
+  /* backdrop-filter: blur(5px); */
+  /* -webkit-backdrop-filter: blur(5px); */
+}
+
+.spline-content h1 {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.spline-content p {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Smooth parallax effect */
+.parallax-bg {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Toast animations */
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Toast animation classes */
+.animate-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-out {
+  animation: fadeOut 0.2s ease-in;
+}
+
+.slide-in-from-bottom-full {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.slide-out-to-right-full {
+  animation: slideOutToRight 0.3s ease-in;
+}
+
+.fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.fade-out-80 {
+  animation: fadeOut 0.2s ease-in;
+}
+
+/* Ensure proper scrolling for form pages */
+.form-page {
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Enhanced hover effects for form elements */
+@layer components {
+  /* Input hover effects */
+  .form-input {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .form-input:hover {
+    @apply border-gray-500 shadow-sm;
+  }
+  
+  .form-input:focus {
+    @apply border-primary ring-2 ring-primary/20 shadow-md;
+  }
+  
+  /* Select hover effects */
+  .form-select {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .form-select:hover {
+    @apply border-gray-500 shadow-sm;
+  }
+  
+  .form-select:focus {
+    @apply border-primary ring-2 ring-primary/20 shadow-md;
+  }
+  
+  /* Button hover effects */
+  .btn-primary {
+    @apply transition-all duration-200 ease-in-out transform;
+  }
+  
+  .btn-primary:hover {
+    @apply scale-105 shadow-lg;
+  }
+  
+  .btn-primary:active {
+    @apply scale-95;
+  }
+  
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  
+  .card-hover:hover {
+    @apply transform scale-[1.02] shadow-xl;
+  }
+  
+  /* Upload area hover effects */
+  .upload-area {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .upload-area:hover {
+    @apply border-gray-400 bg-gradient-to-br from-gray-800/60 to-gray-900/60;
+  }
+  
+  .upload-area:focus-within {
+    @apply border-primary ring-2 ring-primary/20;
+  }
+}
+
+/* Dark mode specific enhancements */
+.dark .form-input {
+  @apply bg-gray-800/50 border-gray-600 text-white;
+}
+
+.dark .form-input:hover {
+  @apply border-gray-500 bg-gray-800/70;
+}
+
+.dark .form-input:focus {
+  @apply border-primary bg-gray-800/80 ring-primary/20;
+}
+
+.dark .form-select {
+  @apply bg-gray-800/50 border-gray-600 text-white;
+}
+
+.dark .form-select:hover {
+  @apply border-gray-500 bg-gray-800/70;
+}
+
+.dark .form-select:focus {
+  @apply border-primary bg-gray-800/80 ring-primary/20;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Exclude form inputs from global transitions to prevent focus issues */
+input, textarea, select {
+  transition: none !important;
+}
+
+/* Re-apply specific transitions for form elements where needed */
+.form-input, .form-select {
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out !important;
+}
+
+/* Additional protection for form inputs in step cards */
+.step-card input,
+.step-card textarea,
+.step-card select {
+  transition: none !important;
+}
+
+.step-card input:focus,
+.step-card textarea:focus,
+.step-card select:focus {
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out !important;
+}
+
+/* Ensure form inputs maintain focus */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out !important;
+}
+
+@keyframes neonGlow {
+  0%, 100% {
+    box-shadow: 0 0 16px 4px rgba(59,130,246,0.7), 0 0 32px 8px rgba(59,130,246,0.2);
+  }
+  50% {
+    box-shadow: 0 0 32px 8px rgba(59,130,246,1), 0 0 64px 16px rgba(59,130,246,0.4);
+  }
+}
+
+.hover\:animate-neon-glow:hover {
+  animation: neonGlow 1.2s infinite alternate;
+}
