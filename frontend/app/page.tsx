@@ -98,9 +98,33 @@ export default function Home() {
       console.log('✅ Authentication valid, checking profile...')
       isCheckingProfile.current = true
       setLoading(true)
+      
       try {
+        // First check local storage for development mode
+        const isDevelopment = process.env.NODE_ENV === 'development' || 
+                             window.location.hostname === 'localhost' ||
+                             window.location.hostname.includes('vercel.app');
+        
+        if (isDevelopment) {
+          console.log('🔧 Development mode: Checking local storage for profile...')
+          const walletAddress = localStorage.getItem('stellarPublicKey') || authData.walletAddress
+          if (walletAddress) {
+            const localProfileKey = `localProfile_${walletAddress}`
+            const localProfile = localStorage.getItem(localProfileKey)
+            const userProfile = localStorage.getItem('userProfile')
+            
+            if (localProfile || userProfile) {
+              console.log('✅ Profile found in local storage, redirecting to dashboard')
+              hasRedirected.current = true
+              router.push('/dashboard')
+              return
+            }
+          }
+        }
+        
+        // Try API profile check
         const response = await apiService.getProfile()
-        console.log('✅ Profile found, redirecting to dashboard')
+        console.log('✅ Profile found via API, redirecting to dashboard')
         hasRedirected.current = true
         router.push('/dashboard')
       } catch (error: any) {
@@ -116,9 +140,12 @@ export default function Home() {
           clearAllLocalStorage()
         } else {
           console.error('❌ Unexpected error checking user profile:', error)
-          // For unexpected errors, still try to redirect to profile creation
-          hasRedirected.current = true
-          router.push('/profile')
+          // For unexpected errors in development mode, still try to redirect to profile creation
+          if (isDevelopment) {
+            console.log('🔧 Development mode: Redirecting to profile creation despite error')
+            hasRedirected.current = true
+            router.push('/profile')
+          }
         }
       } finally {
         isCheckingProfile.current = false
