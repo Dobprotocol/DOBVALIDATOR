@@ -97,14 +97,26 @@ export const verifySignature = async (
   }
 }
 
-// Complete authentication flow
+// Complete authentication flow using new wallet-login endpoint
 export const authenticateWallet = async (walletAddress: string, signature: string, challenge: string) => {
   try {
-    const authToken = await verifySignature(walletAddress, signature, challenge)
+    console.log('🚀 Starting Supabase-based authentication...')
+    
+    // Use the new wallet-login endpoint
+    const response = await apiService.walletLogin(walletAddress, signature, challenge)
+    console.log('✅ Wallet login successful:', response)
+    
+    // Store the session data
+    const authToken = {
+      token: response.access_token,
+      expiresIn: '7d',
+      walletAddress
+    }
+    
     storeAuthToken(authToken.token, authToken.expiresIn, authToken.walletAddress)
     return authToken
   } catch (error) {
-    console.error('Authentication failed:', error)
+    console.error('❌ Authentication failed:', error)
     throw error
   }
 }

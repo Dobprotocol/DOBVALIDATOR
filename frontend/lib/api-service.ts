@@ -87,6 +87,20 @@ class ApiService {
     })
   }
 
+  // New Supabase-based wallet login
+  async walletLogin(walletAddress: string, signature: string, challenge: string) {
+    return this.request<{ 
+      success: boolean; 
+      access_token: string; 
+      refresh_token: string; 
+      user: any;
+      session: any;
+    }>('/api/auth/wallet-login', {
+      method: 'POST',
+      body: JSON.stringify({ walletAddress, signature, challenge }),
+    })
+  }
+
   // Profile
   async getProfile() {
     return this.request<{ success: boolean; profile: any }>('/api/profile')
