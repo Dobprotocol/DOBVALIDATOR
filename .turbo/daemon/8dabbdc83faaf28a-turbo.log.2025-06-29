@@ -140,3 +140,16 @@
 2025-06-29T00:19:45.924888Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/api/profile/route.ts")}
 2025-06-29T00:19:45.924899Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
 2025-06-29T00:19:45.924954Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-29T00:26:39.014076Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/lib/auth.ts")}
+2025-06-29T00:26:39.014116Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-29T00:26:48.613987Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/lib/api-service.ts")}
+2025-06-29T00:26:48.613996Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-29T00:26:51.913995Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/lib/api-service.ts")}
+2025-06-29T00:26:51.914004Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-29T00:26:51.914060Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2025-06-29T00:27:04.413839Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/test-vercel-auth.js")}
+2025-06-29T00:27:04.413847Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-29T00:27:06.813482Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/test-vercel-auth.js")}
+2025-06-29T00:27:06.813491Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
+2025-06-29T00:27:41.413983Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("frontend/app/api/auth/wallet-login/route.ts")}
+2025-06-29T00:27:41.413995Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@dob-validator/frontend"), path: AnchoredSystemPathBuf("frontend") }}))
