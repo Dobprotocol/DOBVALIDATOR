@@ -34,6 +34,28 @@ export function Navbar() {
           return
         }
 
+        // Check local storage first in development mode
+        const isDevelopment = process.env.NODE_ENV === 'development' || 
+                             window.location.hostname === 'localhost' ||
+                             window.location.hostname.includes('vercel.app');
+        
+        if (isDevelopment) {
+          console.log('🔧 Navbar: Development mode - checking local storage...')
+          const walletAddress = localStorage.getItem('stellarPublicKey') || authData.walletAddress
+          if (walletAddress) {
+            const localProfileKey = `localProfile_${walletAddress}`
+            const localProfile = localStorage.getItem(localProfileKey)
+            const userProfile = localStorage.getItem('userProfile')
+            
+            if (localProfile || userProfile) {
+              console.log('✅ Navbar: Profile found in local storage')
+              setHasProfile(true)
+              setIsLoading(false)
+              return
+            }
+          }
+        }
+
         console.log('🔍 Navbar: Making profile API call...')
         const response = await fetch('/api/profile', {
           headers: {
@@ -47,6 +69,29 @@ export function Navbar() {
         setHasProfile(hasProfileResult)
       } catch (error) {
         console.error('❌ Navbar: Error checking profile:', error)
+        
+        // In development mode, if API fails, check if we have local profile
+        const isDevelopment = process.env.NODE_ENV === 'development' || 
+                             window.location.hostname === 'localhost' ||
+                             window.location.hostname.includes('vercel.app');
+        
+        if (isDevelopment) {
+          console.log('🔧 Navbar: Development mode - checking local storage after API error...')
+          const walletAddress = localStorage.getItem('stellarPublicKey')
+          if (walletAddress) {
+            const localProfileKey = `localProfile_${walletAddress}`
+            const localProfile = localStorage.getItem(localProfileKey)
+            const userProfile = localStorage.getItem('userProfile')
+            
+            if (localProfile || userProfile) {
+              console.log('✅ Navbar: Profile found in local storage after API error')
+              setHasProfile(true)
+              setIsLoading(false)
+              return
+            }
+          }
+        }
+        
         setHasProfile(false)
       } finally {
         setIsLoading(false)

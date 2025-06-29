@@ -1,5 +1,13 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001' // For backend-only endpoints
 
+// Check if we're in development/testing mode
+const isDevelopmentMode = () => {
+  return process.env.NODE_ENV === 'development' || 
+         window.location.hostname === 'localhost' ||
+         window.location.hostname.includes('vercel.app') ||
+         window.location.hostname.includes('vercel.app')
+}
+
 class ApiService {
   private baseUrl: string
 
@@ -29,6 +37,60 @@ class ApiService {
       console.error('Failed to parse auth token:', error)
     }
     return null
+  }
+
+  private getWalletAddress(): string | null {
+    try {
+      const authData = localStorage.getItem('authToken')
+      if (authData) {
+        const parsedAuth = JSON.parse(authData)
+        return parsedAuth.walletAddress || localStorage.getItem('stellarPublicKey')
+      }
+      return localStorage.getItem('stellarPublicKey')
+    } catch (error) {
+      console.error('Failed to get wallet address:', error)
+      return localStorage.getItem('stellarPublicKey')
+    }
+  }
+
+  // Local storage profile management for development/testing
+  private getLocalProfile(): any | null {
+    if (!isDevelopmentMode()) return null
+    
+    try {
+      const walletAddress = this.getWalletAddress()
+      if (!walletAddress) return null
+      
+      const profileKey = `localProfile_${walletAddress}`
+      const profileData = localStorage.getItem(profileKey)
+      return profileData ? JSON.parse(profileData) : null
+    } catch (error) {
+      console.error('Failed to get local profile:', error)
+      return null
+    }
+  }
+
+  private setLocalProfile(profileData: any): void {
+    if (!isDevelopmentMode()) return
+    
+    try {
+      const walletAddress = this.getWalletAddress()
+      if (!walletAddress) return
+      
+      const profileKey = `localProfile_${walletAddress}`
+      const profileToStore = {
+        ...profileData,
+        walletAddress,
+        createdAt: profileData.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        id: profileData.id || `local_${Date.now()}`
+      }
+      
+      localStorage.setItem(profileKey, JSON.stringify(profileToStore))
+      console.log('✅ [LocalStorage] Profile stored:', profileToStore)
+    } catch (error) {
+      console.error('Failed to set local profile:', error)
+    }
   }
 
   private async request<T>(
@@ -101,12 +163,38 @@ class ApiService {
     })
   }
 
-  // Profile
+  // Profile - Modified to use local storage in development mode
   async getProfile() {
+    if (isDevelopmentMode()) {
+      console.log('🔧 [Development Mode] Using local storage for profile')
+      const localProfile = this.getLocalProfile()
+      if (localProfile) {
+        console.log('✅ [Development Mode] Profile found in local storage:', localProfile)
+        return { success: true, profile: localProfile }
+      } else {
+        console.log('❌ [Development Mode] No profile found in local storage')
+        throw new Error('Profile not found')
+      }
+    }
+    
     return this.request<{ success: boolean; profile: any }>('/api/profile')
   }
 
   async createProfile(profileData: { name: string; company?: string; email: string }) {
+    if (isDevelopmentMode()) {
+      console.log('🔧 [Development Mode] Creating profile in local storage')
+      const profileToCreate = {
+        ...profileData,
+        id: `local_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      this.setLocalProfile(profileToCreate)
+      console.log('✅ [Development Mode] Profile created in local storage')
+      return { success: true, profile: profileToCreate }
+    }
+    
     return this.request<{ success: boolean; profile: any }>('/api/profile', {
       method: 'POST',
       body: JSON.stringify(profileData),

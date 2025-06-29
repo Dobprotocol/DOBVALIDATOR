@@ -68,3 +68,6 @@ dist
 # Temporary folders
 tmp/
 temp/
+
+# Ignore secret keys
+keys/account.json
