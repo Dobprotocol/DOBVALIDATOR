@@ -90,20 +90,33 @@ services:
 
   backoffice:
     build:
-      context: .
+      context: ..
       dockerfile: backoffice/Dockerfile
     container_name: dob-validator-backoffice-prod
     restart: unless-stopped
     env_file:
       - .env.production
     ports:
-      - "3002:3000"
+      - "3002:3002"
     environment:
-      - NEXT_PUBLIC_API_URL=${BACKEND_URL}
+      - NODE_ENV=production
+      - PORT=3002
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+      - NEXT_PUBLIC_STELLAR_NETWORK=testnet
+      - NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3002/api/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
