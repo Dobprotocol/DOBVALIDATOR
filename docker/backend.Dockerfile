@@ -24,6 +24,9 @@ RUN --mount=type=cache,target=/root/.pnpm-store \
 FROM base AS builder
 WORKDIR /app
 
+# Install pnpm globally in builder stage
+RUN npm install -g pnpm@8.15.4
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
@@ -37,8 +40,9 @@ COPY tsconfig.json ./
 # Generate Prisma client and build the application
 WORKDIR /app/backend
 ENV PRISMA_CLI_BINARY_TARGETS=linux-musl
-RUN pnpm prisma generate --schema=./prisma/schema.prisma
-RUN pnpm build
+RUN cd /app/backend && \
+    npx prisma generate --schema=./prisma/schema.prisma && \
+    pnpm build
 
 # Production image, copy all the files and run the app
 FROM base AS runner
@@ -54,11 +58,25 @@ RUN addgroup --system --gid 1001 nodejs && \
     mkdir -p uploads && \
     chown -R nodejs:nodejs .
 
-# Copy all necessary files
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/node_modules ./backend/node_modules
-COPY --from=builder /app/shared ./shared
+# Install only production dependencies
+COPY --from=deps /app/package.json ./
+COPY --from=deps /app/pnpm-workspace.yaml ./
+COPY --from=deps /app/backend/package.json ./backend/
+COPY --from=deps /app/shared/package.json ./shared/
+
+# Install pnpm and production dependencies
+RUN npm install -g pnpm@8.15.4 && \
+    cd backend && pnpm install --prod --no-frozen-lockfile && \
+    cd ../shared && pnpm install --prod --no-frozen-lockfile
+
+# Copy prisma directory and generate client
 COPY --from=builder /app/backend/prisma ./backend/prisma
+COPY --from=builder /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
+COPY --from=builder /app/backend/node_modules/@prisma ./backend/node_modules/@prisma
+
+# Copy built application
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/shared ./shared
 COPY backend/start.sh ./backend/
 RUN chmod +x backend/start.sh
 

@@ -24,6 +24,9 @@ RUN --mount=type=cache,target=/root/.pnpm-store \
 FROM base AS builder
 WORKDIR /app
 
+# Install pnpm globally in builder stage
+RUN npm install -g pnpm@8.15.4
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backoffice/node_modules ./backoffice/node_modules
