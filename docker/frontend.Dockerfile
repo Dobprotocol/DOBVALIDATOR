@@ -20,10 +20,15 @@ FROM base AS deps
 COPY package.json pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/
 COPY shared/package.json ./shared/
+COPY pnpm-lock.yaml* ./
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install --frozen-lockfile
+    if [ -f pnpm-lock.yaml ]; then \
+    pnpm install --frozen-lockfile; \
+    else \
+    pnpm install; \
+    fi
 
 # Builder stage
 FROM base AS builder
@@ -38,6 +43,10 @@ COPY --from=deps /app/shared/node_modules ./shared/node_modules
 COPY shared ./shared
 COPY frontend ./frontend
 COPY tsconfig.json ./
+
+# Build shared package first
+WORKDIR /app/shared
+RUN pnpm build
 
 # Set build-time variables
 ENV NEXT_TELEMETRY_DISABLED=1

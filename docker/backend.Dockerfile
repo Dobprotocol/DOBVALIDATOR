@@ -24,10 +24,15 @@ FROM base AS deps
 COPY package.json pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
+COPY pnpm-lock.yaml* ./
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install --frozen-lockfile
+    if [ -f pnpm-lock.yaml ]; then \
+    pnpm install --frozen-lockfile; \
+    else \
+    pnpm install; \
+    fi
 
 # Builder stage
 FROM base AS builder
@@ -43,12 +48,15 @@ COPY shared ./shared
 COPY backend ./backend
 COPY tsconfig.json ./
 
-# Generate Prisma client
-RUN cd backend && \
-    pnpm prisma generate --schema=./prisma/schema.prisma
+# Build shared package first
+WORKDIR /app/shared
+RUN pnpm build
 
-# Build the application
-RUN cd backend && pnpm build
+# Build backend
+WORKDIR /app/backend
+RUN pnpm add prisma@5.4.2 @prisma/client@5.4.2 && \
+    pnpm prisma generate --schema=./prisma/schema.prisma && \
+    pnpm build
 
 # Production stage
 FROM base AS runner

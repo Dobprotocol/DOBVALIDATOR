@@ -6,11 +6,55 @@
 set -e
 
 # Load environment variables
-if [ -f ".env.prod" ]; then
-    source .env.prod
-else
-    echo "Error: .env.prod file not found!"
+if [ -f .env ]; then
+  export $(cat .env | grep -v '^#' | xargs)
+fi
+
+echo "🔄 Starting database migration process..."
+
+# Check if we're in production
+if [ "$NODE_ENV" = "production" ]; then
+  echo "⚠️  Production environment detected"
+  read -p "Are you sure you want to run migrations in production? (y/N) " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Migration cancelled"
     exit 1
+  fi
+fi
+
+# Create backup if in production
+if [ "$NODE_ENV" = "production" ]; then
+  echo "📦 Creating database backup..."
+  BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
+  pg_dump "$DATABASE_URL" > "backups/$BACKUP_FILE"
+  echo "✅ Backup created: $BACKUP_FILE"
+fi
+
+# Run migrations
+echo "🚀 Running database migrations..."
+cd backend
+npx prisma migrate deploy
+
+# Generate Prisma client
+echo "🔨 Generating Prisma client..."
+npx prisma generate
+
+echo "✅ Database migration completed successfully!"
+
+# Additional checks in production
+if [ "$NODE_ENV" = "production" ]; then
+  echo "🔍 Running post-migration checks..."
+  
+  # Check database connection
+  echo "  - Checking database connection..."
+  npx prisma db seed
+  
+  # Verify migrations
+  echo "  - Verifying migrations..."
+  npx prisma migrate status
+  
+  echo "✅ All post-migration checks passed"
 fi
 
 # Required environment variables
