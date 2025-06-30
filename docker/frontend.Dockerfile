@@ -1,5 +1,5 @@
 # Frontend Dockerfile - Production optimized
-FROM node:18.19-slim as base
+FROM node:18-slim AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -10,58 +10,52 @@ RUN apt-get update && apt-get install -y \
 # Install pnpm
 RUN npm install -g pnpm@8.15.4
 
-WORKDIR /app
+# Stage 1: Generate Prisma Client
+FROM base AS prisma
+WORKDIR /app/prisma
 
-# Stage 1: Dependencies
-FROM base as deps
+# Copy Prisma schema
+COPY backend/prisma/schema.prisma ./schema.prisma
+
+# Install Prisma CLI and generate client
+RUN npm init -y && \
+    npm install prisma@5.10.2 @prisma/client@5.10.2 && \
+    npx prisma generate
+
+# Stage 2: Dependencies
+FROM base AS deps
+WORKDIR /app
 
 # Copy package files
 COPY package.json pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/
 COPY shared/package.json ./shared/
-COPY pnpm-lock.yaml* ./
+COPY pnpm-lock.yaml ./
 
-# Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.pnpm-store \
-    if [ -f pnpm-lock.yaml ]; then \
-    pnpm install --frozen-lockfile; \
-    else \
-    pnpm install; \
-    fi
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile
 
-# Stage 2: Prisma
-FROM base as prisma
+# Ensure Prisma client directories exist
+RUN mkdir -p ./frontend/node_modules/.prisma ./frontend/node_modules/@prisma/client
 
-WORKDIR /app
-
-# Copy Prisma schema
-COPY backend/prisma ./prisma/
-
-# Initialize package.json and install Prisma
-RUN cd prisma && \
-    npm init -y && \
-    npm install prisma@3.15.2 && \
-    npm install @prisma/client@3.15.2 && \
-    npx prisma generate
+# Copy Prisma client from prisma stage
+COPY --from=prisma /app/prisma/node_modules/.prisma/client ./frontend/node_modules/.prisma/client
+COPY --from=prisma /app/prisma/node_modules/@prisma/client ./frontend/node_modules/@prisma/client
 
 # Stage 3: Builder
-FROM base as builder
-
+FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies
+# Copy files from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
 COPY --from=deps /app/shared/node_modules ./shared/node_modules
-
-# Copy Prisma client
-COPY --from=prisma /app/prisma/node_modules/.prisma ./node_modules/.prisma
-COPY --from=prisma /app/prisma/node_modules/@prisma ./node_modules/@prisma
 
 # Copy source code
 COPY shared ./shared
 COPY frontend ./frontend
 COPY tsconfig.json ./
+COPY backend/prisma ./prisma
 
 # Build shared package
 WORKDIR /app/shared
@@ -69,37 +63,31 @@ RUN pnpm build
 
 # Build frontend
 WORKDIR /app/frontend
-RUN --mount=type=cache,target=/app/frontend/.next/cache \
-    pnpm build
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL="postgresql://dob_user:dob_password@localhost:5432/dob_validator?schema=public"
+
+RUN pnpm build
 
 # Stage 4: Runner
-FROM base as runner
-
-# Create non-root user
-RUN groupadd --system --gid 1001 nodejs && \
-    useradd --system --uid 1001 --gid nodejs nodejs
-
+FROM base AS runner
 WORKDIR /app
 
-# Copy runtime files
-COPY --from=builder /app/frontend/public ./frontend/public
-COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
-COPY --from=builder /app/shared ./shared
-
-# Switch to non-root user
-USER nodejs
-
-# Set environment variables
 ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
+
+# Copy necessary files
+COPY --from=builder /app/frontend/public ./public
+COPY --from=builder /app/frontend/.next/standalone ./
+COPY --from=builder /app/frontend/.next/static ./.next/static
 
 # Expose port
 EXPOSE 3000
 
 # Start the server
-CMD ["node", "frontend/server.js"]
+CMD ["node", "server.js"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

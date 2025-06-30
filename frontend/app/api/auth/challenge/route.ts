@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { storeChallenge, getDebugInfo } from '@/lib/auth-storage'
 
-// Required for API routes in Next.js
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // Challenge schema validation

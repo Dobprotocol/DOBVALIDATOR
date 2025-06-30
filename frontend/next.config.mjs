@@ -1,45 +1,63 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  },
-  output: 'standalone',
+  reactStrictMode: true,
   experimental: {
     optimizeCss: true,
+    serverComponentsExternalPackages: [
+      'sodium-native',
+      '@stellar/stellar-sdk',
+      'jsonwebtoken',
+      'crypto',
+      'stream',
+      'zlib'
+    ],
   },
   webpack: (config, { isServer }) => {
-    // Handle Stellar SDK browser compatibility
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      crypto: false,
-      stream: false,
-      buffer: false,
-    }
-
-    // Suppress sodium-native warnings in browser
+    // Handle Node.js specific modules
     if (!isServer) {
-      config.module.rules.push({
-        test: /sodium-native/,
-        use: 'null-loader',
-      })
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: 'crypto-browserify',
+        stream: 'stream-browserify',
+        path: false,
+        process: false,
+      };
     }
 
+    // Handle dynamic requires
     config.module.rules.push({
-      test: /\.css$/,
+      test: /\.(js|mjs|jsx|ts|tsx)$/,
+      exclude: /node_modules/,
       use: [
-        'style-loader',
-        'css-loader',
-        'postcss-loader',
+        {
+          loader: 'babel-loader',
+          options: {
+            presets: ['next/babel'],
+            plugins: [
+              ['@babel/plugin-transform-runtime', { regenerator: true }],
+            ],
+          },
+        },
       ],
     });
-    return config;
-  }
-}
 
-export default nextConfig
+    // Ignore warnings for sodium-native and other native modules
+    config.ignoreWarnings = [
+      { module: /node_modules\/sodium-native/ },
+      { module: /node_modules\/require-addon/ },
+      { module: /node_modules\/@stellar/ },
+    ];
+
+    return config;
+  },
+  // Ensure all API routes run in Node.js runtime
+  serverRuntimeConfig: {
+    runtime: 'nodejs',
+  },
+  output: 'standalone',
+};
+
+export default nextConfig;

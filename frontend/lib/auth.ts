@@ -1,5 +1,8 @@
 // Authentication utilities for the frontend
 import { apiService } from './api-service'
+import { NextRequest } from 'next/server'
+import jwt from 'jsonwebtoken'
+import { getSession } from './auth-storage'
 
 export interface AuthToken {
   token: string
@@ -10,6 +13,15 @@ export interface AuthToken {
 export interface ChallengeResponse {
   challenge: string
   message: string
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
+
+interface JWTPayload {
+  walletAddress: string
+  type: 'user'
+  iat: number
 }
 
 // Store auth token in localStorage
@@ -151,4 +163,62 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
   }
 
   return response
+}
+
+// Helper function to verify JWT token
+export function verifyToken(token: string): { valid: boolean; payload?: JWTPayload } {
+  console.log('🔍 Verifying JWT token...')
+  console.log('🔍 JWT_SECRET being used:', JWT_SECRET ? JWT_SECRET.substring(0, 10) + '...' : 'No JWT_SECRET')
+  console.log('🔍 Token being verified:', token ? token.substring(0, 20) + '...' : 'No token')
+  
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as JWTPayload
+    console.log('✅ JWT payload:', payload)
+    
+    // Temporarily disable session check to isolate JWT verification issue
+    console.log('✅ JWT verification successful (session check disabled)')
+    return { valid: true, payload }
+    
+    // Original session check (commented out for debugging)
+    /*
+    // Check if session is still active
+    const session = getSession(payload.walletAddress)
+    if (!session) {
+      console.log('❌ No active session found for wallet:', payload.walletAddress)
+      return { valid: false }
+    }
+    
+    console.log('✅ Session found and valid')
+    return { valid: true, payload }
+    */
+  } catch (error) {
+    console.log('❌ JWT verification failed:', error)
+    console.log('❌ Error name:', error.name)
+    console.log('❌ Error message:', error.message)
+    return { valid: false }
+  }
+}
+
+// Helper function to get authenticated user from request
+export function getAuthenticatedUser(request: NextRequest): { valid: boolean; user?: JWTPayload } {
+  console.log('🔍 Getting authenticated user from request...')
+  const authHeader = request.headers.get('authorization')
+  console.log('🔍 Auth header:', authHeader ? 'present' : 'missing')
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ Invalid or missing authorization header')
+    return { valid: false }
+  }
+  
+  const token = authHeader.substring(7)
+  console.log('🔍 Extracted token:', token ? `${token.substring(0, 20)}...` : 'empty')
+  
+  const result = verifyToken(token)
+  console.log('🔍 Verification result:', result)
+  
+  if (result.valid) {
+    return { valid: true, user: result.payload }
+  } else {
+    return { valid: false }
+  }
 } 

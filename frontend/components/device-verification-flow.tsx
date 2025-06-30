@@ -23,6 +23,9 @@ export type DeviceData = {
   location: string
 
   // Technical info
+  serialNumber: string
+  manufacturer: string
+  model: string
   yearOfManufacture: string
   condition: string
   specifications: string
@@ -47,6 +50,9 @@ export function DeviceVerificationFlow() {
     deviceType: '',
     customDeviceType: '',
     location: '',
+    serialNumber: '',
+    manufacturer: '',
+    model: '',
     yearOfManufacture: '',
     condition: '',
     specifications: '',

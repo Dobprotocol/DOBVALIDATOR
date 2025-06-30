@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatedUser } from '../../auth/verify/route'
+import { getAuthenticatedUser } from '@/lib/auth'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 // Delete a draft by ID
 export async function DELETE(

@@ -6,147 +6,65 @@ import { TransactionBuilder, Networks } from '@stellar/stellar-sdk'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 // Verification schema validation
 const verificationSchema = z.object({
   walletAddress: z.string().min(1, "Wallet address is required"),
-  signature: z.string().min(1, "Signature (XDR transaction) is required"),
+  signature: z.string().min(1, "Signature is required"),
   challenge: z.string().min(1, "Challenge is required"),
 })
 
 // JWT secret (in production, use environment variable)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-const JWT_EXPIRES_IN = '7d' // 7 days
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d' // 7 days
 
 // Helper function to verify XDR transaction
-function verifyXDRTransaction(walletAddress: string, signedXDR: string, challenge: string): boolean {
-  console.log('🔍 Verifying XDR transaction...')
-  console.log('🔍 Wallet address:', walletAddress)
-  console.log('🔍 Challenge:', challenge)
-  console.log('🔍 Signed XDR length:', signedXDR.length)
-  
+function verifyXDRTransaction(walletAddress: string, signature: string, challenge: string): boolean {
   try {
-    // Parse the signed XDR transaction
-    const transaction = TransactionBuilder.fromXDR(signedXDR, Networks.TESTNET)
-    console.log('✅ Transaction parsed successfully')
-    
-    // Handle different transaction types
-    if ('source' in transaction) {
-      console.log('🔍 Transaction source:', transaction.source)
-    } else {
-      console.log('🔍 Fee bump transaction - using inner transaction source')
-      if (transaction.innerTransaction && 'source' in transaction.innerTransaction) {
-        console.log('🔍 Inner transaction source:', transaction.innerTransaction.source)
-      }
-    }
-    
-    console.log('🔍 Transaction operations count:', transaction.operations.length)
-    
-    // Extract the challenge from manageData operation
-    let transactionChallenge = null
-    for (let i = 0; i < transaction.operations.length; i++) {
-      const operation = transaction.operations[i]
-      console.log(`🔍 Operation ${i}:`, operation.type)
-      
-      if (operation.type === 'manageData') {
-        console.log('🔍 Found manageData operation')
-        const manageDataOp = operation as any // Type assertion for manageData operation
-        console.log('🔍 Operation name:', manageDataOp.name)
-        console.log('🔍 Operation value:', manageDataOp.value)
-        
-        if (manageDataOp.name === 'auth_challenge') {
-          transactionChallenge = manageDataOp.value
-          console.log('✅ Found auth_challenge data:', transactionChallenge)
-          console.log('🔍 Transaction challenge type:', typeof transactionChallenge)
-          console.log('🔍 Transaction challenge length:', transactionChallenge?.length)
-          console.log('🔍 Transaction challenge as string:', String(transactionChallenge))
-          break
-        }
-      }
-    }
-    
-    if (!transactionChallenge) {
-      console.log('❌ No auth_challenge data found in transaction')
-      console.log('🔍 Available operations:')
-      transaction.operations.forEach((op, i) => {
-        console.log(`  ${i}: ${op.type} - ${(op as any).name || 'no name'}`)
-      })
-      return false
-    }
-    
-    console.log('🔍 Transaction challenge (from manageData):', transactionChallenge)
-    
-    // Get the stored challenge
+    // Get stored challenge
     const storedChallenge = getChallenge(walletAddress)
-    
-    if (!storedChallenge) {
-      console.log('❌ No stored challenge found for wallet')
+    if (!storedChallenge || storedChallenge.challenge !== challenge) {
+      console.log('❌ Challenge mismatch or expired')
       return false
     }
-    
-    console.log('🔍 Stored challenge:', storedChallenge.challenge)
-    console.log('🔍 Stored challenge timestamp:', storedChallenge.timestamp)
-    
-    // Check if challenge is expired (5 minutes)
-    if (Date.now() - storedChallenge.timestamp > 5 * 60 * 1000) {
-      console.log('❌ Challenge expired')
-      console.log('❌ Current time:', Date.now())
-      console.log('❌ Challenge time:', storedChallenge.timestamp)
-      console.log('❌ Time difference:', Date.now() - storedChallenge.timestamp)
-      removeChallenge(walletAddress)
-      return false
-    }
-    
-    // Check if the stored challenge starts with the transaction challenge
-    // (since the transaction challenge is truncated to 28 bytes)
-    const transactionChallengeStr = String(transactionChallenge)
-    const storedChallengeStr = String(storedChallenge.challenge)
-    
-    console.log('🔍 Comparing challenges:')
-    console.log('🔍 Stored challenge (string):', storedChallengeStr)
-    console.log('🔍 Transaction challenge (string):', transactionChallengeStr)
-    console.log('🔍 Stored challenge length:', storedChallengeStr.length)
-    console.log('🔍 Transaction challenge length:', transactionChallengeStr.length)
-    
-    if (!storedChallengeStr.startsWith(transactionChallengeStr)) {
-      console.log('❌ Challenge mismatch')
-      console.log('❌ Expected (stored):', storedChallengeStr)
-      console.log('❌ Received (transaction):', transactionChallengeStr)
-      console.log('❌ Stored starts with transaction?', storedChallengeStr.startsWith(transactionChallengeStr))
-      return false
-    }
-    
-    // Verify the transaction signature
-    let sourceAccount: string
-    if ('source' in transaction) {
-      sourceAccount = transaction.source
-    } else {
-      // Handle fee bump transaction
-      if (transaction.innerTransaction && 'source' in transaction.innerTransaction) {
-        sourceAccount = transaction.innerTransaction.source
-      } else {
-        console.log('❌ Could not determine transaction source')
-        return false
-      }
-    }
-    
-    if (sourceAccount !== walletAddress) {
-      console.log('❌ Wallet address mismatch')
-      console.log('❌ Expected:', walletAddress)
-      console.log('❌ Found:', sourceAccount)
-      return false
-    }
-    
-    console.log('✅ XDR transaction verification successful')
-    
-    // Clean up used challenge
+
+    // Remove used challenge
     removeChallenge(walletAddress)
-    
+
+    // Verify signature
+    const tx = TransactionBuilder.fromXDR(signature, Networks.PUBLIC)
+    const operations = tx.operations
+    if (operations.length !== 1) {
+      console.log('❌ Invalid number of operations')
+      return false
+    }
+
+    // Verify operation type and content
+    const operation = operations[0]
+    if (operation.type !== 'manageData' || operation.name !== 'DOB_VALIDATOR_AUTH') {
+      console.log('❌ Invalid operation type or name')
+      return false
+    }
+
+    // Verify challenge value
+    const value = operation.value.toString()
+    if (value !== challenge) {
+      console.log('❌ Challenge value mismatch')
+      return false
+    }
+
     return true
   } catch (error) {
     console.error('❌ Error verifying XDR transaction:', error)
     return false
   }
+}
+
+interface JWTPayload {
+  walletAddress: string
+  type: 'user'
+  iat: number
 }
 
 export async function POST(request: NextRequest) {
@@ -197,15 +115,13 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Generating JWT token...')
     // Generate JWT token
-    const token = jwt.sign(
-      { 
-        walletAddress,
-        type: 'user',
-        iat: Math.floor(Date.now() / 1000),
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    )
+    const payload: JWTPayload = {
+      walletAddress,
+      type: 'user',
+      iat: Math.floor(Date.now() / 1000),
+    }
+    
+    const token = jwt.sign(payload, JWT_SECRET)
     
     // Store session using shared storage
     const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days

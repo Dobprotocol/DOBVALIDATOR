@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getAuthenticatedUser } from '../auth/verify/route'
+import { getAuthenticatedUser } from '@/lib/auth'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 // Draft schema (very flexible for partial data - drafts are works in progress)
 const draftSchema = z.object({

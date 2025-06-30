@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Profile {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  name          String?
+  email         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Submission {
+  id               String    @id @default(cuid())
+  name             String
+  deviceName       String
+  deviceType       String
+  customDeviceType String
+  location         String
+  serialNumber     String
+  manufacturer     String
+  model            String
+  yearOfManufacture String
+  condition        String
+  specifications   String
+  purchasePrice    String
+  currentValue     String
+  expectedRevenue  String
+  operationalCosts String
+  operatorWallet   String
+  status           String
+  submittedAt      DateTime
+  updatedAt        DateTime
+  adminNotes       String?
+  adminScore       Int?
+  adminDecision    String?
+  adminDecisionAt  DateTime?
+  certificateId    String?
+  files            File[]
+}
+
+model File {
+  id           String     @id @default(cuid())
+  filename     String
+  path         String
+  documentType String
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  submissionId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+} 

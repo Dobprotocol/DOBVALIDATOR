@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 // Mock certificate data storage (in production, use database)
 const certificates = new Map<string, any>()
 

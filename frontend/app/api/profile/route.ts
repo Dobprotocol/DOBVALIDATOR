@@ -1,28 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getAuthenticatedUser } from '../auth/verify/route'
+import { getAuthenticatedUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 // Profile schema validation
 const profileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  company: z.string().min(2, "Company must be at least 2 characters"),
-  email: z.string().email("Invalid email format"),
-  phone: z.string().optional(),
-  website: z.string().url().optional().or(z.literal('')),
-  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
-  profileImage: z.string().optional(),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address"),
 })
 
 export async function GET(request: NextRequest) {
   try {
     // Verify authentication
     const auth = getAuthenticatedUser(request)
-    
-    if (!auth.valid || !auth.user) {
+    if (!auth.valid) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -31,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     // Get profile from database
     const profile = await prisma.profile.findUnique({
-      where: { userId: auth.user.id },
+      where: { walletAddress: auth.user.walletAddress },
     })
 
     if (!profile) {
@@ -43,17 +38,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      profile: {
-        walletAddress: profile.walletAddress,
-        name: profile.name,
-        company: profile.company,
-        email: profile.email,
-        createdAt: profile.createdAt,
-        updatedAt: profile.updatedAt,
-      }
+      profile,
+      message: 'Profile retrieved successfully'
     })
+
   } catch (error) {
-    console.error('Error in profile GET:', error)
+    console.error('Error retrieving profile:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -65,8 +55,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify authentication
     const auth = getAuthenticatedUser(request)
-    
-    if (!auth.valid || !auth.user) {
+    if (!auth.valid) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -78,56 +67,32 @@ export async function POST(request: NextRequest) {
     
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid profile data', details: validationResult.error.format() },
+        { error: 'Invalid request data', details: validationResult.error.format() },
         { status: 400 }
       )
     }
 
-    const profileData = validationResult.data
-    
-    // Check if profile already exists
-    const existingProfile = await prisma.profile.findUnique({
-      where: { userId: auth.user.id },
-    })
+    const { name, email } = validationResult.data
 
-    let profile
-    if (existingProfile) {
-      // Update existing profile
-      profile = await prisma.profile.update({
-        where: { userId: auth.user.id },
-        data: {
-          name: profileData.name,
-          company: profileData.company,
-          email: profileData.email,
-        },
-      })
-    } else {
-      // Create new profile
-      profile = await prisma.profile.create({
-        data: {
-          userId: auth.user.id,
-          walletAddress: auth.user.walletAddress,
-          name: profileData.name,
-          company: profileData.company,
-          email: profileData.email,
-        },
-      })
-    }
+    // Update or create profile
+    const profile = await prisma.profile.upsert({
+      where: { walletAddress: auth.user.walletAddress },
+      update: { name, email },
+      create: {
+        walletAddress: auth.user.walletAddress,
+        name,
+        email,
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      profile: {
-        walletAddress: profile.walletAddress,
-        name: profile.name,
-        company: profile.company,
-        email: profile.email,
-        createdAt: profile.createdAt,
-        updatedAt: profile.updatedAt,
-      },
-      message: existingProfile ? 'Profile updated successfully' : 'Profile created successfully'
+      profile,
+      message: 'Profile updated successfully'
     })
+
   } catch (error) {
-    console.error('Error creating/updating profile:', error)
+    console.error('Error updating profile:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -152,7 +117,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete profile from database
     await prisma.profile.delete({
-      where: { userId: auth.user.id },
+      where: { walletAddress: auth.user.walletAddress },
     })
 
     return NextResponse.json({

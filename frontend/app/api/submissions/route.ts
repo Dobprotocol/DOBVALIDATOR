@@ -1,36 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getAuthenticatedUser } from '../auth/verify/route'
+import { getAuthenticatedUser } from '@/lib/auth'
 import { submissionStorage } from '@/lib/submission-storage'
 import { adminConfigService } from '@/lib/admin-config'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 // Submission schema
 const submissionSchema = z.object({
   deviceName: z.string().min(1, "Device name is required"),
   deviceType: z.string().min(1, "Device type is required"),
+  customDeviceType: z.string().min(1, "Custom device type is required"),
+  location: z.string().min(1, "Location is required"),
   serialNumber: z.string().min(1, "Serial number is required"),
   manufacturer: z.string().min(1, "Manufacturer is required"),
   model: z.string().min(1, "Model is required"),
-  yearOfManufacture: z.string().min(4, "Year must be 4 digits"),
+  yearOfManufacture: z.string().min(1, "Year of manufacture is required"),
   condition: z.string().min(1, "Condition is required"),
-  specifications: z.string().min(10, "Specifications must be at least 10 characters"),
-  purchasePrice: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Purchase price must be greater than 0"
-  }),
-  currentValue: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Current value must be greater than or equal to 0"
-  }),
-  expectedRevenue: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Expected revenue must be greater than or equal to 0"
-  }),
-  operationalCosts: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Operational costs must be greater than or equal to 0"
-  }),
+  specifications: z.string().min(1, "Specifications are required"),
+  purchasePrice: z.string().min(1, "Purchase price is required"),
+  currentValue: z.string().min(1, "Current value is required"),
+  expectedRevenue: z.string().min(1, "Expected revenue is required"),
+  operationalCosts: z.string().min(1, "Operational costs are required"),
   files: z.array(z.object({
     filename: z.string(),
     path: z.string(),
     documentType: z.string()
-  })).optional(),
+  })).default([]),
 })
 
 // Mock submissions storage (in production, use database)
@@ -61,12 +58,16 @@ export async function POST(request: NextRequest) {
     
     // Generate unique submission ID
     const submissionId = `SUB_${Date.now()}_${Math.random().toString(36).substring(2)}`
+    const now = new Date().toISOString()
     
-    // Create submission record
+    // Create submission record with all required fields
     const submission = {
       id: submissionId,
+      name: submissionData.deviceName,
       deviceName: submissionData.deviceName,
       deviceType: submissionData.deviceType,
+      customDeviceType: submissionData.customDeviceType,
+      location: submissionData.location,
       serialNumber: submissionData.serialNumber,
       manufacturer: submissionData.manufacturer,
       model: submissionData.model,
@@ -79,15 +80,18 @@ export async function POST(request: NextRequest) {
       operationalCosts: submissionData.operationalCosts,
       operatorWallet: auth.user.walletAddress,
       status: 'pending' as const,
-      submittedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      files: [],
-      // Admin fields (only for admin users)
+      submittedAt: now,
+      updatedAt: now,
+      files: submissionData.files.map(file => ({
+        filename: file.filename,
+        path: file.path,
+        documentType: file.documentType
+      })),
       adminNotes: null,
       adminScore: null,
       adminDecision: null,
       adminDecisionAt: null,
-      certificateId: null,
+      certificateId: null
     }
     
     // Store submission using shared storage
@@ -95,18 +99,13 @@ export async function POST(request: NextRequest) {
     
     console.log('🔍 Created submission:', createdSubmission)
     console.log('🔍 All submissions after creation:', Array.from(submissionStorage.getAll()))
-    
+
     return NextResponse.json({
       success: true,
-      submission: {
-        id: createdSubmission.id,
-        deviceName: createdSubmission.deviceName,
-        status: createdSubmission.status,
-        submittedAt: createdSubmission.submittedAt
-      },
+      submission: createdSubmission,
       message: 'Submission created successfully'
     })
-    
+
   } catch (error) {
     console.error('Error creating submission:', error)
     return NextResponse.json(

@@ -33,7 +33,7 @@ export function OptimizedSpline({
   const [hasError, setHasError] = useState(false)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
   const splineViewerRef = useRef<HTMLDivElement>(null)
-  const loadingTimeoutRef = useRef<NodeJS.Timeout>()
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const scriptLoadedRef = useRef(false)
   const splineInstanceRef = useRef<any>(null)
   const isInitializedRef = useRef(false)
