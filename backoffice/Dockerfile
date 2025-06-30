@@ -2,8 +2,8 @@
 FROM node:18-alpine AS base
 
 # Install dependencies
-RUN apk add --no-cache libc6-compat curl
-RUN npm install -g pnpm@8.15.4
+RUN apk add --no-cache libc6-compat
+RUN npm install -g pnpm
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -14,12 +14,15 @@ COPY package.json pnpm-workspace.yaml ./
 COPY shared/package.json ./shared/
 COPY backoffice/package.json ./backoffice/
 
-# Install dependencies with specific version lock
+# Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Copy workspace files first
+COPY package.json pnpm-workspace.yaml ./
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -34,23 +37,13 @@ COPY backoffice ./backoffice
 WORKDIR /app/shared
 RUN pnpm build
 
-# Build backoffice with production optimizations
+# Build backoffice
 WORKDIR /app/backoffice
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Add build-time environment variables
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_BACKEND_URL
-ARG NEXT_PUBLIC_FRONTEND_URL
-ARG NEXT_PUBLIC_BACKOFFICE_URL
-ARG NEXT_PUBLIC_STELLAR_NETWORK
-ARG NEXT_PUBLIC_STELLAR_HORIZON_URL
-ARG NEXT_PUBLIC_ADMIN_ROLE
-ARG NEXT_PUBLIC_ENABLE_ADMIN_FEATURES
-
 # Build with production flags
-RUN NEXT_TELEMETRY_DISABLED=1 pnpm build
+RUN pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -66,10 +59,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3002
 ENV HOSTNAME="0.0.0.0"
 
-# Copy only the necessary files
-COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/shared/package.json ./shared/
-COPY --from=builder /app/backoffice/package.json ./backoffice/
+# Copy workspace files first
+COPY package.json pnpm-workspace.yaml ./
+COPY shared/package.json ./shared/
+COPY backoffice/package.json ./backoffice/
 
 # Install only production dependencies
 RUN pnpm install --prod --no-frozen-lockfile
@@ -86,12 +79,12 @@ RUN chown -R nextjs:nodejs /app
 # Switch to non-root user
 USER nextjs
 
-# Add healthcheck with proper curl
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3002/api/health || exit 1
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
 
 # Expose port
-EXPOSE 3002
+EXPOSE ${PORT}
 
-# Start the application with proper production flags
+# Start the application
 CMD ["node", "backoffice/server.js"] 

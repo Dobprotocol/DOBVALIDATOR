@@ -1,74 +1,86 @@
 # Backend Production Dockerfile
-FROM node:18-alpine AS builder
+FROM node:18-alpine AS base
 
 # Install dependencies
 RUN apk add --no-cache libc6-compat
 RUN npm install -g pnpm
 
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
 
-# Copy root configuration files
-COPY package.json pnpm-workspace.yaml .npmrc ./
-
-# Copy package files for all workspaces
-COPY shared/package.json shared/.npmrc ./shared/
+# Copy workspace files
+COPY package.json pnpm-workspace.yaml ./
+COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 
-# Build shared package first
-COPY shared ./shared
-WORKDIR /app/shared
-RUN pnpm install
-RUN pnpm build
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile
 
-# Install backend dependencies and build
+# Rebuild the source code only when needed
+FROM base AS builder
 WORKDIR /app
-RUN pnpm install --filter=@dob-validator/backend...
 
-# Copy backend source code
+# Copy workspace files first
+COPY package.json pnpm-workspace.yaml ./
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/shared/node_modules ./shared/node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+
+# Copy source code
+COPY shared ./shared
 COPY backend ./backend
 
-# Set working directory to backend
-WORKDIR /app/backend
-
-# Generate Prisma client and build
-RUN pnpm prisma generate
+# Build shared package first
+WORKDIR /app/shared
 RUN pnpm build
 
-# Production stage
-FROM node:18-alpine AS runner
+# Build backend
+WORKDIR /app/backend
+ENV NODE_ENV=production
 
+# Build with production flags
+RUN pnpm build
+
+# Production image, copy all the files and run
+FROM base AS runner
 WORKDIR /app
 
-# Install production dependencies only
-COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/.npmrc ./
-COPY --from=builder /app/shared/package.json ./shared/
-COPY --from=builder /app/backend/package.json ./backend/
-
-RUN npm install -g pnpm prisma
-RUN pnpm install --prod --filter=@dob-validator/backend...
-
-# Copy built files and necessary runtime files
-COPY --from=builder /app/shared/dist ./shared/dist
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/prisma ./backend/prisma
-
-# Set working directory to backend
-WORKDIR /app/backend
-
-# Generate Prisma client in production
-RUN prisma generate
-
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3001}/health || exit 1
-
-# Expose port
-EXPOSE ${PORT:-3001}
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=${PORT:-3001}
+ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
-# Start production server
-CMD ["node", "dist/index.js"] 
+# Copy workspace files first
+COPY package.json pnpm-workspace.yaml ./
+COPY shared/package.json ./shared/
+COPY backend/package.json ./backend/
+
+# Install only production dependencies
+RUN pnpm install --prod --no-frozen-lockfile
+
+# Copy built application
+COPY --from=builder /app/shared/dist ./shared/dist
+COPY --from=builder /app/backend/dist ./backend/dist
+
+# Set proper permissions
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
+
+# Expose port
+EXPOSE ${PORT}
+
+# Start the application
+CMD ["node", "backend/dist/index.js"] 

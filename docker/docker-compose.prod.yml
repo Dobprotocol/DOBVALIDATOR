@@ -1,18 +1,24 @@
+version: "3.8"
+
 services:
   db:
     image: postgres:15-alpine
     container_name: dob-validator-db-prod
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-dob_validator}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-dob_validator}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,21 +34,20 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - HOSTNAME=0.0.0.0
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-      - STELLAR_NETWORK=testnet
-      - STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
-      - UPLOAD_DIR=/app/uploads
-      - MAX_FILE_SIZE=10mb
-      - RATE_LIMIT_WINDOW=15m
-      - RATE_LIMIT_MAX_REQUESTS=100
-      - LOG_LEVEL=info
-      - CORS_ORIGIN=${CORS_ORIGIN}
-      - TRUST_PROXY=1
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-dob_validator}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      STELLAR_NETWORK: ${STELLAR_NETWORK:-testnet}
+      STELLAR_HORIZON_URL: ${STELLAR_HORIZON_URL:-https://horizon-testnet.stellar.org}
+      UPLOAD_DIR: ${UPLOAD_DIR:-./uploads}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-10mb}
+      RATE_LIMIT_WINDOW: 15m
+      RATE_LIMIT_MAX_REQUESTS: 100
+      LOG_LEVEL: info
+      TRUST_PROXY: 1
     volumes:
       - ../uploads:/app/uploads
     depends_on:
@@ -61,7 +66,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 5s
     networks:
       - dob_network
 
@@ -76,14 +81,17 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
-      - NEXT_PUBLIC_STELLAR_NETWORK=testnet
-      - NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3001}
+      NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:-http://localhost:3000}
+      NEXT_PUBLIC_BACKOFFICE_URL: ${NEXT_PUBLIC_BACKOFFICE_URL:-http://localhost:3002}
+      NEXT_PUBLIC_STELLAR_NETWORK: ${NEXT_PUBLIC_STELLAR_NETWORK:-testnet}
+      NEXT_PUBLIC_STELLAR_HORIZON_URL: ${NEXT_PUBLIC_STELLAR_HORIZON_URL:-https://horizon-testnet.stellar.org}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -97,7 +105,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 5s
     networks:
       - dob_network
 
@@ -112,14 +120,19 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - NODE_ENV=production
-      - PORT=3002
-      - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
-      - NEXT_PUBLIC_STELLAR_NETWORK=testnet
-      - NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+      NODE_ENV: production
+      PORT: 3002
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3001}
+      NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:-http://localhost:3000}
+      NEXT_PUBLIC_BACKOFFICE_URL: ${NEXT_PUBLIC_BACKOFFICE_URL:-http://localhost:3002}
+      NEXT_PUBLIC_STELLAR_NETWORK: ${NEXT_PUBLIC_STELLAR_NETWORK:-testnet}
+      NEXT_PUBLIC_STELLAR_HORIZON_URL: ${NEXT_PUBLIC_STELLAR_HORIZON_URL:-https://horizon-testnet.stellar.org}
+      NEXT_PUBLIC_ADMIN_ROLE: ${NEXT_PUBLIC_ADMIN_ROLE:-admin}
+      NEXT_PUBLIC_ENABLE_ADMIN_FEATURES: ${NEXT_PUBLIC_ENABLE_ADMIN_FEATURES:-true}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -133,7 +146,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 5s
     networks:
       - dob_network
 
