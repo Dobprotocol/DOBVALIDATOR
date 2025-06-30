@@ -1,64 +1,69 @@
 services:
-  postgres:
+  db:
     image: postgres:15-alpine
     container_name: dob-validator-db-prod
-    restart: unless-stopped
-    env_file:
-      - .env.production
+    restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dob_validator}
-      POSTGRES_USER: ${POSTGRES_USER:-dob_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dob_password}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-dob_user} -d ${POSTGRES_DB:-dob_validator}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - dob-network
+      - dob_network
 
   backend:
     build:
-      context: .
+      context: ..
       dockerfile: backend/Dockerfile
     container_name: dob-validator-backend-prod
-    restart: unless-stopped
-    env_file:
-      - .env.production
+    restart: always
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-dob_user}:${POSTGRES_PASSWORD:-dob_password}@postgres:5432/${POSTGRES_DB:-dob_validator}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
-      - STELLAR_NETWORK=${STELLAR_NETWORK:-public}
-      - STELLAR_HORIZON_URL=${STELLAR_HORIZON_URL:-https://horizon.stellar.org}
-      - UPLOAD_DIR=uploads
-      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
-      - PORT=3001
       - NODE_ENV=production
-      - CORS_ORIGIN=${FRONTEND_URL}
+      - PORT=3001
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - STELLAR_NETWORK=testnet
+      - STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=10mb
+      - RATE_LIMIT_WINDOW=15m
+      - RATE_LIMIT_MAX_REQUESTS=100
+      - LOG_LEVEL=info
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - TRUST_PROXY=1
     volumes:
-      - uploads_data:/app/uploads
+      - ../uploads:/app/uploads
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3001/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
-      - dob-network
+      - dob_network
 
   frontend:
     build:
@@ -81,7 +86,7 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - dob-network
+      - dob_network
 
   backoffice:
     build:
@@ -104,31 +109,34 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - dob-network
+      - dob_network
 
   nginx:
     image: nginx:alpine
     container_name: dob-validator-nginx-prod
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env.production
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      - ../nginx/ssl:/etc/nginx/ssl:ro
+      - ../nginx/logs:/var/log/nginx
     depends_on:
       - frontend
       - backoffice
       - backend
     networks:
-      - dob-network
+      - dob_network
 
 volumes:
   postgres_data:
-  uploads_data:
+    name: dob_postgres_data
 
 networks:
-  dob-network:
-    driver: bridge
+  dob_network:
+    name: dob_network
+    external: true
