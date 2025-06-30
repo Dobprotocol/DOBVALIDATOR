@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@dob-validator/shared": "workspace:*",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^5.4.2",
     "axios": "^1.10.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -41,7 +41,7 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
-    "prisma": "^5.22.0",
+    "prisma": "^5.4.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"

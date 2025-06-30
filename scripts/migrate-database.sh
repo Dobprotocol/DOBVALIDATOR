@@ -5,6 +5,32 @@
 
 set -e
 
+# Load environment variables
+if [ -f ".env.prod" ]; then
+    source .env.prod
+else
+    echo "Error: .env.prod file not found!"
+    exit 1
+fi
+
+# Required environment variables
+required_vars=(
+    "DB_PASSWORD"
+    "DB_USER"
+    "DB_NAME"
+    "GOOGLE_CLOUD_PROJECT"
+    "GOOGLE_CLOUD_REGION"
+    "DB_INSTANCE_NAME"
+)
+
+# Check for required environment variables
+for var in "${required_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+        echo "Error: Required environment variable $var is not set"
+        exit 1
+    fi
+done
+
 echo "🚀 Starting Database Migration to Google Cloud SQL..."
 
 # Colors for output
@@ -21,7 +47,7 @@ if ! docker ps | grep -q cloud-sql-proxy; then
         -v $(pwd)/keys:/keys \
         gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.1 \
         --credentials-file=/keys/service-account.json \
-        dobprotocol:us-central1:dob-validator-db
+        ${GOOGLE_CLOUD_PROJECT}:${GOOGLE_CLOUD_REGION}:${DB_INSTANCE_NAME}
     
     echo -e "${YELLOW}Waiting for proxy to start...${NC}"
     sleep 10
@@ -38,7 +64,7 @@ echo -e "${GREEN}✓ Export file found${NC}"
 
 # Test connection
 echo -e "${YELLOW}Testing database connection...${NC}"
-if ! PGPASSWORD="Ct>OQu.f)3r0\4nU" psql -h localhost -p 5433 -U dobprotocol -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+if ! PGPASSWORD="${DB_PASSWORD}" psql -h localhost -p 5433 -U "${DB_USER}" -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
     echo -e "${RED}Error: Cannot connect to Google Cloud SQL${NC}"
     echo -e "${YELLOW}Please check:${NC}"
     echo -e "  1. DevOps has granted Cloud SQL Client permissions"
@@ -51,17 +77,17 @@ echo -e "${GREEN}✓ Database connection successful${NC}"
 
 # Create database if it doesn't exist
 echo -e "${YELLOW}Creating database if it doesn't exist...${NC}"
-PGPASSWORD="Ct>OQu.f)3r0\4nU" psql -h localhost -p 5433 -U dobprotocol -d postgres -c "CREATE DATABASE IF NOT EXISTS \"dob-validator\";"
+PGPASSWORD="${DB_PASSWORD}" psql -h localhost -p 5433 -U "${DB_USER}" -d postgres -c "CREATE DATABASE IF NOT EXISTS \"${DB_NAME}\";"
 
 # Import the data
 echo -e "${YELLOW}Importing database schema and data...${NC}"
-PGPASSWORD="Ct>OQu.f)3r0\4nU" psql -h localhost -p 5433 -U dobprotocol -d "dob-validator" -f dob_validator_export.sql
+PGPASSWORD="${DB_PASSWORD}" psql -h localhost -p 5433 -U "${DB_USER}" -d "${DB_NAME}" -f dob_validator_export.sql
 
 echo -e "${GREEN}✓ Database migration completed successfully!${NC}"
 
 # Verify migration
 echo -e "${YELLOW}Verifying migration...${NC}"
-PGPASSWORD="Ct>OQu.f)3r0\4nU" psql -h localhost -p 5433 -U dobprotocol -d "dob-validator" -c "
+PGPASSWORD="${DB_PASSWORD}" psql -h localhost -p 5433 -U "${DB_USER}" -d "${DB_NAME}" -c "
 SELECT 
     schemaname,
     tablename,
@@ -74,6 +100,6 @@ ORDER BY tablename;
 echo -e "${GREEN}🎉 Migration completed! You can now connect with DBeaver:${NC}"
 echo -e "  Host: localhost"
 echo -e "  Port: 5433"
-echo -e "  Database: dob-validator"
-echo -e "  Username: dobprotocol"
-echo -e "  Password: Ct>OQu.f)3r0\4nU" 
+echo -e "  Database: ${DB_NAME}"
+echo -e "  Username: ${DB_USER}"
+echo -e "  Password: <stored in .env.prod>" 

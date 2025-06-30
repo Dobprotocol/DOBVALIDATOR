@@ -1,60 +1,119 @@
 version: "3.8"
 
 services:
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/frontend.Dockerfile
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.1
+    container_name: dob-validator-sql-proxy
+    command: --credentials-file=/keys/service-account.json dobprotocol:us-central1:dob-validator-db
+    volumes:
+      - ./keys:/keys
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${BACKEND_URL}
-      - NEXT_PUBLIC_STELLAR_NETWORK=${STELLAR_NETWORK}
-      - NEXT_PUBLIC_STELLAR_CONTRACT_ID=${STELLAR_CONTRACT_ID}
-    depends_on:
-      - backend
-
-  backoffice:
-    build:
-      context: .
-      dockerfile: docker/backoffice.Dockerfile
-    ports:
-      - "3001:3000"
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${BACKEND_URL}
-      - NEXT_PUBLIC_STELLAR_NETWORK=${STELLAR_NETWORK}
-      - NEXT_PUBLIC_STELLAR_CONTRACT_ID=${STELLAR_CONTRACT_ID}
-    depends_on:
-      - backend
+      - "5433:5432"
+    networks:
+      - dob-network
 
   backend:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+    container_name: dob-validator-backend-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
     ports:
-      - "3002:3002"
+      - "3005:3001"
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-dob_user}:${POSTGRES_PASSWORD:-dob_password}@cloud-sql-proxy:5432/${POSTGRES_DB:-dob_validator}?schema=public
       - JWT_SECRET=${JWT_SECRET}
-      - STELLAR_NETWORK=${STELLAR_NETWORK}
-      - STELLAR_CONTRACT_ID=${STELLAR_CONTRACT_ID}
-      - PORT=3002
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - STELLAR_NETWORK=${STELLAR_NETWORK:-public}
+      - STELLAR_HORIZON_URL=${STELLAR_HORIZON_URL:-https://horizon.stellar.org}
+      - UPLOAD_DIR=uploads
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
+      - PORT=3001
+      - NODE_ENV=production
+      - CORS_ORIGIN=${FRONTEND_URL}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - uploads_data:/app/uploads
+    depends_on:
+      - cloud-sql-proxy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dob-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: dob-validator-frontend-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "3003:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${BACKEND_URL}
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dob-network
+
+  backoffice:
+    build:
+      context: .
+      dockerfile: docker/backoffice.Dockerfile
+    container_name: dob-validator-backoffice-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "3004:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${BACKEND_URL}
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dob-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: dob-validator-nginx-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backoffice
+      - backend
+    networks:
+      - dob-network
 
 volumes:
-  postgres_data:
+  uploads_data:
+
+networks:
+  dob-network:
+    driver: bridge

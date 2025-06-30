@@ -1,55 +1,70 @@
-# Build stage
-FROM node:18-alpine AS builder
+# Backend Dockerfile - Optimized for faster builds
+FROM node:18-alpine AS base
 
-# Set working directory
+# Install curl for health checks, netcat for database connection checking, and OpenSSL for Prisma
+RUN apk add --no-cache curl netcat-openbsd openssl libc6-compat
+
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
 
-# Install pnpm
+# Install pnpm globally once
 RUN npm install -g pnpm@8.15.4
 
-# Copy root workspace files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-
-# Copy package files for all workspaces
+# Copy only package files first for better layer caching
+COPY package.json pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
-COPY frontend/package.json ./frontend/
-COPY backoffice/package.json ./backoffice/
 
-# Install all dependencies at root level
-RUN pnpm install --no-frozen-lockfile
+# Install dependencies with cache mount for faster rebuilds
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    pnpm install --no-frozen-lockfile
 
-# Copy source files
-COPY backend ./backend
-COPY shared ./shared
-COPY tsconfig.json ./
-
-# Build the application
-WORKDIR /app/backend
-RUN pnpm build
-
-# Production stage
-FROM node:18-alpine AS runner
-
+# Rebuild the source code only when needed
+FROM base AS builder
 WORKDIR /app
 
-# Copy necessary files from builder
-COPY --from=builder /app/backend/package.json ./package.json
-COPY --from=builder /app/backend/dist ./dist
-COPY --from=builder /app/backend/prisma ./prisma
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+COPY --from=deps /app/shared/node_modules ./shared/node_modules
 
-# Install production dependencies
-RUN pnpm install --prod --no-frozen-lockfile
+# Copy source code
+COPY shared ./shared
+COPY backend ./backend
+COPY tsconfig.json ./
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client and build the application
+WORKDIR /app/backend
+ENV PRISMA_CLI_BINARY_TARGETS=linux-musl
+RUN pnpm prisma generate --schema=./prisma/schema.prisma
+RUN pnpm build
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3002
+# Production image, copy all the files and run the app
+FROM base AS runner
+WORKDIR /app
 
-# Expose port
-EXPOSE 3002
+ENV NODE_ENV=production \
+    PORT=3001 \
+    HOSTNAME="0.0.0.0"
 
-# Start the application
-CMD ["node", "dist/index.js"] 
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs && \
+    mkdir -p uploads && \
+    chown -R nodejs:nodejs .
+
+# Copy all necessary files
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/node_modules ./backend/node_modules
+COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/backend/prisma ./backend/prisma
+COPY backend/start.sh ./backend/
+RUN chmod +x backend/start.sh
+
+USER nodejs
+WORKDIR /app/backend
+
+EXPOSE 3001
+
+CMD ["./start.sh"] 

@@ -10,6 +10,9 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
+  experimental: {
+    optimizeCss: true,
+  },
 }
 
 export default nextConfig
