@@ -1,135 +1,122 @@
 # Production Deployment Checklist
 
-## Pre-Deployment Steps
+## Pre-Deployment
 
 ### Environment Setup
-
-- [ ] Run `scripts/setup-env.sh` to create environment files
-- [ ] Update the following in `.env`:
-  - [ ] Generate and set secure `JWT_SECRET` (see [JWT Setup Guide](./JWT_SETUP.md))
-  - [ ] Configure `STELLAR_CONTRACT_ID`
-  - [ ] Set proper database credentials
-  - [ ] Update service URLs for your domain
-  - [ ] Verify `NODE_ENV=production`
+- [ ] Create `.env.production` from template for each service
+- [ ] Generate and set strong JWT secret
+- [ ] Configure proper database credentials
+- [ ] Set up proper CORS origins
+- [ ] Configure Stellar network settings (testnet/mainnet)
+- [ ] Set up proper logging levels
+- [ ] Configure rate limiting
 
 ### Database
+- [ ] Backup existing database (if applicable)
+- [ ] Run database migrations
+- [ ] Verify database connection string
+- [ ] Check database user permissions
+- [ ] Set up database backups
 
-- [ ] Run database migrations: `pnpm prisma migrate deploy`
-- [ ] Verify database connection string in `.env`
-- [ ] Backup existing database if updating
+### Security
+- [ ] Generate SSL certificates
+- [ ] Configure nginx SSL settings
+- [ ] Set up proper firewall rules
+- [ ] Review security headers
+- [ ] Check file permissions
+- [ ] Verify JWT configuration
+- [ ] Set up rate limiting
+- [ ] Configure CORS properly
 
 ### Docker Configuration
-
-- [ ] Verify all Dockerfiles exist:
-  - [ ] `docker/frontend.Dockerfile`
-  - [ ] `docker/backoffice.Dockerfile`
-  - [ ] `docker/backend.Dockerfile`
-- [ ] Check docker-compose.prod.yml configurations
-- [ ] Ensure proper port mappings
-- [ ] Verify volume mounts
+- [ ] Update image versions
+- [ ] Check volume mounts
+- [ ] Verify network configuration
+- [ ] Set up logging drivers
+- [ ] Configure container restart policies
+- [ ] Set up health checks
+- [ ] Review resource limits
 
 ## Deployment Steps
 
-### Build and Deploy
+1. **Database Setup**
+   - [ ] Apply migrations
+   - [ ] Verify data integrity
+   - [ ] Check indexes
 
-1. Build production images:
+2. **Backend Service**
+   - [ ] Build production image
+   - [ ] Run health checks
+   - [ ] Verify API endpoints
+   - [ ] Check logging
+   - [ ] Monitor resource usage
 
-   ```bash
-   docker compose -f docker-compose.prod.yml build
-   ```
+3. **Frontend Services**
+   - [ ] Build production assets
+   - [ ] Check static file serving
+   - [ ] Verify API connectivity
+   - [ ] Test user flows
 
-2. Start services:
+4. **Nginx Configuration**
+   - [ ] Configure SSL
+   - [ ] Set up proper routing
+   - [ ] Configure caching
+   - [ ] Set up logging
 
-   ```bash
-   docker compose -f docker-compose.prod.yml up -d
-   ```
+## Post-Deployment
 
-3. Verify services:
-   - [ ] Frontend accessible
-   - [ ] Backoffice accessible
-   - [ ] Backend API responding
-   - [ ] Database connected
+### Monitoring
+- [ ] Set up health check monitoring
+- [ ] Configure error alerting
+- [ ] Set up performance monitoring
+- [ ] Check log aggregation
 
-### Post-Deployment Verification
+### Testing
+- [ ] Run smoke tests
+- [ ] Verify critical paths
+- [ ] Check error handling
+- [ ] Test backup procedures
+- [ ] Verify SSL configuration
 
-#### Frontend
+### Documentation
+- [ ] Update API documentation
+- [ ] Document deployment process
+- [ ] Update runbooks
+- [ ] Document rollback procedures
 
-- [ ] Test user authentication
-- [ ] Verify Stellar wallet integration
-- [ ] Check file uploads
-- [ ] Test form submissions
-- [ ] Verify API connections
-
-#### Backoffice
-
-- [ ] Test admin login
-- [ ] Verify submission review process
-- [ ] Check dashboard metrics
-- [ ] Test user management
-
-#### Backend
-
-- [ ] Verify API endpoints
-- [ ] Check JWT authentication
-- [ ] Test Stellar contract integration
-- [ ] Monitor logs for errors
-
-### Security Checks
-
-- [ ] SSL/TLS certificates installed
-- [ ] Environment variables secured
-- [ ] Database access restricted
-- [ ] API rate limiting enabled
-- [ ] CORS properly configured
-
-### Monitoring Setup
-
-- [ ] Set up logging
-- [ ] Configure error tracking
-- [ ] Enable performance monitoring
-- [ ] Set up alerts
+### Performance
+- [ ] Run load tests
+- [ ] Check response times
+- [ ] Monitor resource usage
+- [ ] Verify caching
 
 ## Rollback Plan
 
-### Quick Rollback Steps
+1. **Database**
+   - [ ] Backup current state
+   - [ ] Prepare rollback scripts
+   - [ ] Test restore procedures
 
-1. Stop new services:
+2. **Services**
+   - [ ] Keep previous images tagged
+   - [ ] Document version numbers
+   - [ ] Test rollback procedure
 
-   ```bash
-   docker compose -f docker-compose.prod.yml down
-   ```
+3. **Configuration**
+   - [ ] Backup all config files
+   - [ ] Document changes
+   - [ ] Keep previous versions
 
-2. Restore database backup if needed:
+## Emergency Contacts
 
-   ```bash
-   # Database restore command here
-   ```
+- **DevOps Lead**: [Name] - [Contact]
+- **Backend Lead**: [Name] - [Contact]
+- **Frontend Lead**: [Name] - [Contact]
+- **Database Admin**: [Name] - [Contact]
 
-3. Deploy previous version:
-   ```bash
-   git checkout <previous-tag>
-   docker compose -f docker-compose.prod.yml up -d
-   ```
+## Monitoring URLs
 
-### Emergency Contacts
-
-- Technical Lead: [Contact Info]
-- DevOps Lead: [Contact Info]
-- Database Admin: [Contact Info]
-
-## Maintenance
-
-### Regular Tasks
-
-- [ ] Monitor system resources
-- [ ] Check application logs
-- [ ] Review security updates
-- [ ] Backup database regularly
-- [ ] Update SSL certificates before expiry
-
-### Documentation
-
-- [ ] Update API documentation
-- [ ] Document any deployment issues
-- [ ] Update runbook if needed
-- [ ] Record any configuration changes
+- Backend Health: `https://api.example.com/health`
+- Frontend Status: `https://app.example.com/status`
+- Database Status: [Dashboard URL]
+- Logs: [Log Aggregator URL]

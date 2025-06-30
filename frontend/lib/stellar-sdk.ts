@@ -1,11 +1,11 @@
 // Browser-compatible Stellar SDK wrapper
 // This avoids the sodium-native compatibility issues in browsers
 
-import * as StellarSdk from '@stellar/stellar-sdk'
+import StellarSdk from '@stellar/stellar-sdk'
 
 // Initialize Stellar SDK based on environment
-const STELLAR_NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet'
-const HORIZON_URL = process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org'
+export const HORIZON_URL = process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org'
+export const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET'
 
 // Create server instance only on the client side
 export const getServer = () => {
@@ -15,7 +15,9 @@ export const getServer = () => {
   return null
 }
 
-export const network = STELLAR_NETWORK === 'testnet' ? StellarSdk.Networks.TESTNET : StellarSdk.Networks.PUBLIC
+export const getNetworkPassphrase = () => {
+  return NETWORK === 'TESTNET' ? StellarSdk.Networks.TESTNET : StellarSdk.Networks.PUBLIC
+}
 
 // Browser-safe Stellar SDK functions
 export const stellarSDKBrowser = {
@@ -73,7 +75,7 @@ export const signWithFreighter = async (xdr: string) => {
   if (!isFreighterInstalled()) {
     throw new Error('Freighter wallet is not installed')
   }
-  return await window.freighter.signTransaction(xdr, network)
+  return await window.freighter.signTransaction(xdr, getNetworkPassphrase())
 }
 
 // Helper function to check if we're in the browser

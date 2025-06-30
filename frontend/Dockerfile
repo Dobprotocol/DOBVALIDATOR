@@ -1,24 +1,21 @@
-# Frontend Dockerfile - Highly optimized for faster builds
+# Frontend Production Dockerfile
 FROM node:18-alpine AS base
 
-# Install curl and libc6-compat
-RUN apk add --no-cache curl libc6-compat
+# Install dependencies
+RUN apk add --no-cache libc6-compat
+RUN npm install -g pnpm
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
-# Install pnpm globally once
-RUN npm install -g pnpm
-
-# Copy package files first for better layer caching
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+# Copy workspace files
+COPY package.json pnpm-workspace.yaml ./
 COPY shared/package.json ./shared/
 COPY frontend/package.json ./frontend/
 
-# Install dependencies with frozen lockfile for consistency and speed
-RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install --frozen-lockfile
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -27,55 +24,59 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/shared/node_modules ./shared/node_modules
+COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
 
 # Copy source code
 COPY shared ./shared
 COPY frontend ./frontend
 
-# Next.js collects completely anonymous telemetry data about general usage.
-ENV NEXT_TELEMETRY_DISABLED=1
+# Build shared package
+WORKDIR /app/shared
+RUN pnpm build
 
-# Build the application with cache mount for faster rebuilds
+# Build frontend
 WORKDIR /app/frontend
-RUN --mount=type=cache,target=/app/frontend/.next/cache \
-    npm run build
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
-    HOSTNAME="0.0.0.0"
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs && \
-    chown -R nextjs:nodejs .
+# Set environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Install pnpm and copy package files
-RUN npm install -g pnpm
-COPY --from=deps /app/package.json ./package.json
-COPY --from=deps /app/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=deps /app/shared/package.json ./shared/package.json
+# Copy package files and install production dependencies
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/shared/package.json ./shared/
+COPY --from=builder /app/frontend/package.json ./frontend/
+RUN pnpm install --prod --no-frozen-lockfile
 
-# Install production dependencies
-RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install --prod && \
-    cd shared && \
-    pnpm install --prod
-
-# Copy built application (excluding cache directory)
-COPY --from=builder /app/frontend/public ./public
+# Copy built application
+COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./.next/static
-COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
+COPY --from=builder /app/frontend/public ./frontend/public
 
+# Set proper permissions
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
 USER nextjs
 
-EXPOSE 3000
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
 
-# Use the standalone server for better performance
+# Expose port
+EXPOSE ${PORT}
+
+# Start the application
 CMD ["node", "server.js"] 

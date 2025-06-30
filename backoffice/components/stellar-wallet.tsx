@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Wallet, Loader2, CheckCircle, AlertCircle, Shield, Crown, LogOut, User } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { adminConfigService } from "@/lib/admin-config"
 import { isFreighterInstalled, getFreighterPublicKey, isFreighterConnected } from '@/lib/stellar-sdk'
 import {
@@ -34,7 +34,8 @@ export function StellarWallet() {
   const [adminRole, setAdminRole] = useState<string | null>(null)
   const [permissions, setPermissions] = useState<string[]>([])
   const [authToken, setAuthToken] = useState<AuthToken | null>(null)
-  const { toast } = useToast()
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   // Check for existing authentication on mount
   useEffect(() => {
@@ -74,6 +75,8 @@ export function StellarWallet() {
 
   const connectWallet = async () => {
     setIsConnecting(true)
+    setError(null)
+    setSuccess(null)
     
     try {
       // First check if Freighter is installed
@@ -104,7 +107,7 @@ export function StellarWallet() {
 
       // Create transaction for signing
       const tx = new TransactionBuilder(
-        new Account(publicKey, '0'), // Use a new Account instance with sequence '0' since we don't need a real sequence number for this
+        new Account(publicKey, '0'),
         {
           fee: '100',
           networkPassphrase: Networks.TESTNET,
@@ -171,16 +174,9 @@ export function StellarWallet() {
         setIsAdmin(true)
         setAdminRole(adminWallet.role)
         setPermissions(adminWallet.permissions)
-        toast({
-          title: 'Admin Access Granted',
-          description: `Welcome back, ${adminWallet.role}!`,
-        })
+        setSuccess(`Welcome back, ${adminWallet.role}!`)
       } else {
-        toast({
-          title: 'Access Denied',
-          description: 'This wallet does not have admin access.',
-          variant: 'destructive',
-        })
+        setError('This wallet does not have admin access.')
         // Clear auth data since non-admin wallets shouldn't access backoffice
         localStorage.removeItem('authToken')
         localStorage.removeItem('stellarPublicKey')
@@ -191,11 +187,7 @@ export function StellarWallet() {
 
     } catch (error) {
       console.error('Error connecting wallet:', error)
-      toast({
-        title: 'Connection Failed',
-        description: error instanceof Error ? error.message : 'Failed to connect wallet',
-        variant: 'destructive',
-      })
+      setError(error instanceof Error ? error.message : 'Failed to connect wallet')
     } finally {
       setIsConnecting(false)
     }
@@ -212,10 +204,8 @@ export function StellarWallet() {
     setIsAdmin(false)
     setAdminRole(null)
     setPermissions([])
-    toast({
-      title: 'Wallet Disconnected',
-      description: 'You have been logged out.',
-    })
+    setError('Wallet Disconnected')
+    setSuccess(null)
   }
 
   const truncateAddress = (address: string) => {
@@ -276,15 +266,22 @@ export function StellarWallet() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wallet className="h-5 w-5" />
-          Connect Stellar Wallet
-        </CardTitle>
-        <CardDescription>
-          Connect your Stellar wallet to access the backoffice dashboard
-        </CardDescription>
+        <CardTitle>Wallet Connection</CardTitle>
+        <CardDescription>Connect your Stellar wallet to access the admin dashboard</CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {success && (
+          <Alert className="mb-4">
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
         <Button 
           onClick={connectWallet} 
           disabled={isConnecting}

@@ -5,6 +5,7 @@ import { Button } from './ui/button'
 import { useWallet } from '../hooks/useWallet'
 import { useToast } from './ui/use-toast'
 import { TransactionBuilder, Networks, Operation } from '@stellar/stellar-sdk'
+import StellarSdk from '@stellar/stellar-sdk'
 
 export function StellarWallet() {
   const { walletAddress, isConnected, connectWallet, disconnectWallet } = useWallet()
@@ -29,6 +30,10 @@ export function StellarWallet() {
       }
 
       const { challenge } = await challengeResponse.json()
+
+      // Get account details
+      const server = new StellarSdk.Server('https://horizon-testnet.stellar.org')
+      const account = await server.loadAccount(walletAddress)
 
       // Create transaction for signing
       const tx = new TransactionBuilder(account, {

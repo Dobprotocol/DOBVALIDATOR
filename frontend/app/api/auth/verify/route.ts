@@ -34,27 +34,32 @@ function verifyXDRTransaction(walletAddress: string, signature: string, challeng
 
     // Verify signature
     const tx = TransactionBuilder.fromXDR(signature, Networks.TESTNET)
-    const operations = tx.operations
-    if (operations.length !== 1) {
-      console.log('❌ Invalid number of operations')
+    if ('operations' in tx) {
+      const operations = tx.operations
+      if (operations.length !== 1) {
+        console.log('❌ Invalid number of operations')
+        return false
+      }
+
+      // Verify operation type and content
+      const operation = operations[0]
+      if (operation.type !== 'manageData' || operation.name !== 'DOB_VALIDATOR_AUTH') {
+        console.log('❌ Invalid operation type or name')
+        return false
+      }
+
+      // Verify challenge value
+      const value = operation.value.toString()
+      if (value !== challenge) {
+        console.log('❌ Challenge value mismatch')
+        return false
+      }
+
+      return true
+    } else {
+      console.log('❌ Invalid transaction type (FeeBumpTransaction)')
       return false
     }
-
-    // Verify operation type and content
-    const operation = operations[0]
-    if (operation.type !== 'manageData' || operation.name !== 'DOB_VALIDATOR_AUTH') {
-      console.log('❌ Invalid operation type or name')
-      return false
-    }
-
-    // Verify challenge value
-    const value = operation.value.toString()
-    if (value !== challenge) {
-      console.log('❌ Challenge value mismatch')
-      return false
-    }
-
-    return true
   } catch (error) {
     console.error('❌ Error verifying XDR transaction:', error)
     return false
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
       const signedTx = TransactionBuilder.fromXDR(signature, Networks.TESTNET)
       
       // Verify the transaction is from the claimed wallet
-      if (signedTx.source !== walletAddress) {
+      if (!('source' in signedTx) || signedTx.source !== walletAddress) {
         return NextResponse.json(
           { error: 'Invalid signature: wallet address mismatch' },
           { status: 401 }

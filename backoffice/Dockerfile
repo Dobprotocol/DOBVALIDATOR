@@ -1,70 +1,97 @@
 # Backoffice Production Dockerfile
-FROM node:18-alpine AS builder
+FROM node:18-alpine AS base
 
 # Install dependencies
-RUN apk add --no-cache libc6-compat
-RUN npm install -g pnpm
+RUN apk add --no-cache libc6-compat curl
+RUN npm install -g pnpm@8.15.4
 
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
 
-# Copy root configuration files
-COPY package.json pnpm-workspace.yaml .npmrc ./
-
-# Copy package files for all workspaces
-COPY shared/package.json shared/.npmrc ./shared/
+# Copy workspace files
+COPY package.json pnpm-workspace.yaml ./
+COPY shared/package.json ./shared/
 COPY backoffice/package.json ./backoffice/
 
-# Build shared package first
-COPY shared ./shared
-WORKDIR /app/shared
-RUN pnpm install
-RUN pnpm build
+# Install dependencies with specific version lock
+RUN pnpm install --no-frozen-lockfile
 
-# Install backoffice dependencies and build
+# Rebuild the source code only when needed
+FROM base AS builder
 WORKDIR /app
-RUN pnpm install --filter=@dob-validator/backoffice...
 
-# Copy backoffice source code
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/shared/node_modules ./shared/node_modules
+COPY --from=deps /app/backoffice/node_modules ./backoffice/node_modules
+
+# Copy source code
+COPY shared ./shared
 COPY backoffice ./backoffice
 
-# Set working directory to backoffice
-WORKDIR /app/backoffice
-
-# Build backoffice
-ENV NEXT_TELEMETRY_DISABLED 1
+# Build shared package first
+WORKDIR /app/shared
 RUN pnpm build
 
-# Production stage
-FROM node:18-alpine AS runner
+# Build backoffice with production optimizations
+WORKDIR /app/backoffice
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 
+# Add build-time environment variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_FRONTEND_URL
+ARG NEXT_PUBLIC_BACKOFFICE_URL
+ARG NEXT_PUBLIC_STELLAR_NETWORK
+ARG NEXT_PUBLIC_STELLAR_HORIZON_URL
+ARG NEXT_PUBLIC_ADMIN_ROLE
+ARG NEXT_PUBLIC_ENABLE_ADMIN_FEATURES
+
+# Build with production flags
+RUN NEXT_TELEMETRY_DISABLED=1 pnpm build
+
+# Production image, copy all the files and run next
+FROM base AS runner
 WORKDIR /app
 
-# Install production dependencies only
-COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/.npmrc ./
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3002
+ENV HOSTNAME="0.0.0.0"
+
+# Copy only the necessary files
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/shared/package.json ./shared/
 COPY --from=builder /app/backoffice/package.json ./backoffice/
 
-RUN npm install -g pnpm
-RUN pnpm install --prod --filter=@dob-validator/backoffice...
+# Install only production dependencies
+RUN pnpm install --prod --no-frozen-lockfile
 
-# Copy built files and necessary runtime files
+# Copy built application
 COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/backoffice/.next/standalone ./
 COPY --from=builder /app/backoffice/.next/static ./backoffice/.next/static
 COPY --from=builder /app/backoffice/public ./backoffice/public
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3002
-ENV HOSTNAME="0.0.0.0"
-ENV NEXT_TELEMETRY_DISABLED=1
+# Set proper permissions
+RUN chown -R nextjs:nodejs /app
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
+# Switch to non-root user
+USER nextjs
+
+# Add healthcheck with proper curl
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3002/api/health || exit 1
 
 # Expose port
-EXPOSE ${PORT}
+EXPOSE 3002
 
-# Start production server
-CMD ["node", "server.js"] 
+# Start the application with proper production flags
+CMD ["node", "backoffice/server.js"] 

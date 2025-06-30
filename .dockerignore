@@ -1,6 +1,114 @@
-# Dependencies and package management
-node_modules
+# Dependencies
 **/node_modules
+**/.pnp
+**/.pnp.js
+
+# Testing
+**/coverage
+
+# Next.js build output
+**/.next
+**/out
+
+# Production
+**/build
+**/dist
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local env files
+.env*.local
+.env
+.env.production
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+*.pem
+
+# Docker
+.docker
+
+# Git
+.git
+.gitignore
+
+# Temp files
+**/tmp
+**/temp
+
+# Logs
+**/logs
+*.log
+
+# Cache
+.cache
+.npm
+.eslintcache
+
+# Build cache
+**/.turbo
+
+# Keep source files
+!backend/
+!frontend/
+!backoffice/
+!shared/
+!package.json
+!pnpm-workspace.yaml
+!tsconfig.json
+
+# Ignore everything by default
+*
+
+# Allow specific files and directories
+!package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!shared/package.json
+!shared/src/
+!shared/tsconfig.json
+!backoffice/package.json
+!backoffice/src/
+!backoffice/public/
+!backoffice/app/
+!backoffice/components/
+!backoffice/lib/
+!backoffice/styles/
+!backoffice/next.config.mjs
+!backoffice/postcss.config.mjs
+!backoffice/tailwind.config.ts
+!backoffice/tsconfig.json
+
+# Explicitly ignore node_modules and build artifacts
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.cache
+**/.env*
+**/*.log
+**/coverage
+**/.git
+**/.DS_Store
+
+# Dependencies and package management
 .pnpm-store
 **/.pnpm-store
 npm-debug.log*
@@ -80,9 +188,6 @@ AUTHORS
 CONTRIBUTORS
 PATENTS
 *.txt
-!pnpm-workspace.yaml
-!package.json
-!tsconfig.json
 
 # Docker
 Dockerfile*
