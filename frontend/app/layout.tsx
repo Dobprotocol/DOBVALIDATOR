@@ -1,5 +1,9 @@
 import './globals.css'
 import type { Metadata } from 'next'
+import { ThemeProvider } from '@/components/theme-provider'
+import { Footer } from '@/components/ui/footer'
+import { StarsBackground } from '@/components/ui/stars-background'
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: 'DOB Validator',
@@ -18,9 +22,23 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-freighter-api/1.7.1/index.min.js" />
+      </head>
+      <body className="min-h-screen bg-background">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <StarsBackground className="fixed inset-0 -z-10" />
+          <main className="min-h-screen relative z-0">
+            {children}
+          </main>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   )

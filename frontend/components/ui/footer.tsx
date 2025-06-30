@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import { Twitter, Globe, Linkedin, Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
@@ -22,28 +22,6 @@ function playClickSound() {
 
 export function Footer() {
   const { theme, setTheme } = useTheme()
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY
-      const windowHeight = window.innerHeight
-      const documentHeight = document.documentElement.scrollHeight
-      
-      // Show footer only when user has scrolled through the entire viewport (100% of screen height)
-      // This means they've seen the full Spline scene
-      const scrollPercentage = (scrollPosition / (documentHeight - windowHeight)) * 100
-      const threshold = 100 // Show footer when 100% scrolled through the scene
-      
-      setIsVisible(scrollPercentage >= threshold)
-    }
-
-    // Initial check
-    handleScroll()
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const handleThemeToggle = () => {
     playClickSound()
@@ -57,15 +35,14 @@ export function Footer() {
       
       {/* Footer */}
       <footer 
-        className={`
+        className="
           fixed bottom-0 left-0 right-0 
           flex items-center justify-between px-4 py-4 
           bg-background/95 backdrop-blur-sm border-t
           transition-all duration-300 ease-in-out
           pointer-events-auto
           z-50
-          ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-        `}
+        "
       >
         <div className="flex items-center">
           <Button
@@ -82,7 +59,7 @@ export function Footer() {
             © {new Date().getFullYear()} DOB Protocol. All rights reserved.
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mr-[5vw]">
           <a
             href="https://twitter.com/dobprotocol"
             target="_blank"

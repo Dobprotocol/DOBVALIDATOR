@@ -6,7 +6,7 @@
 
 - [ ] Run `scripts/setup-env.sh` to create environment files
 - [ ] Update the following in `.env`:
-  - [ ] Set secure `JWT_SECRET`
+  - [ ] Generate and set secure `JWT_SECRET` (see [JWT Setup Guide](./JWT_SETUP.md))
   - [ ] Configure `STELLAR_CONTRACT_ID`
   - [ ] Set proper database credentials
   - [ ] Update service URLs for your domain

@@ -1,69 +1,79 @@
 version: "3.8"
 
 services:
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile.dev
+  db:
+    image: postgres:15-alpine
+    container_name: dob-validator-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dob_validator
     ports:
-      - "3000:3000"
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.dev
+    container_name: dob-validator-backend
+    ports:
+      - "3001:3001"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://dob_user:dob_password@dob-validator-db:5432/dob_validator
-      - JWT_SECRET=dev_jwt_secret_key
-      - FRONTEND_URL=http://localhost:3000
-      - BACKOFFICE_URL=http://localhost:3001
-      - BACKEND_URL=http://localhost:3005
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/dob_validator
+      - JWT_SECRET=your-jwt-secret
+      - STELLAR_NETWORK=testnet
     volumes:
-      - ./frontend:/app/frontend
-      - ./shared:/app/shared
+      - ../backend:/app/backend
+      - ../shared:/app/shared
+      - /app/backend/node_modules
+      - /app/shared/node_modules
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile.dev
+    container_name: dob-validator-frontend
+    ports:
+      - "3000:3001"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+      - NEXT_PUBLIC_STELLAR_NETWORK=testnet
+      - NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+    volumes:
+      - ../frontend:/app/frontend
+      - ../shared:/app/shared
       - /app/frontend/node_modules
       - /app/shared/node_modules
     depends_on:
       - backend
-    command: pnpm dev
 
   backoffice:
     build:
-      context: .
+      context: ..
       dockerfile: backoffice/Dockerfile.dev
+    container_name: dob-validator-backoffice
     ports:
-      - "3001:3000"
+      - "3002:3002"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://dob_user:dob_password@dob-validator-db:5432/dob_validator
-      - JWT_SECRET=dev_jwt_secret_key
-      - FRONTEND_URL=http://localhost:3000
-      - BACKOFFICE_URL=http://localhost:3001
-      - BACKEND_URL=http://localhost:3005
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+      - NEXT_PUBLIC_STELLAR_NETWORK=testnet
+      - NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
     volumes:
-      - ./backoffice:/app/backoffice
-      - ./shared:/app/shared
+      - ../backoffice:/app/backoffice
+      - ../shared:/app/shared
       - /app/backoffice/node_modules
-      - /app/backoffice/node_modules
+      - /app/shared/node_modules
     depends_on:
       - backend
-    command: pnpm dev
 
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile.dev
-    ports:
-      - "3005:3001"
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://dob_user:dob_password@dob-validator-db:5432/dob_validator
-      - JWT_SECRET=dev_jwt_secret_key
-      - FRONTEND_URL=http://localhost:3000
-      - BACKOFFICE_URL=http://localhost:3001
-      - BACKEND_URL=http://localhost:3005
-    volumes:
-      - ./backend:/app/backend
-      - ./shared:/app/shared
-      - /app/backend/node_modules
-      - /app/shared/node_modules
-    command: pnpm dev
-
-  # Note: Using local PostgreSQL database on port 5432
-  # Make sure the local database container is running: docker run --name dob-validator-db -e POSTGRES_DB=dob_validator -e POSTGRES_USER=dob_user -e POSTGRES_PASSWORD=dob_password -p 5432:5432 -d postgres:15-alpine
+volumes:
+  postgres_data:

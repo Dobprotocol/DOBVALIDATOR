@@ -4,13 +4,23 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Wallet, Loader2, CheckCircle, AlertCircle, Shield, Crown } from "lucide-react"
+import { Wallet, Loader2, CheckCircle, AlertCircle, Shield, Crown, LogOut, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { adminConfigService } from "@/lib/admin-config"
+import { isFreighterInstalled, getFreighterPublicKey, isFreighterConnected } from '@/lib/stellar-sdk'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
+import { TransactionBuilder, Networks, Operation, Account } from '@stellar/stellar-sdk'
 
 interface AuthToken {
   token: string
-  expiresIn: string
+  expiresIn: string | number
   walletAddress: string
   expiresAt: number
 }
@@ -66,17 +76,24 @@ export function StellarWallet() {
     setIsConnecting(true)
     
     try {
-      // For demo purposes, we'll use a mock wallet address
-      // In production, this would come from the actual wallet
-      const mockWalletAddress = "GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN"
+      // First check if Freighter is installed
+      if (!await isFreighterInstalled()) {
+        throw new Error('Freighter wallet is not installed')
+      }
 
-      // Request wallet connection
+      // Get the public key first
+      const publicKey = await getFreighterPublicKey()
+      if (!publicKey) {
+        throw new Error('Could not get public key from wallet')
+      }
+
+      // Request challenge from backend
       const response = await fetch('http://localhost:3001/api/auth/challenge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ walletAddress: mockWalletAddress })
+        body: JSON.stringify({ walletAddress: publicKey })
       })
 
       if (!response.ok) {
@@ -85,10 +102,29 @@ export function StellarWallet() {
 
       const { challenge } = await response.json()
 
-      
-      // For demo purposes, we'll simulate signing the challenge
-      // In production, this would be done by the actual wallet
-      const mockSignature = "mock_signature_" + Date.now()
+      // Create transaction for signing
+      const tx = new TransactionBuilder(
+        new Account(publicKey, '0'), // Use a new Account instance with sequence '0' since we don't need a real sequence number for this
+        {
+          fee: '100',
+          networkPassphrase: Networks.TESTNET,
+        }
+      )
+        .addOperation(Operation.manageData({
+          name: 'DOB_VALIDATOR_AUTH',
+          value: challenge,
+        }))
+        .setTimeout(30)
+        .build()
+
+      // Get XDR for signing
+      const xdr = tx.toXDR()
+
+      // Sign with Freighter
+      const signature = await signTransactionWithFreighter(xdr)
+      if (!signature) {
+        throw new Error('Failed to sign transaction')
+      }
 
       // Verify the signature
       const verifyResponse = await fetch('http://localhost:3001/api/auth/verify', {
@@ -97,9 +133,9 @@ export function StellarWallet() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          walletAddress: mockWalletAddress,
+          walletAddress: publicKey,
           challenge,
-          signature: mockSignature
+          signature
         })
       })
 
@@ -113,47 +149,52 @@ export function StellarWallet() {
       const authData: AuthToken = {
         token,
         expiresIn,
-        walletAddress: mockWalletAddress,
+        walletAddress: publicKey,
         expiresAt: Date.now() + (parseInt(expiresIn.toString()) * 1000)
       }
 
       // Store in localStorage
       localStorage.setItem('authToken', JSON.stringify(authData))
-      localStorage.setItem('stellarPublicKey', mockWalletAddress)
+      localStorage.setItem('stellarPublicKey', publicKey)
 
       // Store in cookies for middleware
       document.cookie = `authToken=${token}; path=/; max-age=${expiresIn}; SameSite=Lax`
-      document.cookie = `stellarPublicKey=${mockWalletAddress}; path=/; max-age=${expiresIn}; SameSite=Lax`
+      document.cookie = `stellarPublicKey=${publicKey}; path=/; max-age=${expiresIn}; SameSite=Lax`
 
       setAuthToken(authData)
-      setWalletAddress(mockWalletAddress)
+      setWalletAddress(publicKey)
       setIsAuthenticated(true)
 
-      // Check admin status
-      const adminWallet = adminConfigService.getAdminWallet(mockWalletAddress)
+      // Check if wallet is admin
+      const adminWallet = adminConfigService.getAdminWallet(publicKey)
       if (adminWallet) {
         setIsAdmin(true)
         setAdminRole(adminWallet.role)
         setPermissions(adminWallet.permissions)
+        toast({
+          title: 'Admin Access Granted',
+          description: `Welcome back, ${adminWallet.role}!`,
+        })
       } else {
-        setIsAdmin(false)
-        setAdminRole(null)
-        setPermissions([])
+        toast({
+          title: 'Access Denied',
+          description: 'This wallet does not have admin access.',
+          variant: 'destructive',
+        })
+        // Clear auth data since non-admin wallets shouldn't access backoffice
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('stellarPublicKey')
+        setIsAuthenticated(false)
+        setWalletAddress(null)
+        setAuthToken(null)
       }
 
-      toast({
-        title: "Wallet Connected",
-        description: `Connected as ${adminWallet ? adminWallet.role : 'User'}`,
-      })
-
-      // Use router.push instead of window.location.href to avoid page reload
-      router.push('/dashboard')
     } catch (error) {
-      console.error('Wallet connection error:', error)
+      console.error('Error connecting wallet:', error)
       toast({
-        title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Failed to connect wallet",
-        variant: "destructive",
+        title: 'Connection Failed',
+        description: error instanceof Error ? error.message : 'Failed to connect wallet',
+        variant: 'destructive',
       })
     } finally {
       setIsConnecting(false)
@@ -161,29 +202,20 @@ export function StellarWallet() {
   }
 
   const disconnectWallet = () => {
-    // Clear localStorage
     localStorage.removeItem('authToken')
     localStorage.removeItem('stellarPublicKey')
-
-    // Clear cookies
     document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     document.cookie = 'stellarPublicKey=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-
-    // Clear state
-    setAuthToken(null)
-    setWalletAddress(null)
     setIsAuthenticated(false)
+    setWalletAddress(null)
+    setAuthToken(null)
     setIsAdmin(false)
     setAdminRole(null)
     setPermissions([])
-
     toast({
-      title: "Wallet Disconnected",
-      description: "You have been disconnected from your wallet",
+      title: 'Wallet Disconnected',
+      description: 'You have been logged out.',
     })
-
-    // Use router.push instead of window.location.href
-    router.push('/')
   }
 
   const truncateAddress = (address: string) => {
@@ -205,49 +237,39 @@ export function StellarWallet() {
 
   if (isAuthenticated && walletAddress) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            Wallet Connected
-          </CardTitle>
-          <CardDescription>
-            You are authenticated and can access the dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                <span className="font-mono text-sm">{truncateAddress(walletAddress)}</span>
-              </div>
-              <Button variant="outline" onClick={disconnectWallet}>
-                Disconnect
-              </Button>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                <span className="text-sm font-medium">Admin Status</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {isAdmin ? (
-                  <>
-                    {getRoleIcon(adminRole || '')}
-                    <span className="text-sm text-green-600 font-medium">
-                      {adminRole?.replace('_', ' ')}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-sm text-red-600 font-medium">Not Admin</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            <span className="hidden md:inline">{truncateAddress(walletAddress)}</span>
+            {isAdmin && <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">{adminRole}</span>}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Account</DropdownMenuLabel>
+          <DropdownMenuItem disabled>
+            <User className="mr-2 h-4 w-4" />
+            <span>{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+          </DropdownMenuItem>
+          {isAdmin && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Admin Info</DropdownMenuLabel>
+              <DropdownMenuItem disabled>
+                Role: {adminRole}
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                Permissions: {permissions.length}
+              </DropdownMenuItem>
+            </>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={disconnectWallet}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Disconnect</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     )
   }
 

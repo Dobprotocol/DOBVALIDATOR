@@ -6,28 +6,40 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-workspace.yaml ./
-COPY shared/package.json ./shared/
+# Copy root configuration files
+COPY package.json pnpm-workspace.yaml .npmrc ./
+
+# Copy package files for all workspaces
+COPY shared/package.json shared/.npmrc ./shared/
+COPY frontend/package.json ./frontend/
+COPY backend/package.json ./backend/
 COPY backoffice/package.json ./backoffice/
 
-# Install pnpm and dependencies
+# Install pnpm
 RUN npm install -g pnpm
-RUN pnpm install
 
-# Copy source code
+# Build shared package first
 COPY shared ./shared
+WORKDIR /app/shared
+RUN pnpm install
+RUN pnpm build
+
+# Install backoffice dependencies
+WORKDIR /app
+RUN pnpm install --no-frozen-lockfile
+
+# Copy backoffice source code
 COPY backoffice ./backoffice
 
 # Set working directory to backoffice
 WORKDIR /app/backoffice
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3002
 
 # Set environment variables
 ENV NODE_ENV=development
-ENV PORT=3000
+ENV PORT=3002
 ENV HOSTNAME="0.0.0.0"
 
 # Start development server

@@ -1,23 +1,21 @@
 {
   "name": "dob-validator",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "workspaces": [
+    "shared",
     "frontend",
     "backoffice",
-    "backend",
-    "shared"
+    "backend"
   ],
   "scripts": {
-    "dev": "turbo run dev",
     "build": "turbo run build",
-    "start": "turbo run start",
+    "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "clean": "turbo run clean"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
-    "turbo": "^1.13.4"
+    "turbo": "^1.12.4"
   },
   "dependencies": {
     "critters": "^0.0.25"

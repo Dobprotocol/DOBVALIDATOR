@@ -16,7 +16,7 @@ const verificationSchema = z.object({
 })
 
 // JWT secret (in production, use environment variable)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret'
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d' // 7 days
 
 // Helper function to verify XDR transaction
@@ -33,7 +33,7 @@ function verifyXDRTransaction(walletAddress: string, signature: string, challeng
     removeChallenge(walletAddress)
 
     // Verify signature
-    const tx = TransactionBuilder.fromXDR(signature, Networks.PUBLIC)
+    const tx = TransactionBuilder.fromXDR(signature, Networks.TESTNET)
     const operations = tx.operations
     if (operations.length !== 1) {
       console.log('❌ Invalid number of operations')
@@ -67,76 +67,63 @@ interface JWTPayload {
   iat: number
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    console.log('🔍 Verify POST request received')
-    console.log('🔍 Request URL:', request.url)
-    console.log('🔍 Request method:', request.method)
-    console.log('🔍 Environment:', process.env.NODE_ENV)
-    
-    const body = await request.json()
-    console.log('🔍 Request body:', body)
-    
-    const validationResult = verificationSchema.safeParse(body)
-    
-    if (!validationResult.success) {
-      console.log('❌ Validation failed:', validationResult.error.format())
+    const { walletAddress, challenge, signature } = await request.json()
+
+    if (!walletAddress || !challenge || !signature) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: validationResult.error.format() },
+        { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    const { walletAddress, signature, challenge } = validationResult.data
-    console.log('🔍 Validated data:', { walletAddress, signature: signature.substring(0, 20) + '...', challenge })
-    
-    // Debug: Check stored challenges before verification
-    const { getDebugInfo } = await import('@/lib/auth-storage')
-    const debugInfo = getDebugInfo()
-    console.log('🔍 Debug info before verification:', {
-      challengesCount: debugInfo.challengesCount,
-      hasChallenge: debugInfo.challenges.some(([addr]) => addr === walletAddress),
-      allChallenges: debugInfo.challenges.map(([addr, data]) => ({ addr, challenge: data.challenge }))
-    })
-    
-    // Verify XDR transaction
-    console.log('🔍 Calling verifyXDRTransaction...')
-    const isValid = verifyXDRTransaction(walletAddress, signature, challenge)
-    
-    console.log('🔍 Verification result:', isValid)
-    
-    if (!isValid) {
-      console.log('❌ Verification failed')
+    try {
+      // Verify the signed transaction
+      const signedTx = TransactionBuilder.fromXDR(signature, Networks.TESTNET)
+      
+      // Verify the transaction is from the claimed wallet
+      if (signedTx.source !== walletAddress) {
+        return NextResponse.json(
+          { error: 'Invalid signature: wallet address mismatch' },
+          { status: 401 }
+        )
+      }
+
+      // Verify the transaction contains the challenge
+      const manageDataOp = signedTx.operations[0]
+      if (
+        manageDataOp.type !== 'manageData' ||
+        manageDataOp.name !== 'DOB_VALIDATOR_AUTH' ||
+        manageDataOp.value !== challenge
+      ) {
+        return NextResponse.json(
+          { error: 'Invalid signature: challenge mismatch' },
+          { status: 401 }
+        )
+      }
+
+      // Generate JWT token
+      const expiresIn = '24h'
+      const token = jwt.sign(
+        {
+          walletAddress,
+          timestamp: Date.now(),
+        },
+        JWT_SECRET,
+        { expiresIn }
+      )
+
+      return NextResponse.json({ token, expiresIn })
+    } catch (error) {
+      console.error('Error verifying signature:', error)
       return NextResponse.json(
-        { error: 'Invalid signature or expired challenge' },
+        { error: 'Invalid signature' },
         { status: 401 }
       )
     }
-    
-    console.log('✅ Generating JWT token...')
-    // Generate JWT token
-    const payload: JWTPayload = {
-      walletAddress,
-      type: 'user',
-      iat: Math.floor(Date.now() / 1000),
-    }
-    
-    const token = jwt.sign(payload, JWT_SECRET)
-    
-    // Store session using shared storage
-    const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
-    storeSession(walletAddress, token, expiresAt)
-    
-    console.log('✅ Authentication successful, returning token')
-    return NextResponse.json({
-      success: true,
-      token,
-      expiresIn: JWT_EXPIRES_IN,
-      message: 'Authentication successful'
-    })
-    
   } catch (error) {
-    console.error('❌ Error verifying signature:', error)
+    console.error('Error in auth verify:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

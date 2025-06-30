@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { getFreighterPublicKey, isFreighterConnected, isFreighterInstalled } from '@/lib/stellar-sdk'
 
 interface WalletState {
   walletAddress: string | null
@@ -23,8 +24,19 @@ const useWalletStore = create<WalletState>()(
 export function useWallet() {
   const { walletAddress, setWalletAddress, clearWallet } = useWalletStore()
 
-  const connectWallet = async (address: string) => {
-    setWalletAddress(address)
+  const connectWallet = async () => {
+    if (!isFreighterInstalled()) {
+      throw new Error('Please install the Freighter wallet extension')
+    }
+
+    const isConnected = await isFreighterConnected()
+    if (!isConnected) {
+      throw new Error('Please connect your Freighter wallet')
+    }
+
+    const publicKey = await getFreighterPublicKey()
+    setWalletAddress(publicKey)
+    return publicKey
   }
 
   const disconnectWallet = () => {

@@ -28,16 +28,16 @@ app.use(helmet({
 
 // Rate limiting
 const authLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // 15 minutes
-  max: env.AUTH_RATE_LIMIT_MAX_REQUESTS || 5, // limit each IP to 5 requests per windowMs for auth endpoints
+  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
+  max: env.AUTH_RATE_LIMIT_MAX_REQUESTS || 5,
   message: { error: 'Too many authentication attempts, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 })
 
 const apiLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // 15 minutes
-  max: env.RATE_LIMIT_MAX_REQUESTS || 100, // limit each IP to 100 requests per windowMs for other endpoints
+  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
+  max: env.RATE_LIMIT_MAX_REQUESTS || 100,
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -49,31 +49,7 @@ const apiLimiter = rateLimit({
 
 // CORS configuration
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Allow localhost on various ports for development
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001', 
-      'http://localhost:3002',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
-      'http://127.0.0.1:3002'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      // In development, allow all origins for easier testing
-      if (process.env.NODE_ENV === 'development') {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    }
-  },
+  origin: env.CORS_ORIGIN,
   credentials: true
 }))
 
@@ -122,11 +98,9 @@ app.post('/api/auth/challenge', async (req, res) => {
     await authService.createChallenge(walletAddress, challenge, expiresAt)
 
     res.json({ success: true, challenge })
-    return
   } catch (error) {
     console.error('Challenge generation error:', error)
     res.status(500).json({ error: 'Failed to generate challenge' })
-    return
   }
 })
 
@@ -147,7 +121,6 @@ app.post('/api/auth/verify', async (req, res) => {
     }
 
     // For now, accept any signature (in production, verify with Stellar SDK)
-    // TODO: Implement proper signature verification
     const isValid = true
 
     if (!isValid) {
@@ -185,11 +158,9 @@ app.post('/api/auth/verify', async (req, res) => {
         : parseInt(expiresIn)
 
     res.json({ success: true, token, expiresIn: expiresInSeconds.toString(), user })
-    return
   } catch (error) {
     console.error('Verification error:', error)
     res.status(500).json({ error: 'Failed to verify signature' })
-    return
   }
 })
 
@@ -718,42 +689,26 @@ app.delete('/api/drafts/:id', async (req, res) => {
 })
 
 // Error handling middleware
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Unhandled error:', error)
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('Error:', err)
   res.status(500).json({ error: 'Internal server error' })
 })
 
-// 404 handler
-app.use('*', (req, res) => {
+// 404 handler - must be last
+app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' })
 })
 
-// Start server
+// Start the server
 async function startServer() {
   try {
     // Test database connection
     await prisma.$connect()
     console.log('✅ Database connected successfully')
 
-    // Start session cleanup job (runs every hour)
-    setInterval(async () => {
-      try {
-        await authService.cleanupExpired()
-        console.log('🧹 Cleaned up expired sessions and challenges')
-      } catch (error) {
-        console.error('❌ Session cleanup error:', error)
-      }
-    }, 60 * 60 * 1000) // Run every hour
-
-    // Run initial cleanup
-    await authService.cleanupExpired()
-    console.log('🧹 Initial cleanup completed')
-
     app.listen(PORT, () => {
-      console.log(`🚀 Backend server running on port ${PORT}`)
-      console.log(`📊 Health check: http://localhost:${PORT}/health`)
-      console.log(`🔗 API base: http://localhost:${PORT}/api`)
-      console.log(`🔒 Security: Rate limiting, enhanced helmet, session cleanup active`)
+      console.log(`🚀 Server running on port ${PORT}`)
+      console.log(`🔗 Health check: http://localhost:${PORT}/health`)
     })
   } catch (error) {
     console.error('❌ Failed to start server:', error)

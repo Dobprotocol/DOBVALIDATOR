@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from './ui/button'
 import { useWallet } from '../hooks/useWallet'
 import { useToast } from './ui/use-toast'
+import { TransactionBuilder, Networks, Operation } from '@stellar/stellar-sdk'
 
 export function StellarWallet() {
   const { walletAddress, isConnected, connectWallet, disconnectWallet } = useWallet()
@@ -13,10 +14,48 @@ export function StellarWallet() {
   const handleConnect = async () => {
     try {
       setIsConnecting(true)
-      // TODO: Implement actual wallet connection
-      // This is a placeholder for the actual implementation
-      const address = 'MOCK_ADDRESS' // Replace with actual wallet connection
-      await connectWallet(address)
+
+      // Request challenge from backend
+      const challengeResponse = await fetch('/api/auth/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ walletAddress: 'temp' }) // Temporary wallet address
+      })
+
+      if (!challengeResponse.ok) {
+        throw new Error('Failed to get challenge')
+      }
+
+      const { challenge } = await challengeResponse.json()
+
+      // Create transaction for signing
+      const tx = new TransactionBuilder(account, {
+        fee: '100',
+        networkPassphrase: Networks.TESTNET,
+      })
+        .addOperation(Operation.manageData({
+          name: 'DOB_VALIDATOR_AUTH',
+          value: challenge,
+        }))
+        .setTimeout(30)
+        .build()
+
+      // Get XDR for signing
+      const xdr = tx.toXDR()
+
+      // Open Simple Signer
+      const signerUrl = `https://sign.stellar.expert/#xdr=${encodeURIComponent(xdr)}`
+      window.open(signerUrl, '_blank')
+
+      // Wait for user to sign and provide signature
+      const signature = prompt('Please paste the signed transaction XDR:')
+      if (!signature) {
+        throw new Error('No signature provided')
+      }
+
+      await connectWallet()
       
       toast({
         title: 'Wallet Connected',
@@ -26,7 +65,7 @@ export function StellarWallet() {
       console.error('Error connecting wallet:', error)
       toast({
         title: 'Connection Failed',
-        description: 'Failed to connect your Stellar wallet. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to connect your Stellar wallet. Please try again.',
         variant: 'destructive',
       })
     } finally {
@@ -55,7 +94,7 @@ export function StellarWallet() {
     <div className="flex items-center gap-4">
       {isConnected ? (
         <>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
             Connected: {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
           </span>
           <Button

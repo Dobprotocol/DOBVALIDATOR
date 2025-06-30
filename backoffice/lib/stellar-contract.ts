@@ -7,7 +7,7 @@ import {
   TransactionBuilder,
   nativeToScVal,
   xdr
-} from 'soroban-client'
+} from '@stellar/stellar-sdk'
 
 // Contract configuration
 const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
@@ -43,12 +43,15 @@ export interface ContractResult {
 }
 
 class StellarContractService {
-  server: Server
-  contract: Contract
+  server: Server | null = null
+  contract: Contract | null = null
 
   constructor() {
-    this.server = new Server(SOROBAN_RPC, { allowHttp: false })
-    this.contract = new Contract(CONTRACT_ADDRESS)
+    // Only initialize if we're on the client side
+    if (typeof window !== 'undefined') {
+      this.server = new Server(SOROBAN_RPC, { allowHttp: false })
+      this.contract = new Contract(CONTRACT_ADDRESS)
+    }
   }
 
   /**
@@ -56,6 +59,16 @@ class StellarContractService {
    */
   async initialize(): Promise<boolean> {
     try {
+      // Skip initialization if we're not on the client side
+      if (typeof window === 'undefined') {
+        return false
+      }
+      
+      if (!this.server || !this.contract) {
+        this.server = new Server(SOROBAN_RPC, { allowHttp: false })
+        this.contract = new Contract(CONTRACT_ADDRESS)
+      }
+      
       console.log('✅ Stellar Contract Service initialized')
       return true
     } catch (error) {
