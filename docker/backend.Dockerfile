@@ -11,21 +11,21 @@ RUN npm install -g pnpm@8.15.4
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Copy package files for all workspaces
-COPY frontend/package.json ./frontend/
-COPY shared/package.json ./shared/
-COPY backoffice/package.json ./backoffice/
 COPY backend/package.json ./backend/
+COPY shared/package.json ./shared/
+COPY frontend/package.json ./frontend/
+COPY backoffice/package.json ./backoffice/
 
 # Install all dependencies at root level
 RUN pnpm install --no-frozen-lockfile
 
 # Copy source files
-COPY frontend ./frontend
+COPY backend ./backend
 COPY shared ./shared
 COPY tsconfig.json ./
 
 # Build the application
-WORKDIR /app/frontend
+WORKDIR /app/backend
 RUN pnpm build
 
 # Production stage
@@ -33,21 +33,23 @@ FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@8.15.4
-
 # Copy necessary files from builder
-COPY --from=builder /app/frontend/package.json ./package.json
-COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./.next/static
-COPY --from=builder /app/frontend/public ./public
+COPY --from=builder /app/backend/package.json ./package.json
+COPY --from=builder /app/backend/dist ./dist
+COPY --from=builder /app/backend/prisma ./prisma
+
+# Install production dependencies
+RUN pnpm install --prod --no-frozen-lockfile
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3002
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3002
 
 # Start the application
-CMD ["node", "server.js"] 
+CMD ["node", "dist/index.js"] 

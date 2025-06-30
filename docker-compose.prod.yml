@@ -1,1 +1,60 @@
- 
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${BACKEND_URL}
+      - NEXT_PUBLIC_STELLAR_NETWORK=${STELLAR_NETWORK}
+      - NEXT_PUBLIC_STELLAR_CONTRACT_ID=${STELLAR_CONTRACT_ID}
+    depends_on:
+      - backend
+
+  backoffice:
+    build:
+      context: .
+      dockerfile: docker/backoffice.Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${BACKEND_URL}
+      - NEXT_PUBLIC_STELLAR_NETWORK=${STELLAR_NETWORK}
+      - NEXT_PUBLIC_STELLAR_CONTRACT_ID=${STELLAR_CONTRACT_ID}
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - STELLAR_NETWORK=${STELLAR_NETWORK}
+      - STELLAR_CONTRACT_ID=${STELLAR_CONTRACT_ID}
+      - PORT=3002
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
