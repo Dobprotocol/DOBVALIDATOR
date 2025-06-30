@@ -1,38 +1,40 @@
-import { useState, useEffect } from 'react';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface WalletState {
-  address: string | null;
-  isConnected: boolean;
+  walletAddress: string | null
+  setWalletAddress: (address: string | null) => void
+  clearWallet: () => void
 }
 
+const useWalletStore = create<WalletState>()(
+  persist(
+    (set) => ({
+      walletAddress: null,
+      setWalletAddress: (address) => set({ walletAddress: address }),
+      clearWallet: () => set({ walletAddress: null }),
+    }),
+    {
+      name: 'wallet-storage',
+    }
+  )
+)
+
 export function useWallet() {
-  const [walletState, setWalletState] = useState<WalletState>({
-    address: null,
-    isConnected: false,
-  });
+  const { walletAddress, setWalletAddress, clearWallet } = useWalletStore()
 
-  useEffect(() => {
-    // Check if wallet is already connected
-    const checkWalletConnection = async () => {
-      try {
-        // TODO: Implement actual wallet connection check
-        // This is a placeholder for the actual implementation
-        const connectedAddress = localStorage.getItem('walletAddress');
-        if (connectedAddress) {
-          setWalletState({
-            address: connectedAddress,
-            isConnected: true,
-          });
-        }
-      } catch (error) {
-        console.error('Error checking wallet connection:', error);
-      }
-    };
+  const connectWallet = async (address: string) => {
+    setWalletAddress(address)
+  }
 
-    checkWalletConnection();
-  }, []);
+  const disconnectWallet = () => {
+    clearWallet()
+  }
 
   return {
-    ...walletState,
-  };
+    walletAddress,
+    isConnected: !!walletAddress,
+    connectWallet,
+    disconnectWallet,
+  }
 } 

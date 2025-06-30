@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '../auth/verify/route'
-import { storeProfile, getProfile, updateProfile, removeProfile } from '../../../lib/auth-storage'
+import { prisma } from '@/lib/prisma'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -19,46 +19,28 @@ const profileSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Profile GET request received')
-    
     // Verify authentication
     const auth = getAuthenticatedUser(request)
-    console.log('🔍 Auth result:', { valid: auth.valid, user: auth.user })
     
-    if (!auth.valid) {
-      console.log('❌ Authentication failed')
+    if (!auth.valid || !auth.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
-    console.log('✅ Authentication successful, checking profile for wallet:', auth.user.walletAddress)
-    
-    // Debug: Check what's in the profiles storage
-    const { getDebugInfo } = await import('../../../lib/auth-storage')
-    const debugInfo = getDebugInfo()
-    console.log('🔍 Debug info for profile lookup:', {
-      profilesCount: debugInfo.profilesCount,
-      hasProfile: debugInfo.profiles.some(([addr]) => addr === auth.user.walletAddress),
-      allProfiles: debugInfo.profiles.map(([addr, data]) => ({ addr, name: data.name }))
+    // Get profile from database
+    const profile = await prisma.profile.findUnique({
+      where: { userId: auth.user.id },
     })
-    
-    const profile = getProfile(auth.user.walletAddress)
-    console.log('🔍 Profile lookup result:', profile ? 'found' : 'not found')
-    if (profile) {
-      console.log('🔍 Profile details:', { name: profile.name, company: profile.company, email: profile.email })
-    }
-    
+
     if (!profile) {
-      console.log('❌ Profile not found, returning 404')
       return NextResponse.json(
         { error: 'Profile not found' },
         { status: 404 }
       )
     }
 
-    console.log('✅ Profile found, returning data')
     return NextResponse.json({
       success: true,
       profile: {
@@ -66,19 +48,14 @@ export async function GET(request: NextRequest) {
         name: profile.name,
         company: profile.company,
         email: profile.email,
-        phone: profile.phone,
-        website: profile.website,
-        bio: profile.bio,
-        profileImage: profile.profileImage,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
       }
     })
   } catch (error) {
-    console.error('❌ Error in profile GET:', error)
-    console.error('❌ Error stack:', error.stack)
+    console.error('Error in profile GET:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -86,13 +63,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Profile POST request received')
-    
     // Verify authentication
     const auth = getAuthenticatedUser(request)
-    console.log('🔍 Auth result:', { valid: auth.valid, user: auth.user })
     
-    if (!auth.valid) {
+    if (!auth.valid || !auth.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -100,12 +74,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    console.log('🔍 Profile POST body:', body)
-    
     const validationResult = profileSchema.safeParse(body)
     
     if (!validationResult.success) {
-      console.log('❌ Profile validation failed:', validationResult.error.format())
       return NextResponse.json(
         { error: 'Invalid profile data', details: validationResult.error.format() },
         { status: 400 }
@@ -113,33 +84,35 @@ export async function POST(request: NextRequest) {
     }
 
     const profileData = validationResult.data
-    const walletAddress = auth.user.walletAddress
-    console.log('🔍 Creating profile for wallet:', walletAddress)
     
     // Check if profile already exists
-    const existingProfile = getProfile(walletAddress)
-    console.log('🔍 Existing profile check:', existingProfile ? 'found' : 'not found')
-    
-    const profile = {
-      walletAddress,
-      ...profileData,
-      createdAt: existingProfile?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    const existingProfile = await prisma.profile.findUnique({
+      where: { userId: auth.user.id },
+    })
 
-    console.log('🔍 Profile data to store:', profile)
-
+    let profile
     if (existingProfile) {
-      console.log('🔍 Updating existing profile')
-      updateProfile(walletAddress, profileData)
+      // Update existing profile
+      profile = await prisma.profile.update({
+        where: { userId: auth.user.id },
+        data: {
+          name: profileData.name,
+          company: profileData.company,
+          email: profileData.email,
+        },
+      })
     } else {
-      console.log('🔍 Creating new profile')
-      storeProfile(walletAddress, profileData)
+      // Create new profile
+      profile = await prisma.profile.create({
+        data: {
+          userId: auth.user.id,
+          walletAddress: auth.user.walletAddress,
+          name: profileData.name,
+          company: profileData.company,
+          email: profileData.email,
+        },
+      })
     }
-
-    // Verify the profile was stored correctly
-    const storedProfile = getProfile(walletAddress)
-    console.log('🔍 Verification - stored profile:', storedProfile ? 'found' : 'not found')
 
     return NextResponse.json({
       success: true,
@@ -148,10 +121,6 @@ export async function POST(request: NextRequest) {
         name: profile.name,
         company: profile.company,
         email: profile.email,
-        phone: profile.phone,
-        website: profile.website,
-        bio: profile.bio,
-        profileImage: profile.profileImage,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
       },
@@ -167,7 +136,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  // PUT is the same as POST for profile updates
   return POST(request)
 }
 
@@ -175,24 +143,17 @@ export async function DELETE(request: NextRequest) {
   try {
     // Verify authentication
     const auth = getAuthenticatedUser(request)
-    if (!auth.valid) {
+    if (!auth.valid || !auth.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
-    const walletAddress = auth.user.walletAddress
-    const profile = getProfile(walletAddress)
-    
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
-    removeProfile(walletAddress)
+    // Delete profile from database
+    await prisma.profile.delete({
+      where: { userId: auth.user.id },
+    })
 
     return NextResponse.json({
       success: true,
@@ -207,42 +168,6 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// Debug endpoint to check stored profiles
 export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { action, walletAddress } = body
-    
-    if (action === 'debug') {
-      const { getDebugInfo } = await import('../../../lib/auth-storage')
-      const debugInfo = getDebugInfo()
-      
-      return NextResponse.json({
-        success: true,
-        debug: debugInfo,
-        message: 'Debug information retrieved'
-      })
-    }
-    
-    if (action === 'logout' && walletAddress) {
-      const { removeProfile } = await import('../../../lib/auth-storage')
-      removeProfile(walletAddress)
-      console.log('🚪 Profile cleared for logout:', walletAddress)
-      return NextResponse.json({
-        success: true,
-        message: 'Profile cleared for logout'
-      })
-    }
-    
-    return NextResponse.json(
-      { error: 'Invalid action' },
-      { status: 400 }
-    )
-  } catch (error) {
-    console.error('❌ Error in profile PATCH:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  return POST(request)
 } 
