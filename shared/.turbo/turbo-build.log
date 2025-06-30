@@ -12,9 +12,9 @@
 [34mESM[39m Build start
 Generated an empty chunk: "index".
 Generated an empty chunk: "index".
-[32mCJS[39m [1mdist/index.js     [22m[32m82.00 B[39m
-[32mCJS[39m [1mdist/index.js.map [22m[32m69.00 B[39m
-[32mCJS[39m ⚡️ Build success in 78ms
 [32mESM[39m [1mdist/index.mjs     [22m[32m70.00 B[39m
 [32mESM[39m [1mdist/index.mjs.map [22m[32m70.00 B[39m
-[32mESM[39m ⚡️ Build success in 80ms
+[32mESM[39m ⚡️ Build success in 21ms
+[32mCJS[39m [1mdist/index.js     [22m[32m82.00 B[39m
+[32mCJS[39m [1mdist/index.js.map [22m[32m69.00 B[39m
+[32mCJS[39m ⚡️ Build success in 21ms

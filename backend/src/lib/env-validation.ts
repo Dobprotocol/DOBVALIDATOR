@@ -1,7 +1,16 @@
 import dotenv from 'dotenv'
+import path from 'path'
 
 // Load environment variables
-dotenv.config()
+if (process.env.NODE_ENV === 'production') {
+  // Load root .env.production first
+  dotenv.config({ path: path.resolve(__dirname, '../../../.env.production') })
+  // Then load service-specific .env.production.local (if exists)
+  dotenv.config({ path: path.resolve(__dirname, '../../.env.production.local') })
+} else {
+  // Load default .env for development
+  dotenv.config()
+}
 
 interface EnvConfig {
   // Database

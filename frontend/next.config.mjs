@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@dob-validator/shared'],
   experimental: {
     optimizeCss: true,
     serverComponentsExternalPackages: [
@@ -20,7 +21,7 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
-        crypto: 'crypto-browserify',
+        crypto: false,
         stream: 'stream-browserify',
         path: false,
         process: false,
@@ -51,6 +52,10 @@ const nextConfig = {
       { module: /node_modules\/@stellar/ },
     ];
 
+    if (!isServer) {
+      config.optimization.minimize = true
+    }
+
     return config;
   },
   // Ensure all API routes run in Node.js runtime
@@ -58,6 +63,7 @@ const nextConfig = {
     runtime: 'nodejs',
   },
   output: 'standalone',
+  optimizeFonts: false,
 };
 
 export default nextConfig;

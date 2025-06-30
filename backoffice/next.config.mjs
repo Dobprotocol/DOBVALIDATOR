@@ -14,6 +14,9 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  env: {
+    PORT: process.env.PORT || '3002',
+  },
   // Security headers
   async headers() {
     return [

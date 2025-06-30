@@ -3,7 +3,9 @@
 > next build
 
    [1m[38;2;173;127;168m▲ Next.js 15.2.4[39m[22m
-   - Environments: .env.local
+   - Environments: .env.production.local, .env.production
+   - Experiments (use with caution):
+     [1m✓[22m optimizeCss
 
  [37m[1m [22m[39m Creating an optimized production build ...
  ⚠ Compiled with warnings
@@ -87,28 +89,29 @@ Import trace for requested module:
  [32m[1m✓[22m[39m Compiled successfully
  [37m[1m [22m[39m Skipping validation of types
  [37m[1m [22m[39m Skipping linting
-[?25l [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m...[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G[?25h [37m[1m [22m[39m Collecting page data     [32m[1m✓[22m[39m Collecting page data 
-[?25l [37m[1m [22m[39m Generating static pages (0/7)  [36m[    ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/7)  [36m[=   ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/7)  [36m[==  ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/7)  [36m[=== ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/7)  [36m[ ===][39m[2K[1G[1A[2K[1G[?25h ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-✅ Stellar Contract Service initialized
+[?25l [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m...[39m[2K[1G[?25h [37m[1m [22m[39m Collecting page data     [32m[1m✓[22m[39m Collecting page data 
+[?25l [37m[1m [22m[39m Generating static pages (0/8)  [36m[    ][39m[2K[1G [37m[1m [22m[39m Generating static pages (0/8)  [36m[=   ][39m[2K[1G [37m[1m [22m[39m Generating static pages (1/8)  [36m[==  ][39m[2K[1G[?25h✅ Stellar Contract Service initialized
 Stellar Contract Service initialized: true
-[?25h [32m[1m✓[22m[39m Generating static pages (7/7)
-[?25l [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[?25l [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G[1A[2K[1G[?25h [37m[1m [22m[39m Collecting build traces     [32m[1m✓[22m[39m Collecting build traces 
-[2K[1G[1A[2K[1G[?25h [37m[1m [22m[39m Finalizing page optimization     [32m[1m✓[22m[39m Finalizing page optimization 
+[?25h [32m[1m✓[22m[39m Generating static pages (8/8)
+[?25l [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[?25l [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G[?25h [37m[1m [22m[39m Collecting build traces     [32m[1m✓[22m[39m Collecting build traces 
+[2K[1G[?25h [37m[1m [22m[39m Finalizing page optimization     [32m[1m✓[22m[39m Finalizing page optimization 
 
 [4mRoute (app)[24m                                 [4mSize[24m  [4mFirst Load JS[24m  [4m[24m  [4m[24m
-┌ ○ /                                    4.45 kB         [37m[1m114 kB[22m[39m
-├ ○ /_not-found                            977 B         [37m[1m102 kB[22m[39m
-├ ○ /dashboard                           45.8 kB         [37m[1m169 kB[22m[39m
-├ ○ /debug                                 692 B         [37m[1m102 kB[22m[39m
-└ ○ /submission-review                    160 kB         [37m[1m283 kB[22m[39m
-+ First Load JS shared by all             [37m[1m101 kB[22m[39m
-  ├ chunks/860-567df1ef047305f6.js       45.9 kB
-  ├ chunks/f779882d-2d08c32a389da5ac.js  53.2 kB
+┌ ○ /                                    4.46 kB         [37m[1m113 kB[22m[39m
+├ ○ /_not-found                            975 B         [37m[1m101 kB[22m[39m
+├ ƒ /api/health                            139 B         [37m[1m101 kB[22m[39m
+├ ○ /dashboard                           46.1 kB         [37m[1m168 kB[22m[39m
+├ ○ /debug                                 693 B         [37m[1m101 kB[22m[39m
+└ ○ /submission-review                    160 kB         [37m[1m282 kB[22m[39m
++ First Load JS shared by all             [37m[1m100 kB[22m[39m
+  ├ chunks/6a369b33-9219bd967c705cda.js  53.2 kB
+  ├ chunks/906-cd39b345035beea9.js       45.3 kB
   └ other shared chunks (total)          1.92 kB
 
 
-ƒ Middleware                             [37m[1m32.3 kB[22m[39m
+ƒ Middleware                             [37m[1m32.4 kB[22m[39m
 
-○  (Static)  prerendered as static content
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
 
 [?25h

@@ -185,3 +185,8 @@ tmp/
 temp/
 keys/account.json
 keys/service-account.json
+
+# Added .env.production.local files
+.env.production.local
+frontend/.env.production.local
+backoffice/.env.production.local

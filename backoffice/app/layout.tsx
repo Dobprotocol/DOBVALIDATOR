@@ -34,6 +34,7 @@ export const metadata: Metadata = {
     images: ["/public/og-image-backoffice.png"], // TODO: update to real OG image path
     creator: "@yourtwitter", // TODO: update to real Twitter handle
   },
+  metadataBase: new URL('http://localhost:3002'),
 }
 
 export default function RootLayout({
@@ -44,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <FooterProvider>
             <div className="min-h-screen flex flex-col">
               <main className="flex-1 pb-16">

@@ -2,196 +2,44 @@
 > @dob-validator/frontend@1.0.0 build /Users/JoaquinNam/Desktop/MENTE_MAESTRA/1CLIENTS/DOBPROTOCOL/DOBVALIDATOR/frontend
 > next build
 
-   [1m[38;2;173;127;168m▲ Next.js 15.2.4[39m[22m
-   - Environments: .env.local, .env
-   - Experiments (use with caution):
-     [1m✓[22m optimizeCss
+  [1m[38;2;173;127;168m▲ Next.js 14.2.30[39m[22m
+  - Environments: .env.local, .env.production
+  - Experiments (use with caution):
+    · optimizeCss
 
  [37m[1m [22m[39m Creating an optimized production build ...
-[33m[1mWarning: [22m[39m[1mBuilt-in CSS support is being disabled due to custom CSS configuration being detected.
-[22mSee here for more info: https://nextjs.org/docs/messages/built-in-css-disabled
+ [32m[1m✓[22m[39m Compiled successfully
+[?25l [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G[?25h [37m[1m [22m[39m Linting and checking validity of types     [32m[1m✓[22m[39m Linting and checking validity of types 
+[?25l [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m...[39m[2K[1G[?25h [37m[1m [22m[39m Collecting page data     [32m[1m✓[22m[39m Collecting page data 
+[?25l [37m[1m [22m[39m Generating static pages (0/9)  [36m[    ][39mTime 4ms
+Time 3ms
+[2K[1G[?25h [32m[1m✓[22m[39m Generating static pages (9/9)
+[?25l [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[?25l [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G[?25h [37m[1m [22m[39m Collecting build traces     [32m[1m✓[22m[39m Collecting build traces 
+[2K[1G[?25h [37m[1m [22m[39m Finalizing page optimization     [32m[1m✓[22m[39m Finalizing page optimization 
 
-[33m[1mWarning: [22m[39m[1mBuilt-in CSS support is being disabled due to custom CSS configuration being detected.
-[22mSee here for more info: https://nextjs.org/docs/messages/built-in-css-disabled
-
- [33m[1m⚠[22m[39m Compiled with warnings
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/bare.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/bare.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./components/stellar-wallet.tsx
-./app/page.tsx
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/default.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/default.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./components/stellar-wallet.tsx
-./app/page.tsx
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./components/stellar-wallet.tsx
-./app/page.tsx
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./components/stellar-wallet.tsx
-./app/page.tsx
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-Critical dependency: the request of a dependency is an expression
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./components/stellar-wallet.tsx
-./app/page.tsx
-
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./components/stellar-wallet.tsx
-./app/page.tsx
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/bare.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/bare.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./app/api/auth/verify/route.ts
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/default.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/default.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./app/api/auth/verify/route.ts
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./app/api/auth/verify/route.ts
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./app/api/auth/verify/route.ts
-
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-Critical dependency: the request of a dependency is an expression
-
-Import trace for requested module:
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/lib/runtime/node.js
-../node_modules/.pnpm/require-addon@1.1.0/node_modules/require-addon/index.js
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./app/api/auth/verify/route.ts
-
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
-
-Import trace for requested module:
-../node_modules/.pnpm/sodium-native@4.3.3/node_modules/sodium-native/index.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/signing.js
-../node_modules/.pnpm/@stellar+stellar-base@13.1.0/node_modules/@stellar/stellar-base/lib/index.js
-../node_modules/.pnpm/@stellar+stellar-sdk@13.3.0/node_modules/@stellar/stellar-sdk/lib/index.js
-./app/api/auth/verify/route.ts
-
- [37m[1m [22m[39m Skipping validation of types
- [37m[1m [22m[39m Skipping linting
-[?25l [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m...[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m...[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G[?25h [37m[1m [22m[39m Collecting page data     [32m[1m✓[22m[39m Collecting page data 
-[?25l [37m[1m [22m[39m Generating static pages (0/11)  [36m[    ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/11)  [36m[=   ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/11)  [36m[==  ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/11)  [36m[=== ][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/11)  [36m[ ===][39m[2K[1G[1A[2K[1G [37m[1m [22m[39m Generating static pages (0/11)  [36m[  ==][39m[2K[1G[1A[2K[1G[?25h ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[?25h [32m[1m✓[22m[39m Generating static pages (11/11)
-[?25l [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[?25l [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G[1A[2K[1G[?25h [37m[1m [22m[39m Collecting build traces     [32m[1m✓[22m[39m Collecting build traces 
-[2K[1G[1A[2K[1G[?25h [37m[1m [22m[39m Finalizing page optimization     [32m[1m✓[22m[39m Finalizing page optimization 
-
-[4mRoute (app)[24m                                 [4mSize[24m  [4mFirst Load JS[24m  [4m[24m  [4m[24m
-┌ ○ /                                    3.77 kB         [37m[1m370 kB[22m[39m
-├ ○ /_not-found                            977 B         [37m[1m102 kB[22m[39m
-├ ƒ /api/auth/challenge                    157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/auth/verify                       157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/certificates/[id]/verify          157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/certificates/generate             157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/drafts                            157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/drafts/[id]                       157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/profile                           157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/submissions                       157 B         [37m[1m101 kB[22m[39m
-├ ƒ /api/submit                            157 B         [37m[1m101 kB[22m[39m
-├ ○ /dashboard                           8.92 kB         [37m[1m129 kB[22m[39m
-├ ○ /form                                29.2 kB         [37m[1m395 kB[22m[39m
-└ ○ /profile                             6.21 kB         [37m[1m113 kB[22m[39m
-+ First Load JS shared by all             [37m[1m101 kB[22m[39m
-  ├ chunks/860-6b52b07347af7c54.js       45.9 kB
-  ├ chunks/f779882d-f0f32cb99b63e3cb.js  53.2 kB
-  └ other shared chunks (total)          1.89 kB
+[4mRoute (app)[24m                              [4mSize[24m     [4mFirst Load JS[24m
+┌ ○ /                                    6.46 kB         [37m[1m263 kB[22m[39m
+├ ○ /_not-found                          872 B            [37m[1m88 kB[22m[39m
+├ ƒ /api/auth/challenge                  0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/auth/verify                     0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/certificates/[id]/verify        0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/certificates/generate           0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/drafts                          0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/drafts/[id]                     0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/health                          0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/profile                         0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/submissions                     0 B                [37m[1m0 B[22m[39m
+├ ƒ /api/submit                          0 B                [37m[1m0 B[22m[39m
+├ ○ /dashboard                           11.5 kB         [37m[1m270 kB[22m[39m
+├ ○ /form                                32.1 kB         [37m[1m149 kB[22m[39m
+└ ○ /profile                             5.85 kB         [37m[1m252 kB[22m[39m
++ First Load JS shared by all            [37m[1m87.2 kB[22m[39m
+  ├ chunks/091a6a28-7a62e3eb43274fab.js  53.6 kB
+  ├ chunks/654-61cf42168f071df5.js       31.6 kB
+  └ other shared chunks (total)          1.96 kB
 
 
-ƒ Middleware                             [37m[1m32.4 kB[22m[39m
+ƒ Middleware                             [37m[1m26.7 kB[22m[39m
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
