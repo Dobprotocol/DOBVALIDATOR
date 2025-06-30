@@ -6,22 +6,33 @@ services:
     container_name: dob-validator-sql-proxy
     command: --credentials-file=/keys/service-account.json dobprotocol:us-central1:dob-validator-db
     volumes:
-      - ./keys:/keys
+      - ./keys:/keys:ro
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     networks:
       - dob-network
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   backend:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+      args:
+        - NODE_ENV=production
     container_name: dob-validator-backend-prod
     restart: unless-stopped
     env_file:
       - .env.production
     ports:
-      - "3005:3001"
+      - "127.0.0.1:3005:3001"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-dob_user}:${POSTGRES_PASSWORD:-dob_password}@cloud-sql-proxy:5432/${POSTGRES_DB:-dob_validator}?schema=public
       - JWT_SECRET=${JWT_SECRET}
@@ -34,9 +45,15 @@ services:
       - NODE_ENV=production
       - CORS_ORIGIN=${FRONTEND_URL}
     volumes:
-      - uploads_data:/app/uploads
+      - uploads_data:/app/uploads:rw
     depends_on:
-      - cloud-sql-proxy
+      cloud-sql-proxy:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
@@ -45,21 +62,38 @@ services:
       start_period: 40s
     networks:
       - dob-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
 
   frontend:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
+      args:
+        - NODE_ENV=production
     container_name: dob-validator-frontend-prod
     restart: unless-stopped
     env_file:
       - .env.production
     ports:
-      - "3003:3000"
+      - "127.0.0.1:3003:3000"
     environment:
       - NEXT_PUBLIC_API_URL=${BACKEND_URL}
+      - NODE_ENV=production
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
@@ -68,21 +102,38 @@ services:
       start_period: 40s
     networks:
       - dob-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
 
   backoffice:
     build:
       context: .
       dockerfile: docker/backoffice.Dockerfile
+      args:
+        - NODE_ENV=production
     container_name: dob-validator-backoffice-prod
     restart: unless-stopped
     env_file:
       - .env.production
     ports:
-      - "3004:3000"
+      - "127.0.0.1:3004:3000"
     environment:
       - NEXT_PUBLIC_API_URL=${BACKEND_URL}
+      - NODE_ENV=production
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
@@ -91,6 +142,14 @@ services:
       start_period: 40s
     networks:
       - dob-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
 
   nginx:
     image: nginx:alpine
@@ -99,21 +158,51 @@ services:
     env_file:
       - .env.production
     ports:
-      - "8080:80"
-      - "8443:443"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - frontend
-      - backoffice
-      - backend
+      frontend:
+        condition: service_healthy
+      backoffice:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - dob-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
 
 volumes:
   uploads_data:
+    driver: local
 
 networks:
   dob-network:
     driver: bridge
+    internal: false
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

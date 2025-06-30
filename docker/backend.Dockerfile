@@ -1,31 +1,37 @@
-# Backend Dockerfile - Optimized for faster builds
+# Backend Dockerfile - Production optimized
 FROM node:18-alpine AS base
 
-# Install curl for health checks, netcat for database connection checking, and OpenSSL for Prisma
-RUN apk add --no-cache curl netcat-openbsd openssl libc6-compat
+# Install dependencies required for Prisma and security
+RUN apk add --no-cache \
+    openssl \
+    libc6-compat \
+    curl \
+    netcat-openbsd \
+    # Add security packages
+    dumb-init \
+    # Clean up
+    && rm -rf /var/cache/apk/*
 
-# Install dependencies only when needed
-FROM base AS deps
-WORKDIR /app
-
-# Install pnpm globally once
+# Install pnpm
 RUN npm install -g pnpm@8.15.4
 
-# Copy only package files first for better layer caching
+# Set working directory
+WORKDIR /app
+
+# Dependencies stage
+FROM base AS deps
+# Copy only package files for better layer caching
 COPY package.json pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
 
-# Install dependencies with cache mount for faster rebuilds
+# Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install --no-frozen-lockfile
+    pnpm install --frozen-lockfile
 
-# Rebuild the source code only when needed
+# Builder stage
 FROM base AS builder
 WORKDIR /app
-
-# Install pnpm globally in builder stage
-RUN npm install -g pnpm@8.15.4
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -37,17 +43,17 @@ COPY shared ./shared
 COPY backend ./backend
 COPY tsconfig.json ./
 
-# Generate Prisma client and build the application
-WORKDIR /app/backend
-ENV PRISMA_CLI_BINARY_TARGETS=linux-musl
-RUN cd /app/backend && \
-    npx prisma generate --schema=./prisma/schema.prisma && \
-    pnpm build
+# Generate Prisma client
+RUN cd backend && \
+    pnpm prisma generate --schema=./prisma/schema.prisma
 
-# Production image, copy all the files and run the app
+# Build the application
+RUN cd backend && pnpm build
+
+# Production stage
 FROM base AS runner
-WORKDIR /app
 
+# Set environment variables
 ENV NODE_ENV=production \
     PORT=3001 \
     HOSTNAME="0.0.0.0"
@@ -55,34 +61,32 @@ ENV NODE_ENV=production \
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs && \
-    mkdir -p uploads && \
-    chown -R nodejs:nodejs .
+    mkdir -p /app/uploads && \
+    chown -R nodejs:nodejs /app
 
-# Install only production dependencies
-COPY --from=deps /app/package.json ./
-COPY --from=deps /app/pnpm-workspace.yaml ./
-COPY --from=deps /app/backend/package.json ./backend/
-COPY --from=deps /app/shared/package.json ./shared/
-
-# Install pnpm and production dependencies
-RUN npm install -g pnpm@8.15.4 && \
-    cd backend && pnpm install --prod --no-frozen-lockfile && \
-    cd ../shared && pnpm install --prod --no-frozen-lockfile
-
-# Copy prisma directory and generate client
-COPY --from=builder /app/backend/prisma ./backend/prisma
-COPY --from=builder /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
-COPY --from=builder /app/backend/node_modules/@prisma ./backend/node_modules/@prisma
+# Set working directory
+WORKDIR /app
 
 # Copy built application
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/shared ./shared
-COPY backend/start.sh ./backend/
+COPY --from=builder --chown=nodejs:nodejs /app/backend/dist ./backend/dist
+COPY --from=builder --chown=nodejs:nodejs /app/backend/node_modules ./backend/node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/shared ./shared
+COPY --from=builder --chown=nodejs:nodejs /app/backend/prisma ./backend/prisma
+COPY --chown=nodejs:nodejs backend/start.sh ./backend/
 RUN chmod +x backend/start.sh
 
+# Switch to non-root user
 USER nodejs
-WORKDIR /app/backend
 
+# Expose port
 EXPOSE 3001
 
-CMD ["./start.sh"] 
+# Use dumb-init as entrypoint
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# Start the application
+CMD ["./backend/start.sh"] 
