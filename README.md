@@ -19,6 +19,12 @@ This repository uses the following documentation structure:
    - Performance benchmarks
    - Security audit results
 
+3. [Stellar Kickstart Program](./STELLAR_KICKSTART.md)
+   - Project overview and goals
+   - Detailed deliverables and progress
+   - Technical implementation details
+   - Testing and deployment process
+
 ## 🚀 Quick Start
 
 1. Development Setup:
