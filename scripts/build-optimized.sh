@@ -1,30 +1,23 @@
 #!/bin/bash
 
-# Optimized Docker Build Script for DOB Validator
-# This script enables BuildKit and uses parallel builds for faster builds
-
-set -e
-
-echo "🚀 Starting optimized Docker build for DOB Validator..."
-
-# Enable Docker BuildKit for better caching and parallel builds
+# Enable BuildKit
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-# Build arguments for better caching
-BUILD_ARGS="--build-arg BUILDKIT_INLINE_CACHE=1"
+# Set build arguments for optimization
+export BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+export BUILDKIT_STEP_LOG_MAX_SPEED=10485760
 
-echo "📦 Building images with BuildKit enabled..."
+echo "🚀 Building optimized production images..."
 
-# Build all services in parallel with optimized settings
-docker compose -f docker-compose.prod.yml build \
+# Build images with parallel jobs and output options
+docker compose -f docker/docker-compose.prod.yml build \
   --parallel \
-  --no-cache=false \
   --progress=plain \
-  $BUILD_ARGS \
-  backend frontend backoffice
+  --build-arg BUILDKIT_INLINE_CACHE=1
 
-echo "✅ Build completed successfully!"
+echo "✅ Build completed!"
+
 echo ""
 echo "📊 Build Summary:"
 echo "- Backend:   dob-validator-backend-prod"

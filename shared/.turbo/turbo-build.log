@@ -1,6 +1,6 @@
 
-> @dob-validator/shared@1.0.0 build /Users/JoaquinNam/Desktop/MENTE_MAESTRA/1CLIENTS/DOBPROTOCOL/DOBVALIDATOR/shared
-> tsup
+> @dob-validator/shared@0.1.0 build /Users/JoaquinNam/Desktop/MENTE_MAESTRA/1CLIENTS/DOBPROTOCOL/DOBVALIDATOR/shared
+> tsup src/index.ts --format cjs,esm --dts
 
 [34mCLI[39m Building entry: src/index.ts
 [34mCLI[39m Using tsconfig: tsconfig.json
@@ -14,7 +14,11 @@ Generated an empty chunk: "index".
 Generated an empty chunk: "index".
 [32mCJS[39m [1mdist/index.js     [22m[32m82.00 B[39m
 [32mCJS[39m [1mdist/index.js.map [22m[32m69.00 B[39m
-[32mCJS[39m ⚡️ Build success in 39ms
+[32mCJS[39m ⚡️ Build success in 18ms
 [32mESM[39m [1mdist/index.mjs     [22m[32m70.00 B[39m
 [32mESM[39m [1mdist/index.mjs.map [22m[32m70.00 B[39m
-[32mESM[39m ⚡️ Build success in 39ms
+[32mESM[39m ⚡️ Build success in 18ms
+DTS Build start
+DTS ⚡️ Build success in 448ms
+DTS dist/index.d.ts  204.00 B
+DTS dist/index.d.mts 204.00 B

@@ -1,50 +1,45 @@
 # Frontend Development Dockerfile
 FROM node:18-alpine
 
-# Install dependencies
-RUN apk add --no-cache libc6-compat
+# Install dependencies and pnpm globally
+RUN apk add --no-cache libc6-compat && \
+    npm install -g pnpm
 
+# Set working directory
 WORKDIR /app
 
-# Copy workspace configuration
-COPY package.json pnpm-workspace.yaml ./
-COPY .npmrc ./
-
-# Copy package files for all workspaces
+# Copy only package files first to leverage Docker cache
+COPY package.json pnpm-workspace.yaml .npmrc ./
 COPY shared/package.json ./shared/
 COPY frontend/package.json ./frontend/
 COPY backoffice/package.json ./backoffice/
 COPY backend/package.json ./backend/
 
-# Install pnpm
-RUN npm install -g pnpm
-
-# Copy shared package source
-COPY shared ./shared
-
-# Build shared package first
+# Install dependencies for shared package
 WORKDIR /app/shared
+COPY shared/. .
 RUN pnpm install
 RUN pnpm build
 
-# Copy frontend source
-WORKDIR /app
-COPY frontend ./frontend
-
-# Install all dependencies
-RUN pnpm install --no-frozen-lockfile
-
-# Set working directory to frontend
+# Install frontend dependencies
 WORKDIR /app/frontend
-
-# Expose port
-EXPOSE 3001
+COPY frontend/. .
+RUN pnpm install && \
+    pnpm prisma generate && \
+    pnpm install -D tailwindcss postcss autoprefixer && \
+    pnpm tailwindcss init -p
 
 # Set environment variables
-ENV NODE_ENV=development
-ENV PORT=3001
-ENV HOSTNAME="0.0.0.0"
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=development \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0" \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_BACKEND_URL=http://localhost:3001 \
+    NEXT_PUBLIC_STELLAR_NETWORK=testnet \
+    NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
 
-# Start development server
-CMD ["pnpm", "dev"] 
+# Expose port
+EXPOSE 3000
+
+# Start development server with proper host binding
+CMD ["sh", "-c", "pnpm dev --port 3000 --hostname 0.0.0.0"] 

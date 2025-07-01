@@ -1,12 +1,12 @@
 'use client'
 
-import { Networks } from '@stellar/stellar-sdk'
+import { Networks, Transaction, TransactionBuilder, Operation, Account, BASE_FEE } from '@stellar/stellar-sdk'
 
 // Create a singleton instance of the SDK
 class StellarSDKWrapper {
   private static instance: StellarSDKWrapper
   private initialized: boolean = false
-  private baseFee: string = '100'
+  private baseFee: string = BASE_FEE.toString()
 
   private constructor() {}
 
@@ -22,7 +22,6 @@ class StellarSDKWrapper {
     if (typeof window === 'undefined') return false
 
     try {
-      // Set the network passphrase for testnet
       this.initialized = true
       console.log('✅ Stellar SDK initialized successfully')
       return true
@@ -89,24 +88,29 @@ export const getSimpleSignerUrl = (xdr: string, publicKey?: string) => {
 }
 
 // Helper to generate a challenge transaction XDR
-export const generateChallengeXDR = (challenge: string, publicKey?: string) => {
-  // Create a base64 encoded XDR for a manage data operation
-  // This follows the SEP-0010 format for authentication
-  const source = publicKey || 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
-  const sequence = '0'
-  const opSource = source
-  const opName = 'DOB_VALIDATOR_AUTH'
-  const opValue = Buffer.from(challenge).toString('base64')
-  
-  // Construct the XDR parts
-  const header = 'AAAAAgAAAAEAAAAA' // Transaction header (v1, fee=100, 1 operation)
-  const sourceAccount = Buffer.from(source).toString('base64')
-  const seqNum = Buffer.from(sequence).toString('base64')
-  const timeBounds = 'AAAAAA' // No time bounds
-  const memo = 'AAAAAAAAAA' // No memo
-  const operation = Buffer.from(`AAAAAQAAAAA${opSource}${opName}${opValue}`).toString('base64')
-  
-  return `${header}${sourceAccount}${seqNum}${timeBounds}${memo}${operation}AAAAAQ==` // Add trailing reserved bytes
+export const generateChallengeXDR = (challenge: string, publicKey: string) => {
+  try {
+    // Create a new account object with sequence number 0
+    const account = new Account(publicKey, '0')
+    
+    // Build the transaction
+    const transaction = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE
+    })
+    .addOperation(Operation.manageData({
+      name: 'DOB_VALIDATOR_AUTH',
+      value: challenge
+    }))
+    .setTimeout(0) // No timeout
+    .build()
+
+    // Get the XDR
+    return transaction.toXDR()
+  } catch (error) {
+    console.error('Error generating challenge XDR:', error)
+    throw new Error('Failed to generate challenge XDR')
+  }
 }
 
 // Simple challenge verification
@@ -118,14 +122,19 @@ export const verifyChallenge = (challenge: string, signedXDR: string) => {
       return false
     }
 
-    // Decode base64 XDR
-    const decodedXDR = Buffer.from(signedXDR, 'base64').toString()
+    // Parse the transaction
+    const transaction = new Transaction(signedXDR, NETWORK_PASSPHRASE)
     
-    // Check if XDR contains our operation name and challenge
-    const hasOpName = decodedXDR.includes('DOB_VALIDATOR_AUTH')
-    const hasChallenge = decodedXDR.includes(challenge)
+    // Verify it has exactly one operation
+    if (transaction.operations.length !== 1) return false
     
-    return hasOpName && hasChallenge
+    // Verify it's a manageData operation
+    const operation = transaction.operations[0]
+    if (operation.type !== 'manageData') return false
+    
+    // Verify the key and value
+    return operation.name === 'DOB_VALIDATOR_AUTH' && 
+           operation.value?.toString() === challenge
   } catch (error) {
     console.error('Error verifying challenge:', error)
     return false
@@ -134,9 +143,30 @@ export const verifyChallenge = (challenge: string, signedXDR: string) => {
 
 // Helper to open Simple Signer window
 export const openSimpleSigner = async (xdr: string, description: string): Promise<{ signedXDR: string, publicKey: string }> => {
+  if (!xdr || typeof xdr !== 'string') {
+    throw new Error('Invalid XDR provided')
+  }
+
+  // Validate XDR format
+  try {
+    new Transaction(xdr, NETWORK_PASSPHRASE)
+  } catch (error) {
+    console.error('Invalid XDR:', error)
+    throw new Error('Invalid XDR format')
+  }
+
+  // Construct the URL with XDR parameter
+  const params = new URLSearchParams({
+    xdr,
+    network: NETWORK.toLowerCase(),
+    description: description || 'DOB Validator Authentication'
+  })
+
+  const signerUrl = `${SIMPLE_SIGNER_URL}/sign?${params.toString()}`
+
   return new Promise((resolve, reject) => {
     const signWindow = window.open(
-      `${SIMPLE_SIGNER_URL}/connect`,
+      signerUrl,
       'Sign_Window',
       'width=360,height=700'
     )
@@ -158,18 +188,13 @@ export const openSimpleSigner = async (xdr: string, description: string): Promis
       }
 
       try {
-        switch (e.data.type) {
+        const data = e.data
+        console.log('Simple Signer message:', data) // Debug log
+
+        switch (data.type) {
           case 'onReady':
-            if (e.data.page === 'connect') {
-              signWindow.postMessage(
-                {
-                  type: 'sign',
-                  xdr,
-                  description,
-                  network: NETWORK.toLowerCase()
-                },
-                SIMPLE_SIGNER_URL
-              )
+            if (data.page === 'connect') {
+              hasConnected = true
               timeoutId = setTimeout(() => {
                 window.removeEventListener('message', messageHandler)
                 signWindow.close()
@@ -180,13 +205,17 @@ export const openSimpleSigner = async (xdr: string, description: string): Promis
 
           case 'onConnect':
             hasConnected = true
-            userPublicKey = e.data.message.publicKey
+            userPublicKey = data.message.publicKey
             break
 
           case 'onSign':
+            if (!data.message?.signedXDR) {
+              throw new Error('No signed XDR received')
+            }
+            
             if (hasConnected && userPublicKey) {
               resolve({
-                signedXDR: e.data.message.signedXDR,
+                signedXDR: data.message.signedXDR,
                 publicKey: userPublicKey
               })
               window.removeEventListener('message', messageHandler)
@@ -206,10 +235,11 @@ export const openSimpleSigner = async (xdr: string, description: string): Promis
             window.removeEventListener('message', messageHandler)
             if (timeoutId) clearTimeout(timeoutId)
             signWindow.close()
-            reject(new Error(e.data.message || 'Failed to sign transaction'))
+            reject(new Error(data.message || 'Failed to sign transaction'))
             break
         }
       } catch (error) {
+        console.error('Error in Simple Signer handler:', error)
         window.removeEventListener('message', messageHandler)
         if (timeoutId) clearTimeout(timeoutId)
         signWindow.close()
@@ -225,9 +255,7 @@ export const openSimpleSigner = async (xdr: string, description: string): Promis
         clearInterval(checkClosed)
         window.removeEventListener('message', messageHandler)
         if (timeoutId) clearTimeout(timeoutId)
-        if (!hasConnected) {
-          reject(new Error('Operation cancelled'))
-        }
+        reject(new Error('Window closed by user'))
       }
     }, 500)
   })

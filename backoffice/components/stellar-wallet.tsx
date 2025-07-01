@@ -16,7 +16,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { TransactionBuilder, Networks, Operation, Account } from '@stellar/stellar-sdk'
+import { TransactionBuilder, Networks, Operation, Account, Transaction } from '@stellar/stellar-sdk'
+import { generateChallengeXDR, openSimpleSigner, verifyChallenge } from '@/lib/stellar-sdk'
 
 interface AuthToken {
   token: string
@@ -79,57 +80,32 @@ export function StellarWallet() {
     setSuccess(null)
     
     try {
-      // First check if Freighter is installed
-      if (!await isFreighterInstalled()) {
-        throw new Error('Freighter wallet is not installed')
-      }
-
-      // Get the public key first
-      const publicKey = await getFreighterPublicKey()
-      if (!publicKey) {
-        throw new Error('Could not get public key from wallet')
-      }
-
       // Request challenge from backend
-      const response = await fetch('http://localhost:3001/api/auth/challenge', {
+      const challengeResponse = await fetch('http://localhost:3001/api/auth/challenge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ walletAddress: publicKey })
+        }
       })
 
-      if (!response.ok) {
+      if (!challengeResponse.ok) {
         throw new Error('Failed to get challenge')
       }
 
-      const { challenge } = await response.json()
+      const { challenge } = await challengeResponse.json()
 
-      // Create transaction for signing
-      const tx = new TransactionBuilder(
-        new Account(publicKey, '0'),
-        {
-          fee: '100',
-          networkPassphrase: Networks.TESTNET,
-        }
-      )
-        .addOperation(Operation.manageData({
-          name: 'DOB_VALIDATOR_AUTH',
-          value: challenge,
-        }))
-        .setTimeout(30)
-        .build()
+      // Generate challenge XDR
+      const xdr = generateChallengeXDR(challenge, '')
 
-      // Get XDR for signing
-      const xdr = tx.toXDR()
+      // Open Simple Signer and get signed XDR
+      const { signedXDR, publicKey } = await openSimpleSigner(xdr, 'DOB Validator Admin Authentication')
 
-      // Sign with Freighter
-      const signature = await signTransactionWithFreighter(xdr)
-      if (!signature) {
-        throw new Error('Failed to sign transaction')
+      // Verify the challenge locally first
+      if (!verifyChallenge(challenge, signedXDR)) {
+        throw new Error('Invalid signature')
       }
 
-      // Verify the signature
+      // Verify with backend
       const verifyResponse = await fetch('http://localhost:3001/api/auth/verify', {
         method: 'POST',
         headers: {
@@ -138,7 +114,7 @@ export function StellarWallet() {
         body: JSON.stringify({
           walletAddress: publicKey,
           challenge,
-          signature
+          signature: signedXDR
         })
       })
 

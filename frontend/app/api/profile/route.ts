@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,7 @@ export const runtime = 'nodejs'
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
+  company: z.string().optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -72,17 +74,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, email } = validationResult.data
+    const { name, email, company } = validationResult.data
+
+    // Get or create user
+    const user = await prisma.user.upsert({
+      where: { walletAddress: auth.user.walletAddress },
+      update: {
+        email: email || null,
+        name: name || null,
+        company: company || null,
+      } satisfies Prisma.UserUpdateInput,
+      create: {
+        walletAddress: auth.user.walletAddress,
+        email: email || null,
+        name: name || null,
+        company: company || null,
+        role: 'OPERATOR',
+      } satisfies Prisma.UserCreateInput,
+    })
 
     // Update or create profile
     const profile = await prisma.profile.upsert({
       where: { walletAddress: auth.user.walletAddress },
-      update: { name, email },
+      update: {
+        name,
+        email,
+        company: company || null,
+      } satisfies Prisma.ProfileUpdateInput,
       create: {
         walletAddress: auth.user.walletAddress,
         name,
         email,
-      },
+        company: company || null,
+        user: {
+          connect: {
+            id: user.id
+          }
+        },
+      } satisfies Prisma.ProfileCreateInput,
     })
 
     return NextResponse.json({

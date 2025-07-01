@@ -38,7 +38,7 @@ export function Footer() {
         className="
           fixed bottom-0 left-0 right-0 
           flex items-center justify-between px-4 py-4 
-          bg-background/95 backdrop-blur-sm border-t
+          bg-white dark:bg-background/95 backdrop-blur-sm border-t
           transition-all duration-300 ease-in-out
           pointer-events-auto
           z-50
@@ -49,13 +49,13 @@ export function Footer() {
             variant="ghost"
             size="sm"
             onClick={handleThemeToggle}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-[5vw]"
+            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 ml-[5vw]"
           >
             {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </Button>
         </div>
         <div className="text-center">
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-xs text-gray-600 dark:text-gray-400">
             © {new Date().getFullYear()} DOB Protocol. All rights reserved.
           </span>
         </div>
@@ -64,7 +64,7 @@ export function Footer() {
             href="https://twitter.com/dobprotocol"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+            className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
           >
             <Twitter size={20} />
           </a>
@@ -72,7 +72,7 @@ export function Footer() {
             href="https://www.dobprotocol.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+            className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
           >
             <Globe size={20} />
           </a>
@@ -80,7 +80,7 @@ export function Footer() {
             href="https://www.linkedin.com/company/dobprotocol"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+            className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
           >
             <Linkedin size={20} />
           </a>

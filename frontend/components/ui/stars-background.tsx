@@ -8,15 +8,15 @@ import { cn } from "@/lib/utils";
 function generateStars(count: number, starColor: string) {
   const shadows: string[] = [];
   for (let i = 0; i < count; i++) {
-    const x = Math.floor(Math.random() * 4000) - 2000;
-    const y = Math.floor(Math.random() * 4000) - 2000;
+    const x = Math.floor(Math.random() * 2000) - 1000;
+    const y = Math.floor(Math.random() * 2000) - 1000;
     shadows.push(`${x}px ${y}px ${starColor}`);
   }
   return shadows.join(", ");
 }
 
 function StarLayer({
-  count = 1000,
+  count = 500,
   size = 1,
   duration = 50,
   starColor = "#fff",
@@ -38,9 +38,22 @@ function StarLayer({
 
   return (
     <motion.div
-      animate={{ y: [0, -2000] }}
-      transition={{ repeat: Infinity, duration, ease: "linear" }}
-      className={cn("absolute top-0 left-0 w-full h-[2000px]", className)}
+      animate={{ y: [0, -1000] }}
+      transition={{ 
+        repeat: Infinity, 
+        duration, 
+        ease: "linear"
+      }}
+      className={cn(
+        "absolute top-0 left-0 w-full h-[1000px]",
+        "will-change-transform",
+        className
+      )}
+      style={{
+        backfaceVisibility: 'hidden',
+        perspective: 1000,
+        transform: 'translate3d(0,0,0)'
+      }}
       {...props}
     >
       <div
@@ -49,14 +62,16 @@ function StarLayer({
           width: `${size}px`,
           height: `${size}px`,
           boxShadow: boxShadow,
+          transform: 'translate3d(0,0,0)'
         }}
       />
       <div
-        className="absolute bg-transparent rounded-full top-[2000px]"
+        className="absolute bg-transparent rounded-full top-[1000px]"
         style={{
           width: `${size}px`,
           height: `${size}px`,
           boxShadow: boxShadow,
+          transform: 'translate3d(0,0,0)'
         }}
       />
     </motion.div>
@@ -92,11 +107,16 @@ export function StarsBackground({
         backgroundGradient,
         className,
       )}
+      style={{
+        transform: 'translate3d(0,0,0)',
+        backfaceVisibility: 'hidden',
+        perspective: 1000
+      }}
       {...props}
     >
-      <StarLayer count={1000} size={1} duration={50} starColor={starColor} />
-      <StarLayer count={400} size={2} duration={100} starColor={starColor} />
-      <StarLayer count={200} size={3} duration={150} starColor={starColor} />
+      <StarLayer count={500} size={1} duration={50} starColor={starColor} />
+      <StarLayer count={200} size={2} duration={100} starColor={starColor} />
+      <StarLayer count={100} size={3} duration={150} starColor={starColor} />
       {children}
     </div>
   );

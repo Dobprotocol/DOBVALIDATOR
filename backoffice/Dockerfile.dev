@@ -1,46 +1,44 @@
 # Backoffice Development Dockerfile
 FROM node:18-alpine
 
-# Install dependencies
-RUN apk add --no-cache libc6-compat
+# Install dependencies and pnpm globally
+RUN apk add --no-cache libc6-compat && \
+    npm install -g pnpm
 
+# Set working directory
 WORKDIR /app
 
-# Copy root configuration files
+# Copy only package files first to leverage Docker cache
 COPY package.json pnpm-workspace.yaml .npmrc ./
-
-# Copy package files for all workspaces
-COPY shared/package.json shared/.npmrc ./shared/
+COPY shared/package.json ./shared/
 COPY frontend/package.json ./frontend/
-COPY backend/package.json ./backend/
 COPY backoffice/package.json ./backoffice/
+COPY backend/package.json ./backend/
 
-# Install pnpm
-RUN npm install -g pnpm
-
-# Build shared package first
-COPY shared ./shared
+# Install dependencies for shared package
 WORKDIR /app/shared
+COPY shared/. .
 RUN pnpm install
 RUN pnpm build
 
 # Install backoffice dependencies
-WORKDIR /app
-RUN pnpm install --no-frozen-lockfile
-
-# Copy backoffice source code
-COPY backoffice ./backoffice
-
-# Set working directory to backoffice
 WORKDIR /app/backoffice
+COPY backoffice/. .
+RUN pnpm install && \
+    pnpm install -D tailwindcss postcss autoprefixer && \
+    pnpm tailwindcss init -p
+
+# Set environment variables
+ENV NODE_ENV=development \
+    PORT=3002 \
+    HOSTNAME="0.0.0.0" \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_BACKEND_URL=http://localhost:3001 \
+    NEXT_PUBLIC_STELLAR_NETWORK=testnet \
+    NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
 
 # Expose port
 EXPOSE 3002
 
-# Set environment variables
-ENV NODE_ENV=development
-ENV PORT=3002
-ENV HOSTNAME="0.0.0.0"
-
-# Start development server
-CMD ["pnpm", "dev"] 
+# Start development server with proper host binding
+CMD ["sh", "-c", "pnpm dev --port 3002 --hostname 0.0.0.0"] 

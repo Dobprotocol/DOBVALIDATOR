@@ -9,6 +9,7 @@ import { apiService } from '@/lib/api-service'
 import { walletStateManager } from '@/lib/wallet-state'
 import { StarsBackground } from '@/components/ui/stars-background'
 import { useTheme } from 'next-themes'
+import { Header } from '@/components/ui/header'
 
 function clearAllLocalStorage() {
   if (typeof window !== 'undefined') {
@@ -193,16 +194,28 @@ export default function Home() {
         </div>
       )}
       
-      {/* Stars Background */}
-      <StarsBackground className="fixed inset-0 -z-20" />
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Header />
+      </div>
       
-      {/* Optimized Spline 3D Background */}
+      {/* Stars Background - Now moves with mouse */}
+      <div 
+        className="fixed inset-0 -z-20"
+        style={{
+          transform: `translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)`,
+          transition: 'transform 0.3s ease-out'
+        }}
+      >
+        <StarsBackground />
+      </div>
+      
+      {/* Optimized Spline 3D Background - Now fixed */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div 
           className="absolute inset-0"
           style={{
-            transform: `scale(1.2) translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px) translateY(${-scrollPosition}px)`,
-            transformOrigin: 'center',
+            transform: `translateY(${-scrollPosition * 0.5}px)`, // Smooth scroll effect
             transition: 'transform 0.3s ease-out',
             width: '100%',
             height: '100%'
@@ -220,21 +233,21 @@ export default function Home() {
 
       {/* Main Content - Fixed Position */}
       <div className="fixed top-0 left-0 right-0 z-10 flex flex-col items-center justify-center h-screen px-4">
-        <div className="max-w-2xl mx-auto space-y-8">
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        <div className="max-w-2xl mx-auto space-y-8 text-center">
+          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl text-center">
             DOB Validator
           </h1>
 
-          <p className="text-xl text-gray-300">
+          <p className="text-xl text-gray-300 text-center">
             Connect your wallet to begin your device validation
             and get investment-ready on our RWA platform.
           </p>
 
-          <div className="mt-8">
+          <div className="mt-8 flex justify-center">
             <StellarWallet />
           </div>
 
-          <p className="mt-6 text-sm text-gray-400">
+          <p className="mt-6 text-sm text-gray-400 text-center">
             Submit your documentation and unlock new funding opportunities.
           </p>
         </div>

@@ -1,0 +1,258 @@
+# Dependencies
+**/node_modules
+**/.pnp
+**/.pnp.js
+
+# Testing
+**/coverage
+
+# Next.js build output
+**/.next
+**/out
+
+# Production
+**/build
+**/dist
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local env files
+.env*.local
+.env
+.env.production
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+*.pem
+
+# Docker
+.docker
+
+# Git
+.git
+.gitignore
+
+# Temp files
+**/tmp
+**/temp
+
+# Logs
+**/logs
+*.log
+
+# Cache
+.cache
+.npm
+.eslintcache
+
+# Build cache
+**/.turbo
+
+# Keep source files
+!backend/
+!frontend/
+!backoffice/
+!shared/
+!package.json
+!pnpm-workspace.yaml
+!tsconfig.json
+
+# Ignore everything by default
+*
+
+# Allow specific files and directories
+!package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!shared/package.json
+!shared/src/
+!shared/tsconfig.json
+!backoffice/package.json
+!backoffice/src/
+!backoffice/public/
+!backoffice/app/
+!backoffice/components/
+!backoffice/lib/
+!backoffice/styles/
+!backoffice/next.config.mjs
+!backoffice/postcss.config.mjs
+!backoffice/tailwind.config.ts
+!backoffice/tsconfig.json
+
+# Explicitly ignore node_modules and build artifacts
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.cache
+**/.env*
+**/*.log
+**/coverage
+**/.git
+**/.DS_Store
+
+# Dependencies and package management
+.pnpm-store
+**/.pnpm-store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn
+.pnp.*
+
+# Build outputs and caches
+.next
+**/.next
+out
+dist
+**/dist
+build
+**/build
+.cache
+**/.cache
+.turbo
+**/.turbo
+.vercel
+**/.vercel
+.parcel-cache
+**/.parcel-cache
+
+# Environment and local files
+.env*
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Development tools and IDE
+.vscode
+.idea
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+*.log
+logs
+*.pid
+*.seed
+*.pid.lock
+
+# Version control
+.git
+.gitignore
+.gitattributes
+.github
+.gitlab
+.hg
+.svn
+
+# Test and coverage
+coverage
+**/coverage
+.nyc_output
+**/.nyc_output
+__tests__
+**/tests
+test
+**/test
+*.test.*
+*.spec.*
+
+# Documentation
+*.md
+docs
+**/docs
+LICENSE
+AUTHORS
+CONTRIBUTORS
+PATENTS
+*.txt
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*
+docker/
+
+# Project specific
+uploads/
+uploads_data/
+tmp/
+temp/
+.eslintcache
+.stylelintcache
+*.db
+*.sqlite
+*.sqlite3
+
+# SSL and keys
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.priv
+*.pub
+nginx/ssl/
+
+# Build tools and config
+.babelrc
+.eslintrc*
+.prettierrc*
+.stylelintrc*
+jest.config.*
+*.config.js
+*.config.ts
+!next.config.js
+!next.config.mjs
+!postcss.config.js
+!tailwind.config.js
+!tailwind.config.ts
+
+# Misc
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.csv
+*.tsv
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.ttf
+*.woff
+*.woff2
+*.eot 

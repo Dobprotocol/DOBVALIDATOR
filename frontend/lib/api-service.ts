@@ -101,6 +101,17 @@ class ApiService {
     }>(endpoint)
   }
 
+  async submitDevice(formData: FormData) {
+    return this.request<{ success: boolean; message?: string }>('/api/submit', {
+      method: 'POST',
+      headers: {
+        // Remove Content-Type header to let browser set it with boundary for FormData
+        'Content-Type': undefined as any,
+      },
+      body: formData,
+    })
+  }
+
   async getSubmission(id: string) {
     return this.request<{ success: boolean; submission: any }>(`/api/submissions/${id}`)
   }

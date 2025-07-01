@@ -78,6 +78,7 @@ async function seedDatabase() {
       {
         deviceName: 'Solar Panel Array Alpha',
         deviceType: 'Renewable Energy',
+        location: 'Rooftop, Building A',
         serialNumber: 'SPA-2024-001',
         manufacturer: 'SolarTech Industries',
         model: 'ST-5000W',
@@ -93,6 +94,7 @@ async function seedDatabase() {
       {
         deviceName: 'Wind Turbine Beta',
         deviceType: 'Wind Energy',
+        location: 'Field Site B',
         serialNumber: 'WT-2024-002',
         manufacturer: 'WindPower Solutions',
         model: 'WP-10KW',
@@ -108,6 +110,7 @@ async function seedDatabase() {
       {
         deviceName: 'Battery Storage Gamma',
         deviceType: 'Energy Storage',
+        location: 'Utility Room C',
         serialNumber: 'BS-2024-003',
         manufacturer: 'BatteryCorp',
         model: 'BC-100KWH',

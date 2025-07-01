@@ -1,49 +1,39 @@
 # Backend Development Dockerfile
 FROM node:18-alpine
 
-# Install dependencies
-RUN apk add --no-cache libc6-compat
+# Install dependencies and pnpm globally
+RUN apk add --no-cache libc6-compat && \
+    npm install -g pnpm
 
+# Set working directory
 WORKDIR /app
 
-# Copy root configuration files
+# Copy only package files first to leverage Docker cache
 COPY package.json pnpm-workspace.yaml .npmrc ./
-
-# Copy package files for all workspaces
-COPY shared/package.json shared/.npmrc ./shared/
+COPY shared/package.json ./shared/
 COPY frontend/package.json ./frontend/
-COPY backend/package.json ./backend/
 COPY backoffice/package.json ./backoffice/
+COPY backend/package.json ./backend/
 
-# Install pnpm
-RUN npm install -g pnpm
-
-# Build shared package first
-COPY shared ./shared
+# Install dependencies for shared package
 WORKDIR /app/shared
+COPY shared/. .
 RUN pnpm install
 RUN pnpm build
 
 # Install backend dependencies
-WORKDIR /app
-RUN pnpm install --no-frozen-lockfile
-
-# Copy backend source code
-COPY backend ./backend
-
-# Set working directory to backend
 WORKDIR /app/backend
+COPY backend/. .
+RUN pnpm install
 
-# Generate Prisma client
-RUN pnpm prisma generate
+# Set environment variables
+ENV NODE_ENV=development \
+    PORT=3001 \
+    DATABASE_URL=postgresql://postgres:postgres@db:5432/dob_validator \
+    STELLAR_NETWORK=testnet
 
 # Expose port
 EXPOSE 3001
-
-# Set environment variables
-ENV NODE_ENV=development
-ENV PORT=3001
-ENV HOSTNAME="0.0.0.0"
 
 # Start development server
 CMD ["pnpm", "dev"] 

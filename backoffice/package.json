@@ -11,7 +11,8 @@
   "dependencies": {
     "@dob-validator/shared": "workspace:*",
     "@stellar/stellar-sdk": "^11.2.2",
-    "@stellar/freighter-api": "^1.7.1",
+    "@splinetool/react-spline": "^4.0.0",
+    "@splinetool/runtime": "1.0.37",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.1.2",
     "@radix-ui/react-alert-dialog": "1.0.5",

@@ -43,9 +43,10 @@ services:
         - NODE_ENV=development
     container_name: dob-validator-frontend
     ports:
-      - "3000:3001"
+      - "3000:3000"
     environment:
       - NODE_ENV=development
+      - PORT=3000
       - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
       - NEXT_PUBLIC_STELLAR_NETWORK=testnet
       - NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
@@ -68,6 +69,7 @@ services:
       - "3002:3002"
     environment:
       - NODE_ENV=development
+      - PORT=3002
       - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
       - NEXT_PUBLIC_STELLAR_NETWORK=testnet
       - NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org

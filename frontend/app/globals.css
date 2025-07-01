@@ -36,7 +36,7 @@
   }
 
   .dark {
-    --background: #1a1a1a;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;
@@ -74,7 +74,8 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
     overflow-x: hidden;
     overflow-y: auto;
     min-height: 100vh;
@@ -86,6 +87,7 @@
     overflow-y: auto;
     scroll-behavior: smooth;
     height: auto;
+    background: hsl(var(--background));
   }
   
   #__next {
@@ -95,12 +97,8 @@
 }
 
 /* Prevent FOUC */
-html.no-js {
-  visibility: hidden;
-}
-
-html.js-ready {
-  visibility: visible;
+:root {
+  color-scheme: dark;
 }
 
 /* Fade-in animation */
@@ -126,13 +124,9 @@ html:not(.ready) .animate-fade-in {
 }
 
 /* Dark mode adjustments */
-.dark .bg-background {
-  background-color: var(--background);
-}
-
-.dark .bg-card {
-  background-color: var(--card-background);
-  border-color: var(--card-border);
+.dark body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 /* Spline Background Effects */
@@ -159,8 +153,11 @@ html:not(.ready) .animate-fade-in {
 }
 
 .spline-content {
-  /* backdrop-filter: blur(5px); */
-  /* -webkit-backdrop-filter: blur(5px); */
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
 }
 
 .spline-content h1 {
@@ -197,15 +194,6 @@ html:not(.ready) .animate-fade-in {
   to {
     transform: translateX(100%);
     opacity: 0;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 

@@ -6,7 +6,7 @@ import { useWallet } from '../hooks/useWallet'
 import { useToast } from './ui/use-toast'
 
 export function StellarWallet() {
-  const { walletAddress, isConnected, isAuthenticating, connectWallet, disconnectWallet } = useWallet()
+  const { address, isConnected, isAuthenticating, connectWallet, disconnectWallet } = useWallet()
   const { toast } = useToast()
   const [error, setError] = useState<string | null>(null)
 
@@ -65,7 +65,7 @@ export function StellarWallet() {
       {isConnected ? (
         <div className="flex flex-col gap-2">
           <div className="text-sm text-muted-foreground">
-            Connected: {walletAddress}
+            Connected: {address}
           </div>
           <Button 
             onClick={handleDisconnect}
