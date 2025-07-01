@@ -1,13 +1,8 @@
 .next/
 node_modules/
 .DS_Store
-<<<<<<< HEAD
 Thumbs.db
 desktop.ini
-.next/
-=======
->>>>>>> feature/frontend-fileupload
-.next/
 
 # Temporary upload files
 frontend/uploads/temp/
