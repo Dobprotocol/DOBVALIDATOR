@@ -7,6 +7,8 @@ import { OptimizedSpline } from '@/components/ui/optimized-spline'
 import { isAuthenticated, getAuthToken } from '@/lib/auth'
 import { apiService } from '@/lib/api-service'
 import { walletStateManager } from '@/lib/wallet-state'
+import { StarsBackground } from '@/components/ui/stars-background'
+import { useTheme } from 'next-themes'
 
 function clearAllLocalStorage() {
   if (typeof window !== 'undefined') {
@@ -31,7 +33,9 @@ function isValidJWT(token: string): boolean {
 }
 
 export default function Home() {
+  const { theme } = useTheme()
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [scrollPosition, setScrollPosition] = useState(0)
   const [splineLoaded, setSplineLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
   const hasRedirected = useRef(false)
@@ -40,21 +44,39 @@ export default function Home() {
   const lastCheckTime = useRef(0)
   const router = useRouter()
 
-  // Mouse movement effect
+  // Mouse movement and scroll effect
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       const { clientX, clientY } = event
       const { innerWidth, innerHeight } = window
-      
-      // Normalize mouse position to -1 to 1 range
       const x = (clientX / innerWidth) * 2 - 1
       const y = (clientY / innerHeight) * 2 - 1
-      
       setMousePosition({ x, y })
     }
 
+    const handleScroll = () => {
+      const position = window.scrollY
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+      const scrollPercentage = Math.min((position / maxScroll) * 100, 100)
+      setScrollPosition(scrollPercentage)
+      
+      // Update Spline scene based on scroll
+      const splineViewer = document.querySelector('spline-viewer')
+      if (splineViewer) {
+        // @ts-ignore - splineRuntimeRef is available on the element
+        const runtime = (splineViewer as any).splineRuntimeRef
+        if (runtime) {
+          runtime.setScrollValue?.(scrollPercentage / 100)
+        }
+      }
+    }
+
     window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
+    window.addEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('scroll', handleScroll)
+    }
   }, [])
 
   useEffect(() => {
@@ -164,24 +186,22 @@ export default function Home() {
   }, [router])
 
   return (
-    <div className="relative w-full min-h-screen">
+    <div className="relative w-full" style={{ height: '160vh' }}>
       {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
           <div className="text-white text-lg font-semibold animate-pulse">Checking authentication...</div>
         </div>
       )}
       
-      {/* Animated Stars Background */}
-      <div className="fixed inset-0 -z-20">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900 via-black to-black opacity-70" />
-      </div>
+      {/* Stars Background */}
+      <StarsBackground className="fixed inset-0 -z-20" />
       
       {/* Optimized Spline 3D Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div 
           className="absolute inset-0"
           style={{
-            transform: `scale(1.2) translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)`,
+            transform: `scale(1.2) translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px) translateY(${-scrollPosition}px)`,
             transformOrigin: 'center',
             transition: 'transform 0.3s ease-out',
             width: '100%',
@@ -192,41 +212,43 @@ export default function Home() {
             url="https://prod.spline.design/Bfe9XFwx9BFcwE6l/scene.splinecode"
             className="w-full h-full"
             placeholderImage="/images/FLOWCARD + COINS - Clonable@1-1512x869.webp"
-            onLoad={() => {
-              console.log('Spline loaded successfully in main page')
-              setSplineLoaded(true)
-            }}
-            onError={(error) => {
-              console.error('Spline failed to load in main page:', error)
-            }}
-            loadingDelay={200}
-            forceRefresh={false}
-            fallbackContent={
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <div className="text-center">
-                  <div className="text-sm">3D Background Unavailable</div>
-                </div>
-              </div>
-            }
+            onLoad={() => setSplineLoaded(true)}
+            onError={(error) => console.error('Spline failed to load:', error)}
           />
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 space-y-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-6xl font-bold text-white">
+      {/* Main Content - Fixed Position */}
+      <div className="fixed top-0 left-0 right-0 z-10 flex flex-col items-center justify-center h-screen px-4">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
             DOB Validator
           </h1>
-          <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
-            Secure and efficient device validation on the Stellar network
+
+          <p className="text-xl text-gray-300">
+            Connect your wallet to begin your device validation
+            and get investment-ready on our RWA platform.
+          </p>
+
+          <div className="mt-8">
+            <StellarWallet />
+          </div>
+
+          <p className="mt-6 text-sm text-gray-400">
+            Submit your documentation and unlock new funding opportunities.
           </p>
         </div>
-
-        <div className="w-full max-w-sm">
-          <StellarWallet />
-        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 z-10 p-4 text-center transition-colors duration-200"
+        style={{
+          backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+          color: theme === 'dark' ? '#fff' : '#000'
+        }}
+      >
+        <p className="text-sm">© 2024 DOB Protocol. All rights reserved.</p>
+      </footer>
     </div>
   )
 }

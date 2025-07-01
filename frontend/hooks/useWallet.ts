@@ -49,7 +49,7 @@ export function useWallet() {
       setIsAuthenticating(true)
 
       // Request challenge from backend
-      const { challenge } = await requestChallenge('temp') // We'll get the real address from Simple Signer
+      const { challenge } = await requestChallenge('temp')
 
       // Generate XDR for the challenge
       const xdr = stellarSigner.generateChallengeXDR(challenge)
@@ -58,8 +58,12 @@ export function useWallet() {
       const signWindow = window.open(
         `${SIMPLE_SIGNER_URL}/connect`,
         'Sign_Window',
-        'width=360, height=700'
+        'width=360,height=700'
       )
+
+      if (!signWindow) {
+        throw new Error('Popup blocked. Please allow popups and try again.')
+      }
 
       // Create a promise that resolves when the user completes signing
       const waitForSignature = new Promise<{ signedXDR: string, publicKey: string }>((resolve, reject) => {
