@@ -17,22 +17,27 @@ function clearAllLocalStorage() {
 }
 
 function isValidJWT(token: string): boolean {
-  // Check if this is a mock token (development/fallback authentication)
-  if (token.startsWith('mock_access_token_') || token.startsWith('dev_fallback_token_')) {
-    console.log('🔧 Mock token detected, considering valid for development')
-    return true
-  }
-  
-  // Check if this is a real JWT token
   try {
+    // Check if it's a mock token (for development/testing)
+    if (token.startsWith('mock_access_token_')) {
+      return true
+    }
+    
+    // Check if it's a real JWT
     const parts = token.split('.')
-    if (parts.length !== 3) return false
+    if (parts.length !== 3) {
+      return false
+    }
     
     const payload = JSON.parse(atob(parts[1]))
     const currentTime = Math.floor(Date.now() / 1000)
     
+    if (!payload.exp) {
+      return false
+    }
+    
     return payload.exp > currentTime
-  } catch {
+  } catch (error) {
     return false
   }
 }
@@ -66,36 +71,28 @@ export default function Home() {
 
   useEffect(() => {
     const checkUserProfile = async () => {
-      console.log('🔍 Starting profile check...')
       if (isCheckingProfile.current) {
-        console.log('⏳ Already checking profile, skipping')
         return
       }
       if (hasRedirected.current) {
-        console.log('⏳ Already redirected, skipping')
         return
       }
       const now = Date.now()
       if (now - lastCheckTime.current < 2000) {
-        console.log('⏳ Too soon since last check, skipping')
         return
       }
       lastCheckTime.current = now
       if (!isAuthenticated()) {
-        console.log('❌ Not authenticated, skipping')
         return
       }
       const authData = getAuthToken()
       if (!authData?.token) {
-        console.log('❌ No auth token, skipping')
         return
       }
       if (!isValidJWT(authData.token)) {
-        console.log('❌ Invalid JWT, clearing storage')
         clearAllLocalStorage()
         return
       }
-      console.log('✅ Authentication valid, checking profile...')
       isCheckingProfile.current = true
       setLoading(true)
       
@@ -106,7 +103,6 @@ export default function Home() {
                              window.location.hostname.includes('vercel.app');
         
         if (isDevelopment) {
-          console.log('🔧 Development mode: Checking local storage for profile...')
           const walletAddress = localStorage.getItem('stellarPublicKey') || authData.walletAddress
           if (walletAddress) {
             const localProfileKey = `localProfile_${walletAddress}`
@@ -114,7 +110,6 @@ export default function Home() {
             const userProfile = localStorage.getItem('userProfile')
             
             if (localProfile || userProfile) {
-              console.log('✅ Profile found in local storage, redirecting to dashboard')
               hasRedirected.current = true
               router.push('/dashboard')
               return
@@ -124,25 +119,31 @@ export default function Home() {
         
         // Try API profile check
         const response = await apiService.getProfile()
-        console.log('✅ Profile found via API, redirecting to dashboard')
         hasRedirected.current = true
         router.push('/dashboard')
       } catch (error: any) {
-        console.log('🔍 Profile check error:', error.message)
-        if (error.message?.includes('404') || 
-            error.message?.includes('Profile not found') || 
-            error.message?.includes('Endpoint not found')) {
-          console.log('❌ Profile not found, redirecting to profile creation')
+        // Check for specific error types
+        const errorMessage = error.message || error.toString()
+        const is404 = errorMessage.includes('404') || 
+                     errorMessage.includes('Profile not found') || 
+                     errorMessage.includes('Endpoint not found') ||
+                     errorMessage.includes('Not Found')
+        
+        const is401 = errorMessage.includes('401') || 
+                     errorMessage.includes('Authentication') ||
+                     errorMessage.includes('Unauthorized')
+        
+        if (is404) {
           hasRedirected.current = true
           router.push('/profile')
-        } else if (error.message?.includes('401') || error.message?.includes('Authentication')) {
-          console.log('❌ Authentication failed, clearing storage')
+        } else if (is401) {
           clearAllLocalStorage()
         } else {
-          console.error('❌ Unexpected error checking user profile:', error)
           // For unexpected errors in development mode, still try to redirect to profile creation
+          const isDevelopment = process.env.NODE_ENV === 'development' || 
+                               window.location.hostname === 'localhost' ||
+                               window.location.hostname.includes('vercel.app');
           if (isDevelopment) {
-            console.log('🔧 Development mode: Redirecting to profile creation despite error')
             hasRedirected.current = true
             router.push('/profile')
           }
@@ -171,7 +172,10 @@ export default function Home() {
       if (state.isAuthenticated && isAuthenticated()) {
         // Reset redirect flag when wallet authenticates
         hasRedirected.current = false
-        checkUserProfile()
+        // Add a small delay to ensure authentication state is fully synchronized
+        setTimeout(() => {
+          checkUserProfile()
+        }, 100)
       } else {
         hasRedirected.current = false
       }
@@ -226,16 +230,6 @@ export default function Home() {
             onError={(error) => {
               console.error('Spline failed to load in main page:', error)
             }}
-            loadingDelay={200}
-            forceRefresh={false}
-            fallbackContent={
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <div className="text-center">
-                  <div className="text-sm">3D Background Unavailable</div>
-                  <div className="text-xs mt-1">The page will work normally</div>
-                </div>
-              </div>
-            }
           />
         </div>
         
