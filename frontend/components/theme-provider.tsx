@@ -11,13 +11,21 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 
   // Force dark theme on mount
   React.useEffect(() => {
+    // Set mounted state
     setMounted(true)
+    
+    // Force dark theme
     document.documentElement.classList.add('dark')
+    document.documentElement.style.colorScheme = 'dark'
+    
+    // Remove light theme if present
+    document.documentElement.classList.remove('light')
   }, [])
 
+  // Prevent flash of unstyled content
   if (!mounted) {
     return (
-      <div style={{ visibility: 'hidden' }}>
+      <div style={{ visibility: 'hidden' }} aria-hidden="true">
         {children}
       </div>
     )
@@ -25,11 +33,12 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 
   return (
     <NextThemesProvider 
-      defaultTheme="dark" 
-      enableSystem={false}
-      disableTransitionOnChange
-      forcedTheme="dark"
       {...props}
+      defaultTheme="dark"
+      forcedTheme="dark"
+      enableSystem={false}
+      attribute="class"
+      disableTransitionOnChange
     >
       {children}
     </NextThemesProvider>

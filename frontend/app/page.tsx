@@ -164,19 +164,26 @@ export default function Home() {
   }, [router])
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full min-h-screen">
       {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
           <div className="text-white text-lg font-semibold animate-pulse">Checking authentication...</div>
         </div>
       )}
+      
+      {/* Animated Stars Background */}
+      <div className="fixed inset-0 -z-20">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900 via-black to-black opacity-70" />
+      </div>
+      
       {/* Optimized Spline 3D Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div 
           className="absolute inset-0"
           style={{
-            transform: 'scale(1.2)',
-            transformOrigin: 'top center',
+            transform: `scale(1.2) translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)`,
+            transformOrigin: 'center',
+            transition: 'transform 0.3s ease-out',
             width: '100%',
             height: '100%'
           }}
@@ -198,59 +205,27 @@ export default function Home() {
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <div className="text-center">
                   <div className="text-sm">3D Background Unavailable</div>
-                  <div className="text-xs mt-1">The page will work normally</div>
                 </div>
               </div>
             }
           />
         </div>
-        
-        {/* Parallax overlay for mouse movement effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            transform: `translate(${mousePosition.x * 15}px, ${mousePosition.y * 15}px)`,
-            transition: 'transform 0.3s ease-out'
-          }}
-        />
       </div>
-      
-      {/* Main content container - 150vh for full Spline scene scrolling (desktop only) */}
-      <div className="relative z-10 w-full h-screen md:h-[150vh]">
-        {/* Hero section - fixed content that stays in place while scrolling */}
-        <section className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full px-4 z-20">
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="spline-content rounded-2xl p-8">
-              <h1 className="text-4xl font-bold tracking-tight text-black dark:text-foreground sm:text-5xl">
-                DOB Validator
-              </h1>
-              <p className="mt-6 text-lg text-muted-foreground">
-                Connect your wallet to begin your device validation <br></br>and get investment-ready on our RWA platform.
-              </p>
-              <div className="mt-10 flex justify-center">
-                <div className="w-full flex justify-center">
-                  <div className="w-auto">
-                    <div className="inline-block">
-                      <div className="[&>button]:text-lg [&>button]:py-4 [&>button]:px-10 [&>button]:rounded-xl [&>button]:font-semibold [&>button]:shadow-lg [&>button]:text-black [&>button]:dark:text-foreground [&>button]:border-2 [&>button]:border-black [&>button]:dark:border-foreground pointer-events-auto">
-                        <StellarWallet />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p className="mt-16 text-lg text-muted-foreground">
-                Submit your documentation and unlock new funding opportunities.
-              </p>
-            </div>
-          </div>
-        </section>
-        
-        {/* Spacer section to create the full 150vh scroll space (desktop only) */}
-        <section className="hidden md:flex h-screen items-center justify-center">
-          <div className="text-center opacity-0 pointer-events-none">
-            {/* This section is invisible but creates scroll space on desktop */}
-          </div>
-        </section>
+
+      {/* Main Content */}
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 space-y-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl md:text-6xl font-bold text-white">
+            DOB Validator
+          </h1>
+          <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
+            Secure and efficient device validation on the Stellar network
+          </p>
+        </div>
+
+        <div className="w-full max-w-sm">
+          <StellarWallet />
+        </div>
       </div>
     </div>
   )

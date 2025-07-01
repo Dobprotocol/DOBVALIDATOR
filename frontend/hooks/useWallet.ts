@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware'
 import { requestChallenge, verifySignature } from '@/lib/auth'
 import stellarSigner from '@/lib/stellar-sdk'
 
+// Simple Signer configuration
+const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
+
 interface WalletState {
   walletAddress: string | null
   isAuthenticating: boolean
@@ -52,47 +55,92 @@ export function useWallet() {
       const xdr = stellarSigner.generateChallengeXDR(challenge)
 
       // Open Simple Signer in a new window
-      const signerUrl = stellarSigner.getSimpleSignerUrl(xdr)
-      const signerWindow = window.open(signerUrl, '_blank')
+      const signWindow = window.open(
+        `${SIMPLE_SIGNER_URL}/connect`,
+        'Sign_Window',
+        'width=360, height=700'
+      )
 
       // Create a promise that resolves when the user completes signing
       const waitForSignature = new Promise<{ signedXDR: string, publicKey: string }>((resolve, reject) => {
-        let pollCount = 0
-        const maxPolls = 300 // 5 minutes timeout
-        
-        const pollInterval = setInterval(() => {
-          pollCount++
-          
-          // Check if window is closed
-          if (signerWindow?.closed) {
-            clearInterval(pollInterval)
-            reject(new Error('Signing window was closed'))
-            return
+        let hasConnected = false
+        let userPublicKey = ''
+        let timeoutId: NodeJS.Timeout
+
+        const messageHandler = (e: MessageEvent) => {
+          if (e.origin !== SIMPLE_SIGNER_URL) return
+
+          // Clear timeout on any message
+          if (timeoutId) {
+            clearTimeout(timeoutId)
           }
 
-          // Ask user for signature after window closes
-          if (pollCount >= maxPolls) {
-            clearInterval(pollInterval)
-            const signedXDR = prompt('Please paste the signed transaction XDR:')
-            const publicKey = prompt('Please paste your public key:')
-            
-            if (!signedXDR || !publicKey) {
-              reject(new Error('No signature or public key provided'))
-              return
-            }
-            
-            resolve({ signedXDR, publicKey })
+          switch (e.data.type) {
+            case 'onReady':
+              // When Simple Signer is ready, send the XDR
+              if (e.data.page === 'connect') {
+                signWindow?.postMessage(
+                  {
+                    xdr,
+                    description: 'Please sign this challenge to authenticate with DOB Validator',
+                  },
+                  SIMPLE_SIGNER_URL
+                )
+                // Set a 5-minute timeout
+                timeoutId = setTimeout(() => {
+                  window.removeEventListener('message', messageHandler)
+                  reject(new Error('Connection timed out. Please try again.'))
+                  signWindow?.close()
+                }, 300000) // 5 minutes
+              }
+              break
+
+            case 'onConnect':
+              // When user connects their wallet
+              hasConnected = true
+              userPublicKey = e.data.message.publicKey
+              break
+
+            case 'onSign':
+              // When user signs the transaction
+              if (hasConnected && userPublicKey) {
+                resolve({
+                  signedXDR: e.data.message.signedXDR,
+                  publicKey: userPublicKey
+                })
+                window.removeEventListener('message', messageHandler)
+                if (timeoutId) clearTimeout(timeoutId)
+                signWindow?.close()
+              }
+              break
+
+            case 'onCancel':
+              // When user cancels or closes the window
+              window.removeEventListener('message', messageHandler)
+              if (timeoutId) clearTimeout(timeoutId)
+              reject(new Error('Operation cancelled by user'))
+              signWindow?.close()
+              break
           }
-        }, 1000)
+        }
+
+        window.addEventListener('message', messageHandler)
+
+        // Cleanup if window is closed
+        const checkClosed = setInterval(() => {
+          if (signWindow?.closed) {
+            clearInterval(checkClosed)
+            window.removeEventListener('message', messageHandler)
+            if (timeoutId) clearTimeout(timeoutId)
+            if (!hasConnected) {
+              reject(new Error('Operation cancelled'))
+            }
+          }
+        }, 500)
       })
 
       // Wait for signature
       const { signedXDR, publicKey } = await waitForSignature
-
-      // Verify the challenge response
-      if (!stellarSigner.verifyChallenge(challenge, signedXDR)) {
-        throw new Error('Invalid signature')
-      }
 
       // Verify signature with backend
       const authResult = await verifySignature(publicKey, signedXDR, challenge)
@@ -115,6 +163,26 @@ export function useWallet() {
   }
 
   const disconnectWallet = () => {
+    // Open Simple Signer logout window
+    const logoutWindow = window.open(
+      `${SIMPLE_SIGNER_URL}/logout`,
+      'Logout_Window',
+      'width=100, height=100'
+    )
+
+    // Handle logout message
+    const messageHandler = (e: MessageEvent) => {
+      if (e.origin === SIMPLE_SIGNER_URL && e.data.type === 'onLogOut') {
+        window.removeEventListener('message', messageHandler)
+        logoutWindow?.close()
+      }
+    }
+
+    window.addEventListener('message', messageHandler)
+
+    // Send logout message
+    logoutWindow?.postMessage({ type: 'logout' }, SIMPLE_SIGNER_URL)
+
     // Clear cookies
     document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     document.cookie = 'stellarPublicKey=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
