@@ -44,7 +44,17 @@ export const removeAuthToken = () => {
 // Check if user is authenticated
 export const isAuthenticated = (): boolean => {
   const authToken = getAuthToken()
-  return !!authToken?.token
+  if (!authToken?.token) {
+    return false
+  }
+  
+  // Check if it's a mock token (for development/testing)
+  if (authToken.token.startsWith('mock_access_token_') || authToken.token.startsWith('dev_fallback_token_')) {
+    return true
+  }
+  
+  // For real JWTs, we could add additional validation here if needed
+  return true
 }
 
 // Get authorization header for API requests
