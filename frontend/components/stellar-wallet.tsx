@@ -4,62 +4,15 @@ import { useState } from 'react'
 import { Button } from './ui/button'
 import { useWallet } from '../hooks/useWallet'
 import { useToast } from './ui/use-toast'
-import { TransactionBuilder, Networks, Operation } from '@stellar/stellar-sdk'
-import StellarSdk from '@stellar/stellar-sdk'
 
 export function StellarWallet() {
-  const { walletAddress, isConnected, connectWallet, disconnectWallet } = useWallet()
+  const { walletAddress, isConnected, isAuthenticating, connectWallet, disconnectWallet } = useWallet()
   const { toast } = useToast()
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleConnect = async () => {
     try {
-      setIsConnecting(true)
-
-      // Request challenge from backend
-      const challengeResponse = await fetch('/api/auth/challenge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ walletAddress: 'temp' }) // Temporary wallet address
-      })
-
-      if (!challengeResponse.ok) {
-        throw new Error('Failed to get challenge')
-      }
-
-      const { challenge } = await challengeResponse.json()
-
-      // Get account details
-      const server = new StellarSdk.Server('https://horizon-testnet.stellar.org')
-      const account = await server.loadAccount(walletAddress)
-
-      // Create transaction for signing
-      const tx = new TransactionBuilder(account, {
-        fee: '100',
-        networkPassphrase: Networks.TESTNET,
-      })
-        .addOperation(Operation.manageData({
-          name: 'DOB_VALIDATOR_AUTH',
-          value: challenge,
-        }))
-        .setTimeout(30)
-        .build()
-
-      // Get XDR for signing
-      const xdr = tx.toXDR()
-
-      // Open Simple Signer
-      const signerUrl = `https://sign.stellar.expert/#xdr=${encodeURIComponent(xdr)}`
-      window.open(signerUrl, '_blank')
-
-      // Wait for user to sign and provide signature
-      const signature = prompt('Please paste the signed transaction XDR:')
-      if (!signature) {
-        throw new Error('No signature provided')
-      }
-
+      setError(null)
       await connectWallet()
       
       toast({
@@ -68,55 +21,67 @@ export function StellarWallet() {
       })
     } catch (error) {
       console.error('Error connecting wallet:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect wallet'
+      setError(errorMessage)
+      
       toast({
         title: 'Connection Failed',
-        description: error instanceof Error ? error.message : 'Failed to connect your Stellar wallet. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       })
-    } finally {
-      setIsConnecting(false)
     }
   }
 
-  const handleDisconnect = async () => {
+  const handleDisconnect = () => {
     try {
       disconnectWallet()
+      setError(null)
+      
       toast({
         title: 'Wallet Disconnected',
         description: 'Your Stellar wallet has been disconnected.',
       })
     } catch (error) {
       console.error('Error disconnecting wallet:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to disconnect wallet'
+      setError(errorMessage)
+      
       toast({
         title: 'Disconnection Failed',
-        description: 'Failed to disconnect your Stellar wallet. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       })
     }
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-4">
+      {error && (
+        <div className="text-red-500 text-sm">
+          {error}
+        </div>
+      )}
+      
       {isConnected ? (
-        <>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            Connected: {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
-          </span>
-          <Button
-            variant="outline"
+        <div className="flex flex-col gap-2">
+          <div className="text-sm text-muted-foreground">
+            Connected: {walletAddress}
+          </div>
+          <Button 
             onClick={handleDisconnect}
-            className="text-sm"
+            variant="outline"
+            className="w-full"
           >
             Disconnect Wallet
           </Button>
-        </>
+        </div>
       ) : (
-        <Button
+        <Button 
           onClick={handleConnect}
-          disabled={isConnecting}
-          className="text-sm"
+          disabled={isAuthenticating}
+          className="w-full"
         >
-          {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+          {isAuthenticating ? 'Connecting...' : 'Connect Wallet'}
         </Button>
       )}
     </div>

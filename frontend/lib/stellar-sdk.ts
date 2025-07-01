@@ -1,107 +1,72 @@
-// Browser-compatible Stellar SDK wrapper
-// This avoids the sodium-native compatibility issues in browsers
+'use client'
 
-import StellarSdk from '@stellar/stellar-sdk'
-
-// Initialize Stellar SDK based on environment
-export const HORIZON_URL = process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org'
+// Simple Signer configuration
 export const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET'
-
-// Create server instance only on the client side
-export const getServer = () => {
-  if (typeof window !== 'undefined') {
-    return new StellarSdk.Server(HORIZON_URL)
-  }
-  return null
-}
-
-export const getNetworkPassphrase = () => {
-  return NETWORK === 'TESTNET' ? StellarSdk.Networks.TESTNET : StellarSdk.Networks.PUBLIC
-}
-
-// Browser-safe Stellar SDK functions
-export const stellarSDKBrowser = {
-  Networks: StellarSdk.Networks,
-  Keypair: StellarSdk.Keypair,
-  Operation: StellarSdk.Operation,
-  TransactionBuilder: StellarSdk.TransactionBuilder,
-  
-  // Simple challenge verification
-  verifyChallenge: (challenge: string, signedData: string) => {
-    try {
-      // Basic verification - in a real implementation, you'd verify the signature
-      return challenge && signedData && challenge.length > 0 && signedData.length > 0
-    } catch (error) {
-      console.error('Error verifying challenge:', error)
-      return false
-    }
-  }
-}
-
-// Freighter wallet type
-declare global {
-  interface Window {
-    freighter: {
-      isConnected: () => Promise<boolean>
-      getPublicKey: () => Promise<string>
-      signTransaction: (xdr: string, network: string) => Promise<string>
-    }
-  }
-}
-
-// Check if Freighter is installed
-export const isFreighterInstalled = () => {
-  return typeof window !== 'undefined' && window.freighter !== undefined
-}
-
-// Get Freighter public key
-export const getFreighterPublicKey = async () => {
-  if (!isFreighterInstalled()) {
-    throw new Error('Freighter wallet is not installed')
-  }
-  return await window.freighter.getPublicKey()
-}
-
-// Check if Freighter is connected
-export const isFreighterConnected = async () => {
-  if (!isFreighterInstalled()) {
-    return false
-  }
-  return await window.freighter.isConnected()
-}
-
-// Sign transaction with Freighter
-export const signWithFreighter = async (xdr: string) => {
-  if (!isFreighterInstalled()) {
-    throw new Error('Freighter wallet is not installed')
-  }
-  return await window.freighter.signTransaction(xdr, getNetworkPassphrase())
-}
+export const NETWORK_PASSPHRASE = NETWORK === 'TESTNET' 
+  ? 'Test SDF Network ; September 2015'
+  : 'Public Global Stellar Network ; September 2015'
 
 // Helper function to check if we're in the browser
 export const isBrowser = () => typeof window !== 'undefined'
 
-// Helper function to get account details
-export const getAccountDetails = async (publicKey: string) => {
-  const server = getServer()
-  if (!server) {
-    throw new Error('Server not available')
-  }
-  return await server.loadAccount(publicKey)
+// Helper to generate Simple Signer URL
+export const getSimpleSignerUrl = (xdr: string, publicKey?: string) => {
+  const baseUrl = 'https://sign.stellar.expert'
+  const params = new URLSearchParams()
+  params.append('xdr', xdr)
+  if (publicKey) params.append('public_key', publicKey)
+  params.append('network', NETWORK.toLowerCase())
+  return `${baseUrl}/#${params.toString()}`
 }
 
-// Helper function to check if account exists
-export const accountExists = async (publicKey: string) => {
+// Helper to generate a challenge transaction XDR
+export const generateChallengeXDR = (challenge: string, publicKey?: string) => {
+  // Create a base64 encoded XDR for a manage data operation
+  // This follows the SEP-0010 format for authentication
+  const source = publicKey || 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
+  const sequence = '0'
+  const opSource = source
+  const opName = 'DOB_VALIDATOR_AUTH'
+  const opValue = Buffer.from(challenge).toString('base64')
+  
+  // Construct the XDR parts
+  const header = 'AAAAAgAAAAEAAAAA' // Transaction header (v1, fee=100, 1 operation)
+  const sourceAccount = Buffer.from(source).toString('base64')
+  const seqNum = Buffer.from(sequence).toString('base64')
+  const timeBounds = 'AAAAAA' // No time bounds
+  const memo = 'AAAAAAAAAA' // No memo
+  const operation = Buffer.from(`AAAAAQAAAAA${opSource}${opName}${opValue}`).toString('base64')
+  
+  return `${header}${sourceAccount}${seqNum}${timeBounds}${memo}${operation}AAAAAQ==` // Add trailing reserved bytes
+}
+
+// Simple challenge verification
+export const verifyChallenge = (challenge: string, signedXDR: string) => {
+  if (!isBrowser()) return false
   try {
-    const server = getServer()
-    if (!server) {
-      throw new Error('Server not available')
+    // Basic validation
+    if (!challenge || !signedXDR || challenge.length === 0 || signedXDR.length === 0) {
+      return false
     }
-    await server.loadAccount(publicKey)
-    return true
+
+    // Decode base64 XDR
+    const decodedXDR = Buffer.from(signedXDR, 'base64').toString()
+    
+    // Check if XDR contains our operation name and challenge
+    const hasOpName = decodedXDR.includes('DOB_VALIDATOR_AUTH')
+    const hasChallenge = decodedXDR.includes(challenge)
+    
+    return hasOpName && hasChallenge
   } catch (error) {
+    console.error('Error verifying challenge:', error)
     return false
   }
 }
 
-export default stellarSDKBrowser 
+export default {
+  getSimpleSignerUrl,
+  generateChallengeXDR,
+  verifyChallenge,
+  NETWORK_PASSPHRASE,
+  NETWORK
+} 

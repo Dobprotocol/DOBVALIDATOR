@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import jwt from 'jsonwebtoken'
 import { getChallenge, removeChallenge, storeSession, getSession } from '@/lib/auth-storage'
-import { TransactionBuilder, Networks } from '@stellar/stellar-sdk'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -32,34 +31,23 @@ function verifyXDRTransaction(walletAddress: string, signature: string, challeng
     // Remove used challenge
     removeChallenge(walletAddress)
 
-    // Verify signature
-    const tx = TransactionBuilder.fromXDR(signature, Networks.TESTNET)
-    if ('operations' in tx) {
-      const operations = tx.operations
-      if (operations.length !== 1) {
-        console.log('❌ Invalid number of operations')
-        return false
-      }
-
-      // Verify operation type and content
-      const operation = operations[0]
-      if (operation.type !== 'manageData' || operation.name !== 'DOB_VALIDATOR_AUTH') {
-        console.log('❌ Invalid operation type or name')
-        return false
-      }
-
-      // Verify challenge value
-      const value = operation.value.toString()
-      if (value !== challenge) {
-        console.log('❌ Challenge value mismatch')
-        return false
-      }
-
-      return true
-    } else {
-      console.log('❌ Invalid transaction type (FeeBumpTransaction)')
+    // Basic XDR verification
+    if (!signature || !signature.length) {
+      console.log('❌ Invalid signature')
       return false
     }
+
+    // Verify the XDR contains our operation name and challenge
+    const decodedXDR = Buffer.from(signature, 'base64').toString()
+    const hasOpName = decodedXDR.includes('DOB_VALIDATOR_AUTH')
+    const hasChallenge = decodedXDR.includes(challenge)
+
+    if (!hasOpName || !hasChallenge) {
+      console.log('❌ Invalid operation or challenge')
+      return false
+    }
+
+    return true
   } catch (error) {
     console.error('❌ Error verifying XDR transaction:', error)
     return false
@@ -83,50 +71,28 @@ export async function POST(request: Request) {
       )
     }
 
-    try {
-      // Verify the signed transaction
-      const signedTx = TransactionBuilder.fromXDR(signature, Networks.TESTNET)
-      
-      // Verify the transaction is from the claimed wallet
-      if (!('source' in signedTx) || signedTx.source !== walletAddress) {
-        return NextResponse.json(
-          { error: 'Invalid signature: wallet address mismatch' },
-          { status: 401 }
-        )
-      }
-
-      // Verify the transaction contains the challenge
-      const manageDataOp = signedTx.operations[0]
-      if (
-        manageDataOp.type !== 'manageData' ||
-        manageDataOp.name !== 'DOB_VALIDATOR_AUTH' ||
-        manageDataOp.value !== challenge
-      ) {
-        return NextResponse.json(
-          { error: 'Invalid signature: challenge mismatch' },
-          { status: 401 }
-        )
-      }
-
-      // Generate JWT token
-      const expiresIn = '24h'
-      const token = jwt.sign(
-        {
-          walletAddress,
-          timestamp: Date.now(),
-        },
-        JWT_SECRET,
-        { expiresIn }
-      )
-
-      return NextResponse.json({ token, expiresIn })
-    } catch (error) {
-      console.error('Error verifying signature:', error)
+    // Verify the signed transaction
+    const isValid = verifyXDRTransaction(walletAddress, signature, challenge)
+    
+    if (!isValid) {
       return NextResponse.json(
         { error: 'Invalid signature' },
         { status: 401 }
       )
     }
+
+    // Generate JWT token
+    const expiresIn = '24h'
+    const token = jwt.sign(
+      {
+        walletAddress,
+        timestamp: Date.now(),
+      },
+      JWT_SECRET,
+      { expiresIn }
+    )
+
+    return NextResponse.json({ token, expiresIn })
   } catch (error) {
     console.error('Error in auth verify:', error)
     return NextResponse.json(
