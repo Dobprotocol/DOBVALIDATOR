@@ -1,22 +1,91 @@
 'use client'
 
-// Simple Signer configuration
+import { Networks } from '@stellar/stellar-sdk'
+
+// Create a singleton instance of the SDK
+class StellarSDKWrapper {
+  private static instance: StellarSDKWrapper
+  private initialized: boolean = false
+  private baseFee: string = '100'
+
+  private constructor() {}
+
+  public static getInstance(): StellarSDKWrapper {
+    if (!StellarSDKWrapper.instance) {
+      StellarSDKWrapper.instance = new StellarSDKWrapper()
+    }
+    return StellarSDKWrapper.instance
+  }
+
+  public initialize(): boolean {
+    if (this.initialized) return true
+    if (typeof window === 'undefined') return false
+
+    try {
+      // Set the network passphrase for testnet
+      this.initialized = true
+      console.log('✅ Stellar SDK initialized successfully')
+      return true
+    } catch (error) {
+      console.error('Failed to initialize Stellar SDK:', error)
+      return false
+    }
+  }
+
+  public getNetwork(): string {
+    if (!this.initialized) {
+      throw new Error('Stellar SDK not initialized')
+    }
+    return Networks.TESTNET
+  }
+
+  public getBaseFee(): string {
+    if (!this.initialized) {
+      throw new Error('Stellar SDK not initialized')
+    }
+    return this.baseFee
+  }
+
+  public isInitialized(): boolean {
+    return this.initialized
+  }
+}
+
+// Create and export the singleton instance
+const stellarSDK = StellarSDKWrapper.getInstance()
+
+// Initialize the SDK
+let isInitialized = false
+if (typeof window !== 'undefined') {
+  try {
+    isInitialized = stellarSDK.initialize()
+  } catch (error) {
+    console.error('Failed to initialize Stellar SDK on module load:', error)
+    isInitialized = false
+  }
+}
+
+// Export constants
 export const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET'
-export const NETWORK_PASSPHRASE = NETWORK === 'TESTNET' 
-  ? 'Test SDF Network ; September 2015'
-  : 'Public Global Stellar Network ; September 2015'
+export const NETWORK_PASSPHRASE = NETWORK === 'TESTNET' ? Networks.TESTNET : Networks.PUBLIC
+export const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
+
+// Export the SDK instance and initialization status
+export const getStellarSDK = () => stellarSDK
+export { isInitialized }
 
 // Helper function to check if we're in the browser
-export const isBrowser = () => typeof window !== 'undefined'
+const isBrowser = () => typeof window !== 'undefined'
 
 // Helper to generate Simple Signer URL
 export const getSimpleSignerUrl = (xdr: string, publicKey?: string) => {
-  const baseUrl = 'https://sign.stellar.expert'
-  const params = new URLSearchParams()
-  params.append('xdr', xdr)
+  const params = new URLSearchParams({
+    xdr,
+    network: NETWORK.toLowerCase(),
+    description: 'DOB Validator Authentication',
+  })
   if (publicKey) params.append('public_key', publicKey)
-  params.append('network', NETWORK.toLowerCase())
-  return `${baseUrl}/#${params.toString()}`
+  return `${SIMPLE_SIGNER_URL}/connect#${params.toString()}`
 }
 
 // Helper to generate a challenge transaction XDR
@@ -63,10 +132,113 @@ export const verifyChallenge = (challenge: string, signedXDR: string) => {
   }
 }
 
+// Helper to open Simple Signer window
+export const openSimpleSigner = async (xdr: string, description: string): Promise<{ signedXDR: string, publicKey: string }> => {
+  return new Promise((resolve, reject) => {
+    const signWindow = window.open(
+      `${SIMPLE_SIGNER_URL}/connect`,
+      'Sign_Window',
+      'width=360,height=700'
+    )
+
+    if (!signWindow) {
+      reject(new Error('Popup blocked. Please allow popups and try again.'))
+      return
+    }
+
+    let hasConnected = false
+    let userPublicKey = ''
+    let timeoutId: NodeJS.Timeout
+
+    const messageHandler = (e: MessageEvent) => {
+      if (e.origin !== SIMPLE_SIGNER_URL) return
+
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+
+      try {
+        switch (e.data.type) {
+          case 'onReady':
+            if (e.data.page === 'connect') {
+              signWindow.postMessage(
+                {
+                  type: 'sign',
+                  xdr,
+                  description,
+                  network: NETWORK.toLowerCase()
+                },
+                SIMPLE_SIGNER_URL
+              )
+              timeoutId = setTimeout(() => {
+                window.removeEventListener('message', messageHandler)
+                signWindow.close()
+                reject(new Error('Connection timed out. Please try again.'))
+              }, 300000) // 5 minutes
+            }
+            break
+
+          case 'onConnect':
+            hasConnected = true
+            userPublicKey = e.data.message.publicKey
+            break
+
+          case 'onSign':
+            if (hasConnected && userPublicKey) {
+              resolve({
+                signedXDR: e.data.message.signedXDR,
+                publicKey: userPublicKey
+              })
+              window.removeEventListener('message', messageHandler)
+              if (timeoutId) clearTimeout(timeoutId)
+              signWindow.close()
+            }
+            break
+
+          case 'onCancel':
+            window.removeEventListener('message', messageHandler)
+            if (timeoutId) clearTimeout(timeoutId)
+            signWindow.close()
+            reject(new Error('Operation cancelled by user'))
+            break
+
+          case 'error':
+            window.removeEventListener('message', messageHandler)
+            if (timeoutId) clearTimeout(timeoutId)
+            signWindow.close()
+            reject(new Error(e.data.message || 'Failed to sign transaction'))
+            break
+        }
+      } catch (error) {
+        window.removeEventListener('message', messageHandler)
+        if (timeoutId) clearTimeout(timeoutId)
+        signWindow.close()
+        reject(error)
+      }
+    }
+
+    window.addEventListener('message', messageHandler)
+
+    // Check if window is closed
+    const checkClosed = setInterval(() => {
+      if (signWindow.closed) {
+        clearInterval(checkClosed)
+        window.removeEventListener('message', messageHandler)
+        if (timeoutId) clearTimeout(timeoutId)
+        if (!hasConnected) {
+          reject(new Error('Operation cancelled'))
+        }
+      }
+    }, 500)
+  })
+}
+
 export default {
   getSimpleSignerUrl,
   generateChallengeXDR,
   verifyChallenge,
+  openSimpleSigner,
   NETWORK_PASSPHRASE,
-  NETWORK
+  NETWORK,
+  SIMPLE_SIGNER_URL
 } 

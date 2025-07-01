@@ -26,12 +26,22 @@ interface JWTPayload {
 
 // Store auth token in localStorage
 export const storeAuthToken = (token: string, expiresIn: string, walletAddress: string) => {
-  const authData: AuthToken = {
-    token,
-    expiresIn,
-    walletAddress
+  try {
+    const authData: AuthToken = {
+      token,
+      expiresIn,
+      walletAddress
+    }
+    localStorage.setItem('authToken', JSON.stringify(authData))
+    localStorage.setItem('stellarPublicKey', walletAddress)
+    
+    // Also store in cookies for middleware
+    document.cookie = `authToken=${token}; path=/; max-age=${typeof expiresIn === 'string' ? parseInt(expiresIn) : expiresIn}; SameSite=Lax`
+    document.cookie = `stellarPublicKey=${walletAddress}; path=/; max-age=${typeof expiresIn === 'string' ? parseInt(expiresIn) : expiresIn}; SameSite=Lax`
+  } catch (error) {
+    console.error('Failed to store auth token:', error)
+    throw new Error('Failed to store auth token')
   }
-  localStorage.setItem('authToken', JSON.stringify(authData))
 }
 
 // Get auth token from localStorage
@@ -72,13 +82,15 @@ export const getAuthHeader = (): { Authorization: string } | {} => {
 // Request a challenge for wallet signature
 export const requestChallenge = async (walletAddress: string): Promise<ChallengeResponse> => {
   try {
+    console.log('🔍 Requesting challenge for wallet:', walletAddress)
     const response = await apiService.generateChallenge(walletAddress)
+    console.log('✅ Challenge received:', response.challenge)
     return {
       challenge: response.challenge,
       message: 'Please sign this challenge with your wallet to authenticate'
     }
   } catch (error) {
-    console.error('Failed to request challenge:', error)
+    console.error('❌ Failed to request challenge:', error)
     throw new Error('Failed to request challenge')
   }
 }
@@ -133,13 +145,15 @@ export const logout = () => {
   
   // Clear backend session if we have wallet address
   if (authToken?.walletAddress) {
-    // Note: In a real app, you'd call an API endpoint to clear the session
-    // For now, we'll just clear local storage
     console.log('🚪 Logging out wallet:', authToken.walletAddress)
   }
   
   // Clear session storage as well
   sessionStorage.clear()
+  
+  // Clear cookies
+  document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  document.cookie = 'stellarPublicKey=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   
   window.dispatchEvent(new Event('walletStateChange'))
 }
@@ -220,5 +234,19 @@ export function getAuthenticatedUser(request: NextRequest): { valid: boolean; us
     return { valid: true, user: result.payload }
   } else {
     return { valid: false }
+  }
+}
+
+// Clear auth token from localStorage
+export const clearAuthToken = () => {
+  try {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('stellarPublicKey')
+    
+    // Also clear cookies
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'stellarPublicKey=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  } catch (error) {
+    console.error('Failed to clear auth token:', error)
   }
 } 

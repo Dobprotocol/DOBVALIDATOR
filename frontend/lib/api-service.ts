@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001' // For backend-only endpoints
+const API_BASE_URL = '' // Use relative URLs to call frontend API routes
 
 class ApiService {
   private baseUrl: string
@@ -7,51 +7,42 @@ class ApiService {
     this.baseUrl = baseUrl
   }
 
-  private getAuthToken(): string | null {
-    try {
-      const authData = localStorage.getItem('authToken')
-      if (authData) {
-        const parsedAuth = JSON.parse(authData)
-        return parsedAuth.token || null
-      }
-    } catch (error) {
-      console.error('Failed to parse auth token:', error)
-    }
-    return null
-  }
-
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    // Use absolute URL for backend-only endpoints, but relative for Next.js API routes
-    const isFrontendApi = endpoint.startsWith('/api/')
-    const url = isFrontendApi ? endpoint : `${this.baseUrl}${endpoint}`
+    const url = `${this.baseUrl}${endpoint}`
     
-    // Add cache-busting headers for browser compatibility
-    const headers = {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      ...options.headers,
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
     }
 
-    // Add authorization header if token exists
-    const token = this.getAuthToken()
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+    // Add auth token if available
+    const authData = localStorage.getItem('authToken')
+    if (authData) {
+      try {
+        const parsedAuth = JSON.parse(authData)
+        if (parsedAuth.token) {
+          config.headers = {
+            ...config.headers,
+            'Authorization': `Bearer ${parsedAuth.token}`,
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse auth token:', error)
+      }
     }
 
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      })
+      const response = await fetch(url, config)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${response.status}`)
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
       }
 
       return await response.json()
@@ -61,7 +52,7 @@ class ApiService {
     }
   }
 
-  // Authentication (use Next.js API routes)
+  // Authentication
   async generateChallenge(walletAddress: string) {
     return this.request<{ success: boolean; challenge: string }>('/api/auth/challenge', {
       method: 'POST',
@@ -70,7 +61,7 @@ class ApiService {
   }
 
   async verifySignature(walletAddress: string, signature: string, challenge: string) {
-    return this.request<{ success: boolean; token: string; user: any }>('/api/auth/verify', {
+    return this.request<{ success: boolean; token: string; expiresIn: string; user: any }>('/api/auth/verify', {
       method: 'POST',
       body: JSON.stringify({ walletAddress, signature, challenge }),
     })
@@ -88,7 +79,7 @@ class ApiService {
     })
   }
 
-  // Submissions (use backend API)
+  // Submissions
   async getSubmissions(options?: {
     status?: string
     limit?: number
@@ -110,25 +101,6 @@ class ApiService {
     }>(endpoint)
   }
 
-  async getDrafts(options?: {
-    limit?: number
-    offset?: number
-  }) {
-    const params = new URLSearchParams()
-    if (options?.limit) params.append('limit', options.limit.toString())
-    if (options?.offset) params.append('offset', options.offset.toString())
-
-    const queryString = params.toString()
-    const endpoint = `/api/drafts${queryString ? `?${queryString}` : ''}`
-
-    return this.request<{
-      success: boolean
-      drafts: any[]
-      total: number
-      hasMore: boolean
-    }>(endpoint)
-  }
-
   async getSubmission(id: string) {
     return this.request<{ success: boolean; submission: any }>(`/api/submissions/${id}`)
   }
@@ -138,38 +110,6 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(submissionData),
     })
-  }
-
-  // Device submission (use frontend API route)
-  async submitDevice(formData: FormData) {
-    const token = this.getAuthToken()
-    const headers: Record<string, string> = {}
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    try {
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        body: formData,
-        headers,
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        const error = new Error(data.error || 'Submission failed')
-        ;(error as any).status = response.status
-        ;(error as any).errors = data.errors
-        throw error
-      }
-
-      return data
-    } catch (error) {
-      console.error('Device submission failed:', error)
-      throw error
-    }
   }
 
   // Admin endpoints
