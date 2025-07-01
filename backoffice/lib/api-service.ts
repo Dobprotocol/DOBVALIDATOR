@@ -1,261 +1,253 @@
-// API service for backoffice to communicate with the backend
+// API Service for DOB Validator Backend
+// Base URL: https://validator.dobprotocol.com
+
+const API_BASE_URL = 'https://validator.dobprotocol.com'
+
+// Types for the backend API
 export interface Submission {
   id: string
-  deviceName: string
-  deviceType: string
-  serialNumber: string
+  device_name: string
+  device_type: string
+  custom_device_type?: string | null
+  location: string
+  serial_number: string
   manufacturer: string
   model: string
-  yearOfManufacture: string
+  year_of_manufacture: string
   condition: string
   specifications: string
-  purchasePrice: string
-  currentValue: string
-  expectedRevenue: string
-  operationalCosts: string
-  operatorWallet: string
-  status: 'pending' | 'under review' | 'approved' | 'rejected' | 'draft'
-  submittedAt: string
-  updatedAt: string
-  files: Array<{
-    filename: string
-    path: string
-    documentType: string
-  }>
-  adminNotes: string | null
-  adminScore: number | null
-  adminDecision: 'approved' | 'rejected' | null
-  adminDecisionAt: string | null
-  certificateId: string | null
+  purchase_price: string
+  current_value: string
+  expected_revenue: string
+  operational_costs: string
+  status: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'
+  submitted_at: string
+  updated_at: string
+  user_id: string
+  user?: User
+  admin_review?: AdminReview
 }
 
-export interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
+export interface User {
+  id: string
+  wallet_address: string
+  email: string | null
+  name: string | null
+  role: 'USER' | 'ADMIN'
+  created_at: string
+  updated_at: string
 }
 
-export interface SubmissionsResponse {
-  submissions: Submission[]
-  pagination: {
-    total: number
-    limit: number
-    offset: number
-    hasMore: boolean
-  }
+export interface AdminReview {
+  id: string
+  notes: string | null
+  technical_score: number | null
+  regulatory_score: number | null
+  financial_score: number | null
+  environmental_score: number | null
+  overall_score: number | null
+  decision: 'APPROVED' | 'REJECTED' | null
+  decision_at: string | null
+  reviewed_at: string
+  submission_id: string
+}
+
+export interface SubmissionsStats {
+  total: number
+  pending: number
+  underReview: number
+  approved: number
+  rejected: number
 }
 
 class ApiService {
   private baseUrl: string
-  private getAuthToken: () => string | null
+  private authToken: string | null = null
 
-  constructor() {
-    // In production, always use Next.js API routes (relative /api)
-    // In development, use NEXT_PUBLIC_API_BASE_URL or fallback to localhost
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? '/api' 
-      : process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'
+  constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl
-    
-    this.getAuthToken = () => {
-      const authData = localStorage.getItem('authToken')
-      if (authData) {
-        try {
-          const parsed = JSON.parse(authData)
-          return parsed.token || authData
-        } catch {
-          return authData
-        }
-      }
-      return null
-    }
   }
 
-  private async makeRequest<T>(
-    endpoint: string, 
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    const token = this.getAuthToken()
-    
-    if (!token) {
-      return {
-        success: false,
-        error: 'No authentication token found'
-      }
+  // Set authentication token
+  setAuthToken(token: string) {
+    this.authToken = token
+  }
+
+  // Get headers for API requests
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
     }
 
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`
+    }
+
+    return headers
+  }
+
+  // Generic API request method
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
-    
-    const defaultHeaders = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        ...this.getHeaders(),
+        ...options.headers,
+      },
     }
 
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers: defaultHeaders
-      })
-
-      const data = await response.json()
-
+      const response = await fetch(url, config)
+      
       if (!response.ok) {
-        return {
-          success: false,
-          error: data.error || `HTTP ${response.status}: ${response.statusText}`
-        }
+        const errorText = await response.text()
+        throw new Error(`API Error ${response.status}: ${errorText}`)
       }
 
-      return {
-        success: true,
-        data: data
-      }
+      return await response.json()
     } catch (error) {
-      console.error('API request failed:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Network error'
-      }
+      console.error(`API request failed for ${endpoint}:`, error)
+      throw error
     }
   }
 
-  // Transform backend submission data to frontend format
-  private transformSubmission(backendSubmission: any): Submission {
-    return {
-      id: backendSubmission.id || '',
-      deviceName: backendSubmission.deviceName || '',
-      deviceType: backendSubmission.deviceType || '',
-      serialNumber: backendSubmission.serialNumber || '',
-      manufacturer: backendSubmission.manufacturer || '',
-      model: backendSubmission.model || '',
-      yearOfManufacture: backendSubmission.yearOfManufacture || '',
-      condition: backendSubmission.condition || '',
-      specifications: backendSubmission.specifications || '',
-      purchasePrice: backendSubmission.purchasePrice || '',
-      currentValue: backendSubmission.currentValue || '',
-      expectedRevenue: backendSubmission.expectedRevenue || '',
-      operationalCosts: backendSubmission.operationalCosts || '',
-      operatorWallet: backendSubmission.user?.walletAddress || backendSubmission.operatorWallet || '',
-      status: backendSubmission.status || 'pending',
-      submittedAt: backendSubmission.submittedAt || '',
-      updatedAt: backendSubmission.updatedAt || '',
-      files: (backendSubmission.files || []).map((file: any) => ({
-        filename: file.filename || '',
-        path: file.path || '',
-        documentType: file.documentType || ''
-      })),
-      adminNotes: backendSubmission.adminReview?.notes || backendSubmission.adminNotes || null,
-      adminScore: backendSubmission.adminReview?.overallScore || backendSubmission.adminScore || null,
-      adminDecision: backendSubmission.adminReview?.decision?.toLowerCase() || backendSubmission.adminDecision || null,
-      adminDecisionAt: backendSubmission.adminReview?.decisionAt || backendSubmission.adminDecisionAt || null,
-      certificateId: backendSubmission.certificate?.id || backendSubmission.certificateId || null
-    }
-  }
-
-  // Get all submissions (admin only)
-  async getSubmissions(params?: {
+  // Get all submissions with optional filters
+  async getAllSubmissions(options?: {
     status?: string
     limit?: number
     offset?: number
-  }): Promise<ApiResponse<SubmissionsResponse>> {
-    const queryParams = new URLSearchParams()
+  }): Promise<Submission[]> {
+    const params = new URLSearchParams()
     
-    if (params?.status) queryParams.append('status', params.status)
-    if (params?.limit) queryParams.append('limit', params.limit.toString())
-    if (params?.offset) queryParams.append('offset', params.offset.toString())
-
-    const endpoint = `/submissions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-    
-    const response = await this.makeRequest<any>(endpoint)
-    
-    if (response.success && response.data) {
-      return {
-        success: true,
-        data: {
-          submissions: response.data.submissions?.map((s: any) => this.transformSubmission(s)) || [],
-          pagination: {
-            total: response.data.total || 0,
-            limit: response.data.limit || 10,
-            offset: response.data.offset || 0,
-            hasMore: response.data.hasMore || false
-          }
-        }
-      }
+    if (options?.status) {
+      params.append('status', options.status)
     }
+    if (options?.limit) {
+      params.append('limit', options.limit.toString())
+    }
+    if (options?.offset) {
+      params.append('offset', options.offset.toString())
+    }
+
+    const queryString = params.toString()
+    const endpoint = `/api/submissions${queryString ? `?${queryString}` : ''}`
     
-    return response as ApiResponse<SubmissionsResponse>
+    return this.request<Submission[]>(endpoint)
   }
 
-  // Get a specific submission by ID
-  async getSubmission(id: string): Promise<ApiResponse<Submission>> {
-    const response = await this.makeRequest<any>(`/submissions/${id}`)
-    
-    if (response.success && response.data?.submission) {
-      return {
-        success: true,
-        data: this.transformSubmission(response.data.submission)
-      }
-    }
-    
-    return response as ApiResponse<Submission>
+  // Get submissions by status
+  async getSubmissionsByStatus(status: string): Promise<Submission[]> {
+    return this.getAllSubmissions({ status })
   }
 
-  // Update a submission (admin only)
-  async updateSubmission(
-    id: string, 
-    updates: Partial<Submission>
-  ): Promise<ApiResponse<Submission>> {
-    // Transform frontend updates to backend format
-    const backendUpdates: any = { ...updates }
-    
-    // Handle admin review data
-    if (updates.adminNotes !== undefined) {
-      backendUpdates.adminNotes = updates.adminNotes
-    }
-    
-    if (updates.adminScore !== undefined) {
-      backendUpdates.adminScore = updates.adminScore
-    }
-    
-    if (updates.adminDecision !== undefined) {
-      backendUpdates.adminDecision = updates.adminDecision
-    }
-    
-    if (updates.adminDecisionAt !== undefined) {
-      backendUpdates.adminDecisionAt = updates.adminDecisionAt
-    }
-    
-    const response = await this.makeRequest<any>(`/submissions/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(backendUpdates)
+  // Get a single submission by ID
+  async getSubmissionById(id: string): Promise<Submission> {
+    return this.request<Submission>(`/api/submissions/${id}`)
+  }
+
+  // Update submission status
+  async updateSubmissionStatus(
+    submissionId: string,
+    status: string
+  ): Promise<Submission> {
+    return this.request<Submission>(`/api/submissions/${submissionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     })
-    
-    if (response.success && response.data?.submission) {
-      return {
-        success: true,
-        data: this.transformSubmission(response.data.submission)
+  }
+
+  // Create or update admin review
+  async upsertAdminReview(reviewData: {
+    submission_id: string
+    notes?: string
+    technical_score?: number
+    regulatory_score?: number
+    financial_score?: number
+    environmental_score?: number
+    overall_score?: number
+    decision?: 'APPROVED' | 'REJECTED'
+  }): Promise<AdminReview> {
+    return this.request<AdminReview>('/api/admin-reviews', {
+      method: 'POST',
+      body: JSON.stringify(reviewData),
+    })
+  }
+
+  // Get admin review for submission
+  async getAdminReview(submissionId: string): Promise<AdminReview | null> {
+    try {
+      return await this.request<AdminReview>(`/api/admin-reviews/${submissionId}`)
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('404')) {
+        return null
       }
+      throw error
     }
+  }
+
+  // Get submission with full details (user and review)
+  async getSubmissionWithDetails(submissionId: string): Promise<Submission> {
+    return this.request<Submission>(`/api/submissions/${submissionId}/details`)
+  }
+
+  // Get pending submissions count
+  async getPendingSubmissionsCount(): Promise<number> {
+    const submissions = await this.getSubmissionsByStatus('PENDING')
+    return submissions.length
+  }
+
+  // Get submissions statistics
+  async getSubmissionsStats(): Promise<SubmissionsStats> {
+    const allSubmissions = await this.getAllSubmissions()
     
-    return response as ApiResponse<Submission>
+    const stats: SubmissionsStats = {
+      total: allSubmissions.length,
+      pending: 0,
+      underReview: 0,
+      approved: 0,
+      rejected: 0,
+    }
+
+    allSubmissions.forEach(submission => {
+      switch (submission.status) {
+        case 'PENDING':
+          stats.pending++
+          break
+        case 'UNDER_REVIEW':
+          stats.underReview++
+          break
+        case 'APPROVED':
+          stats.approved++
+          break
+        case 'REJECTED':
+          stats.rejected++
+          break
+      }
+    })
+
+    return stats
   }
 
-  // Get user profile
-  async getProfile(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/profile')
+  // Admin authentication (placeholder for now)
+  async authenticateAdmin(walletAddress: string, signature: string): Promise<{ token: string }> {
+    return this.request<{ token: string }>('/api/auth/admin-login', {
+      method: 'POST',
+      body: JSON.stringify({ walletAddress, signature }),
+    })
   }
 
-  // Check if current user is authenticated
-  isAuthenticated(): boolean {
-    return this.getAuthToken() !== null
-  }
-
-  // Get authentication token
-  getToken(): string | null {
-    return this.getAuthToken()
+  // Get current admin profile
+  async getAdminProfile(): Promise<User> {
+    return this.request<User>('/api/auth/profile')
   }
 }
 
-export const apiService = new ApiService() 
+// Export singleton instance
+export const apiService = new ApiService()
+
+// Export the class for testing
+export { ApiService } 

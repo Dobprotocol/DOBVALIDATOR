@@ -112,11 +112,11 @@ function AppSidebar() {
   // Fetch pending count for badge
   useEffect(() => {
     const fetchPendingCount = async () => {
-      if (apiService.isAuthenticated()) {
-        const response = await apiService.getSubmissions({ status: 'pending' })
-        if (response.success && response.data) {
-          setPendingCount(response.data.pagination.total)
-        }
+      try {
+        const count = await apiService.getPendingSubmissionsCount()
+        setPendingCount(count)
+      } catch (error) {
+        console.error('Error fetching pending count:', error)
       }
     }
 
@@ -276,31 +276,17 @@ function InboxSection() {
       setLoading(true)
       setError(null)
 
-      if (!apiService.isAuthenticated()) {
-        setError('Authentication required')
-        return
-      }
-
-      const response = await apiService.getSubmissions({
+      const submissions = await apiService.getAllSubmissions({
         status: statusFilter === 'all' ? undefined : statusFilter,
         limit: pagination.limit,
         offset: pagination.offset
       })
 
-      if (response.success && response.data) {
-        setSubmissions(response.data?.submissions || [])
-        setPagination(prev => ({
-          ...prev,
-          ...(response.data?.pagination || {})
-        }))
-      } else {
-        setError(response.error || 'Failed to fetch submissions')
-        toast({
-          title: "Error",
-          description: response.error || 'Failed to fetch submissions',
-          variant: "destructive",
-        })
-      }
+      setSubmissions(submissions)
+      setPagination(prev => ({
+        ...prev,
+        total: submissions.length
+      }))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setError(errorMessage)
@@ -321,9 +307,9 @@ function InboxSection() {
   // Filter submissions by search query
   const filteredSubmissions = submissions.filter((submission) => {
     const matchesSearch =
-      submission.deviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      submission.device_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       submission.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.deviceType.toLowerCase().includes(searchQuery.toLowerCase())
+      submission.device_type.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesSearch
   })
 
@@ -431,30 +417,30 @@ function InboxSection() {
                   {filteredSubmissions.map((submission) => (
                     <TableRow key={submission.id}>
                       <TableCell className="font-mono text-sm">{submission.id}</TableCell>
-                      <TableCell className="font-medium">{submission.deviceName}</TableCell>
+                      <TableCell className="font-medium">{submission.device_name}</TableCell>
                       <TableCell>{submission.manufacturer}</TableCell>
                       <TableCell>
-                        <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
-                          {submission.status.replace("-", " ")}
+                        <Badge className={statusColors[submission.status.toLowerCase() as keyof typeof statusColors]}>
+                          {submission.status.replace("_", " ")}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {submission.deviceType}
+                          {submission.device_type}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {submission.adminScore ? (
+                        {submission.admin_review?.overall_score ? (
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 text-yellow-500" />
-                            {submission.adminScore}
+                            {submission.admin_review.overall_score}
                           </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(submission.submittedAt).toLocaleDateString()}
+                        {new Date(submission.submitted_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button
