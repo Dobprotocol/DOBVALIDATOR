@@ -23,6 +23,19 @@ interface DeviceBasicInfoProps {
   onAutoSave?: () => void
 }
 
+// Device types that match the backend schema
+const DEVICE_TYPES = [
+  { value: "renewable-energy", label: "Renewable Energy" },
+  { value: "wind-energy", label: "Wind Energy" },
+  { value: "energy-storage", label: "Energy Storage" },
+  { value: "solar-panel", label: "Solar Panel" },
+  { value: "wind-turbine", label: "Wind Turbine" },
+  { value: "battery-storage", label: "Battery Storage" },
+  { value: "hydro-generator", label: "Hydro Generator" },
+  { value: "geothermal", label: "Geothermal" },
+  { value: "biomass", label: "Biomass" }
+]
+
 export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft, onAutoSave }: DeviceBasicInfoProps) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
   const [showExplosion, setShowExplosion] = useState(false)
@@ -39,6 +52,29 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
     customDeviceType: deviceData.customDeviceType || "",
     location: deviceData.location || ""
   })
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('dobFormStep1Backup')
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData)
+        setLocalData(prev => ({
+          ...prev,
+          ...parsedData
+        }))
+        // Also update parent state
+        updateDeviceData(parsedData)
+      } catch (error) {
+        console.error('Error parsing localStorage data:', error)
+      }
+    }
+  }, [])
+
+  // Save to localStorage whenever localData changes
+  useEffect(() => {
+    localStorage.setItem('dobFormStep1Backup', JSON.stringify(localData))
+  }, [localData])
 
   // Only sync on draftId change, not on parent state changes
   useEffect(() => {
@@ -60,6 +96,11 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
   const handleInputChange = (field: string, value: string) => {
     console.log('🔍 Input change:', field, value)
     setLocalData(prev => ({ ...prev, [field]: value }))
+    
+    // Trigger auto-save if available
+    if (onAutoSave) {
+      onAutoSave()
+    }
   }
 
   const validate = () => {
@@ -127,8 +168,6 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
     setShowExplosion(false)
   }
 
-  const deviceTypes = ["Solar Panel", "Wind Turbine", "Battery Storage", "Mining Equipment", "Server", "Other"]
-
   return (
     <>
       {showWelcomeModal && (
@@ -190,30 +229,15 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
                     <SelectValue placeholder="Select device type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="solar-panel">Solar Panel</SelectItem>
-                    <SelectItem value="wind-turbine">Wind Turbine</SelectItem>
-                    <SelectItem value="battery-storage">Battery Storage</SelectItem>
-                    <SelectItem value="hydro-generator">Hydro Generator</SelectItem>
-                    <SelectItem value="geothermal">Geothermal</SelectItem>
-                    <SelectItem value="biomass">Biomass</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {DEVICE_TYPES.map((deviceType) => (
+                      <SelectItem key={deviceType.value} value={deviceType.value}>
+                        {deviceType.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {errors.deviceType && <p className="text-red-500 text-sm mt-1">{errors.deviceType}</p>}
               </div>
-
-              {localData.deviceType === 'other' && (
-                <div>
-                  <Label htmlFor="customDeviceType">Custom Device Type</Label>
-                  <Input
-                    id="customDeviceType"
-                    value={localData.customDeviceType}
-                    onChange={(e) => handleInputChange('customDeviceType', e.target.value)}
-                    placeholder="Specify custom device type"
-                    className="form-input"
-                  />
-                </div>
-              )}
 
               <div>
                 <Label htmlFor="location">Location</Label>
@@ -228,16 +252,7 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
               </div>
             </div>
 
-            <div className="flex justify-between pt-6">
-              <Button type="button" variant="outline" onClick={onBack} className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <Button type="submit" className="flex items-center gap-2 ml-auto">
-                Next
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            {/* Navigation buttons removed - using single button at bottom */}
           </form>
         </CardContent>
       </Card>

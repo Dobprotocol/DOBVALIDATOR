@@ -206,16 +206,7 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
             </div>
           </div>
 
-          <div className="flex justify-between pt-6">
-            <Button type="button" variant="outline" onClick={onBack} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <Button type="submit" className="flex items-center gap-2 ml-auto">
-              Next
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* Navigation buttons removed - using single button at bottom */}
         </form>
       </CardContent>
     </Card>

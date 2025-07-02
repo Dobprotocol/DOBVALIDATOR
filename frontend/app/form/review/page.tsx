@@ -1,0 +1,176 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Send, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { apiService } from '@/lib/api-service'
+import { AuthGuard } from "@/components/auth-guard"
+import { DeviceReview } from "@/components/steps/device-review"
+import type { DeviceData } from "@/components/enhanced-device-verification-flow"
+
+export default function FormReviewPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
+  const [deviceData, setDeviceData] = useState<DeviceData | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Get device data from localStorage or URL params
+    const savedData = localStorage.getItem('dobFormBackup')
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData)
+        setDeviceData(parsedData)
+      } catch (error) {
+        console.error('Error parsing saved data:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load form data. Please go back and try again.",
+          variant: "destructive",
+        })
+        router.push('/form')
+      }
+    } else {
+      toast({
+        title: "No Data Found",
+        description: "Please complete the form first.",
+        variant: "destructive",
+      })
+      router.push('/form')
+    }
+  }, [router, toast])
+
+  const handleBack = () => {
+    router.push('/form')
+  }
+
+  const handleSubmissionSuccess = () => {
+    toast({
+      title: "Success",
+      description: "Your device has been submitted successfully!",
+    })
+    // Clear form data
+    localStorage.removeItem('dobFormBackup')
+    localStorage.removeItem('dobFormStep1Backup')
+    localStorage.removeItem('dobFormStep2Backup')
+    localStorage.removeItem('dobFormStep3Backup')
+    localStorage.removeItem('dobFormStep4Backup')
+    
+    // Redirect to dashboard
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 2000)
+  }
+
+  if (!deviceData) {
+    return (
+      <AuthGuard>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AuthGuard>
+    )
+  }
+
+  return (
+    <AuthGuard>
+      <div className="w-full mt-20 min-h-screen pb-20">
+        <div className="container mx-auto py-8 px-4">
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">Review & Submit</h1>
+              <p className="text-muted-foreground">Please review your device information before submitting</p>
+            </div>
+
+            {/* Review Card */}
+            <div className="mb-8">
+              <DeviceReview
+                deviceData={deviceData}
+                onNext={() => {}} // Not used in this context
+                onBack={() => {}} // Not used in this context
+                onSubmissionSuccess={handleSubmissionSuccess}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center pt-6 border-t">
+              <Button
+                onClick={handleBack}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Form
+              </Button>
+              
+              <Button
+                onClick={async () => {
+                  setLoading(true)
+                  try {
+                    // Call the API directly
+                    const authToken = localStorage.getItem('authToken')
+                    if (!authToken) {
+                      toast({
+                        title: "Error",
+                        description: "Authentication required",
+                        variant: "destructive",
+                      })
+                      return
+                    }
+
+                    const tokenData = JSON.parse(authToken)
+                    const response = await fetch('/api/submit', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${tokenData.token}`
+                      },
+                      body: JSON.stringify(deviceData)
+                    })
+
+                    if (response.ok) {
+                      handleSubmissionSuccess()
+                    } else {
+                      const errorData = await response.json()
+                      toast({
+                        title: "Submission Failed",
+                        description: errorData.error || "Failed to submit device",
+                        variant: "destructive",
+                      })
+                    }
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to submit device",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg font-semibold"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-5 w-5" />
+                    Submit for Verification
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AuthGuard>
+  )
+} 

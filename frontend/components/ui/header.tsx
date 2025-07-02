@@ -179,13 +179,6 @@ export function Header() {
                 <div className="p-2">
                   <div 
                     className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                    onClick={() => window.open('https://www.dobprotocol.com', '_blank')}
-                  >
-                    <Home size={18} className="text-gray-300" />
-                    <span className="text-white">Home</span>
-                  </div>
-                  <div 
-                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                     onClick={() => router.push('/dashboard')}
                   >
                     <FileText size={18} className="text-gray-300" />

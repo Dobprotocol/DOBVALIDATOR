@@ -375,6 +375,13 @@ export default function DashboardPage() {
       {/* Dashboard Content */}
       <div className="relative mt-20 z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
+          {/* Page Title */}
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+              My Submissions
+            </h1>
+          </div>
+          
           <div className="flex justify-end mb-8">
             <Button
               onClick={handleCreateDevice}

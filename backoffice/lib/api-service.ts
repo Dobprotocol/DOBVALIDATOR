@@ -93,9 +93,8 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    // Use relative URL for Next.js API routes, absolute URL for backend endpoints
-    const isNextApiRoute = endpoint.startsWith('/api/')
-    const url = isNextApiRoute ? endpoint : `${this.baseUrl}${endpoint}`
+    // Always use the backend URL for API calls
+    const url = `${this.baseUrl}${endpoint}`
     
     const config: RequestInit = {
       ...options,
