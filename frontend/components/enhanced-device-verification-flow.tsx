@@ -752,11 +752,11 @@ export function EnhancedDeviceVerificationFlow() {
           </div>
 
           {/* Step Indicator */}
-          <StepIndicator />
+          {StepIndicator}
 
           {/* Form Content - Natural scrolling */}
           <div className="max-w-4xl mx-auto">
-            <MultiStepView />
+            {MultiStepView}
             
             {/* Single Next Button */}
             <div className="mt-12 flex flex-col items-center space-y-4">
