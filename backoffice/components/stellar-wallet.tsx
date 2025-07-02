@@ -63,6 +63,12 @@ export function StellarWallet() {
   // Check for existing authentication and admin status on mount
   useEffect(() => {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined') {
+        console.log('❌ Not in browser environment, skipping wallet initialization')
+        return
+      }
+
       const authToken = getAuthToken()
       const storedWallet = localStorage.getItem('stellarPublicKey')
       
@@ -80,13 +86,21 @@ export function StellarWallet() {
     } catch (error) {
       console.error('❌ Error during wallet initialization:', error)
       // Clear corrupted data and continue
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('stellarPublicKey')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('stellarPublicKey')
+      }
     }
   }, [])
 
   // Handle messages from Simple Signer
   useEffect(() => {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      console.log('❌ Not in browser environment, skipping message handling')
+      return
+    }
+
     const handleMessage = (e: MessageEvent) => {
       if (e.origin !== SIMPLE_SIGNER_URL) return
 
@@ -107,8 +121,10 @@ export function StellarWallet() {
 
         // Update local state
         setPublicKey(connectedPublicKey)
-        localStorage.setItem('stellarPublicKey', connectedPublicKey)
-        localStorage.setItem('stellarWallet', resolvedWalletType)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('stellarPublicKey', connectedPublicKey)
+          localStorage.setItem('stellarWallet', resolvedWalletType)
+        }
 
         // Update global state
         connectWallet(connectedPublicKey, resolvedWalletType)

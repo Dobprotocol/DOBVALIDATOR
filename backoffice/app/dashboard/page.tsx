@@ -25,6 +25,14 @@ export default function DashboardPage() {
   useEffect(() => {
     // Check authentication status with better error handling
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined') {
+        console.log('❌ Not in browser environment, skipping auth check')
+        setIsAuthenticated(false)
+        setAuthCheckComplete(true)
+        return
+      }
+
       const authToken = localStorage.getItem('authToken')
       const publicKey = localStorage.getItem('stellarPublicKey')
 
@@ -152,6 +160,12 @@ export default function DashboardPage() {
   const handleDisconnect = () => {
     console.log('=== Starting Wallet Disconnection from Header ===')
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined') {
+        console.log('❌ Not in browser environment, skipping disconnect')
+        return
+      }
+
       // Clear all wallet-related data
       console.log('Clearing localStorage...')
       localStorage.removeItem('stellarPublicKey')
