@@ -192,7 +192,9 @@ export function EnhancedDeviceVerificationFlow() {
         operationalCosts: dataToSave.operationalCosts,
       })
       
-      const savedDraft = await saveDraft(dataToSave, currentDraftId || undefined)
+      // Filter out customDeviceType to avoid backend schema issues
+      const { customDeviceType, ...draftDataWithoutCustomType } = dataToSave
+      const savedDraft = await saveDraft(draftDataWithoutCustomType, currentDraftId || undefined)
       console.log('🔍 Save response:', savedDraft)
       if (!currentDraftId && savedDraft) {
         console.log('🔍 Setting new draft ID:', savedDraft.id)
