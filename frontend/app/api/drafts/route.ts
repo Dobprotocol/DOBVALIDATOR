@@ -106,6 +106,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 Request body:', body);
 
+    // Safety filter: Remove customDeviceType to prevent backend schema issues
+    const { customDeviceType, ...filteredBody } = body;
+    console.log('🔍 Filtered body (removed customDeviceType):', filteredBody);
+
     // Forward the request to the backend
     const backendResponse = await fetch(draftsUrl, {
       method: 'POST',
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(filteredBody)
     });
 
     console.log('🔍 Backend response status:', backendResponse.status);
