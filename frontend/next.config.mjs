@@ -12,6 +12,9 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  serverExternalPackages: ['@stellar/stellar-sdk'],
+  // Disable static generation for error pages
+  trailingSlash: false,
   webpack: (config, { isServer }) => {
     // Handle Stellar SDK browser compatibility
     config.resolve.fallback = {

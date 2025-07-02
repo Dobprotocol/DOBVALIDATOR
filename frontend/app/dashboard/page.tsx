@@ -73,7 +73,7 @@ export default function DashboardPage() {
         console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
         console.log('Fetching submissions from backend database...')
         
-        const submissionsResponse = await fetch('http://localhost:3001/api/submissions', {
+        const submissionsResponse = await fetch('https://v.dobprotocol.com/api/submissions', {
           headers: {
             'Authorization': `Bearer ${tokenData.token}`
           }
