@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { BackOfficeDashboard } from "@/components/backoffice-dashboard"
-import { StellarWallet } from "@/components/stellar-wallet"
 import { Button } from "@/components/ui/button"
 import { LogOut, User, Wallet, Loader2 } from "lucide-react"
 import {
@@ -14,6 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+
+// Temporarily disable complex components for build testing
+// import { BackOfficeDashboard } from "@/components/backoffice-dashboard"
+// import { StellarWallet } from "@/components/stellar-wallet"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -202,7 +204,10 @@ export default function DashboardPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
-          <StellarWallet />
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Connect Wallet</h2>
+            <p className="text-muted-foreground">Please connect your wallet to access the backoffice.</p>
+          </div>
         </div>
       </div>
     )
@@ -252,7 +257,10 @@ export default function DashboardPage() {
         </div>
       </header>
       <main className="container py-6">
-        <BackOfficeDashboard />
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
+          <p className="text-muted-foreground">Dashboard content will be loaded here.</p>
+        </div>
       </main>
     </div>
   )
