@@ -66,3 +66,16 @@ temp/
 
 # Ignore secret keys
 keys/account.json
+
+# PNPM store
+.pnpm-store/
+
+# Turbo cache (keep for performance, but can be regenerated)
+.turbo/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
