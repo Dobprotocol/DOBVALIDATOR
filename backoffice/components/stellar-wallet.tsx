@@ -17,15 +17,14 @@ import {
   setWalletConnecting, 
   setWalletAuthenticating 
 } from '@/lib/wallet-state'
-import { 
-  TransactionBuilder, 
-  Account, 
-  Networks, 
-  Operation, 
-  Asset, 
-  Memo,
-  BASE_FEE 
-} from '@stellar/stellar-sdk'
+// Dynamic import for Stellar SDK to avoid build issues
+let StellarSDK: any = null
+if (typeof window !== 'undefined') {
+  // Only import on client side
+  import('@stellar/stellar-sdk').then((module) => {
+    StellarSDK = module
+  })
+}
 import { Settings, Wallet, LogOut, Loader2, Crown, Shield } from 'lucide-react'
 import { apiService } from '@/lib/api-service'
 import { adminConfigService } from "@/lib/admin-config"
@@ -268,17 +267,23 @@ export function StellarWallet() {
   }
 
   const requestSignature = async (challenge: string, walletType: string, walletAddress: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
+        // Ensure Stellar SDK is loaded
+        if (!StellarSDK) {
+          const module = await import('@stellar/stellar-sdk')
+          StellarSDK = module
+        }
+
         const createChallengeTransaction = (challenge: string) => {
-          const networkPassphrase = Networks.TESTNET
-          const sourceAccount = new Account(walletAddress, '0')
+          const networkPassphrase = StellarSDK.Networks.TESTNET
+          const sourceAccount = new StellarSDK.Account(walletAddress, '0')
           
-          const transaction = new TransactionBuilder(sourceAccount, {
-            fee: BASE_FEE,
+          const transaction = new StellarSDK.TransactionBuilder(sourceAccount, {
+            fee: StellarSDK.BASE_FEE,
             networkPassphrase
           })
-            .addOperation(Operation.manageData({
+            .addOperation(StellarSDK.Operation.manageData({
               name: 'challenge',
               value: challenge
             }))
