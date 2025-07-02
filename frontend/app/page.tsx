@@ -71,10 +71,7 @@ export default function Home() {
 
   useEffect(() => {
     const checkUserProfile = async () => {
-      if (isCheckingProfile.current) {
-        return
-      }
-      if (hasRedirected.current) {
+      if (isCheckingProfile.current || hasRedirected.current) {
         return
       }
       const now = Date.now()
@@ -97,6 +94,8 @@ export default function Home() {
       setLoading(true)
       
       try {
+        console.log('🔍 Checking user profile...')
+        
         // First check local storage for development mode
         const isDevelopment = process.env.NODE_ENV === 'development' || 
                              window.location.hostname === 'localhost' ||
@@ -110,6 +109,7 @@ export default function Home() {
             const userProfile = localStorage.getItem('userProfile')
             
             if (localProfile || userProfile) {
+              console.log('✅ Found local profile, redirecting to dashboard')
               hasRedirected.current = true
               router.push('/dashboard')
               return
@@ -118,10 +118,22 @@ export default function Home() {
         }
         
         // Try API profile check
+        console.log('🔍 Checking profile via API...')
         const response = await apiService.getProfile()
-        hasRedirected.current = true
-        router.push('/dashboard')
+        console.log('✅ Profile check successful:', response)
+        
+        if (response.success && response.profile) {
+          console.log('✅ Profile found, redirecting to dashboard')
+          hasRedirected.current = true
+          router.push('/dashboard')
+        } else {
+          console.log('ℹ️ No profile found, redirecting to profile creation')
+          hasRedirected.current = true
+          router.push('/profile')
+        }
       } catch (error: any) {
+        console.error('❌ Profile check failed:', error)
+        
         // Check for specific error types
         const errorMessage = error.message || error.toString()
         const is404 = errorMessage.includes('404') || 
@@ -134,9 +146,11 @@ export default function Home() {
                      errorMessage.includes('Unauthorized')
         
         if (is404) {
+          console.log('ℹ️ Profile not found (404), redirecting to profile creation')
           hasRedirected.current = true
           router.push('/profile')
         } else if (is401) {
+          console.log('❌ Authentication failed (401), clearing storage')
           clearAllLocalStorage()
         } else {
           // For unexpected errors in development mode, still try to redirect to profile creation
@@ -144,6 +158,7 @@ export default function Home() {
                                window.location.hostname === 'localhost' ||
                                window.location.hostname.includes('vercel.app');
           if (isDevelopment) {
+            console.log('🔄 Development mode: redirecting to profile creation despite error')
             hasRedirected.current = true
             router.push('/profile')
           }
