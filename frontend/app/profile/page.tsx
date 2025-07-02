@@ -71,42 +71,8 @@ export default function ProfilePage() {
       try {
         const tokenData = JSON.parse(authToken);
         
-        // Check local storage first in development mode
-        const isDevelopment = process.env.NODE_ENV === 'development' || 
-                             window.location.hostname === 'localhost' ||
-                             window.location.hostname.includes('vercel.app');
-        
-        if (isDevelopment) {
-          console.log('🔧 Development mode: Checking local storage for existing profile...')
-          const localProfileKey = `localProfile_${address}`
-          const localProfile = localStorage.getItem(localProfileKey)
-          const userProfile = localStorage.getItem('userProfile')
-          
-          if (localProfile || userProfile) {
-            const profileData = localProfile ? JSON.parse(localProfile) : JSON.parse(userProfile!)
-            console.log('✅ Found existing profile in local storage:', profileData)
-            
-            const loadedFormData = {
-              name: profileData.name || '',
-              company: profileData.company || '',
-              email: profileData.email || '',
-            };
-            
-            setFormData(loadedFormData);
-            setOriginalFormData(loadedFormData);
-            
-            if (profileData.profileImage) {
-              setProfileImage(profileData.profileImage);
-              setOriginalProfileImage(profileData.profileImage);
-            }
-            
-            setIsEditMode(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // Check if profile already exists via API
+        // Always check database first using wallet address
+        console.log('🔍 Checking database for existing profile with wallet address:', address);
         const profileResponse = await apiService.getProfile();
         console.log('✅ Existing profile found via API:', profileResponse);
         
@@ -126,8 +92,9 @@ export default function ProfilePage() {
         
         setIsEditMode(true);
       } catch (error) {
-        // No profile exists, stay in create mode
-        console.log('ℹ️ No existing profile found, creating new one');
+        // No profile exists in database, stay in create mode
+        console.log('ℹ️ No existing profile found in database, creating new one');
+        console.log('🔍 Error details:', error);
         setIsEditMode(false);
       } finally {
         setIsLoading(false);

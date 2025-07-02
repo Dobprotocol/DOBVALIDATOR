@@ -25,18 +25,9 @@ async function getAuthenticatedUser(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
-    // In development mode, accept any token for testing
-    if (isDevelopmentMode()) {
-      console.log('🔧 Development mode: accepting any token')
-      return {
-        walletAddress: 'dev_wallet_address',
-        email: 'dev@example.com'
-      }
-    }
-
-    // In production, verify the token with the backend
+    // Always verify the token with the backend
     const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
-    const response = await fetch(`${backendUrl}/api/profile`, {
+    const response = await fetch(`${backendUrl}/api/auth/profile`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -49,6 +40,7 @@ async function getAuthenticatedUser(request: NextRequest) {
     }
 
     const data = await response.json()
+    console.log('✅ User authenticated via backend:', data.user || data.profile)
     return data.user || data.profile
   } catch (error) {
     console.error('❌ Error getting authenticated user:', error)
@@ -56,19 +48,12 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
-// Get profile from backend or local storage
+// Get profile from backend database
 async function getProfile(user: any) {
   try {
-    // In development mode, try local storage first
-    if (isDevelopmentMode()) {
-      const localProfile = localStorage.getItem(`localProfile_${user.walletAddress}`)
-      if (localProfile) {
-        console.log('✅ Found profile in local storage')
-        return JSON.parse(localProfile)
-      }
-    }
-
-    // Try to get from backend
+    console.log('🔍 Querying backend for profile with wallet address:', user.walletAddress || user.wallet_address)
+    
+    // Query backend database
     const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
     const response = await fetch(`${backendUrl}/api/profile`, {
       headers: {
@@ -78,33 +63,20 @@ async function getProfile(user: any) {
 
     if (response.ok) {
       const data = await response.json()
-      console.log('✅ Profile retrieved from backend')
+      console.log('✅ Profile retrieved from backend database')
       return data.profile
     }
 
-    // Fallback to mock data
-    console.log('🔄 Using mock profile data')
-    return getMockProfile(user)
+    // Profile not found in database
+    console.log('ℹ️ No profile found in database for wallet:', user.walletAddress || user.wallet_address)
+    throw new Error('Profile not found')
   } catch (error) {
-    console.error('❌ Error getting profile:', error)
-    return getMockProfile(user)
+    console.error('❌ Error getting profile from database:', error)
+    throw error
   }
 }
 
-function getMockProfile(user: any) {
-  return {
-    walletAddress: user.walletAddress || user.wallet_address,
-    name: 'Test User',
-    company: 'Test Company',
-    email: user.email || 'test@example.com',
-    phone: '+1234567890',
-    website: 'https://example.com',
-    bio: 'This is a mock profile for testing purposes',
-    profileImage: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-}
+
 
 export async function GET(request: NextRequest) {
   console.log('🔍 Profile GET request received')
@@ -122,8 +94,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    profile,
-    note: isDevelopmentMode() ? 'This may be mock data for testing' : undefined
+    profile
   })
 }
 
@@ -154,26 +125,9 @@ export async function POST(request: NextRequest) {
   console.log('✅ Profile data validated:', profileData)
 
   try {
-    // In development mode, save to local storage
-    if (isDevelopmentMode()) {
-      const profileToSave = {
-        ...profileData,
-        walletAddress: user.walletAddress || user.wallet_address,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      
-      localStorage.setItem(`localProfile_${user.walletAddress || user.wallet_address}`, JSON.stringify(profileToSave))
-      console.log('✅ Profile saved to local storage')
-      
-      return NextResponse.json({
-        success: true,
-        profile: profileToSave,
-        note: 'Profile saved to local storage (development mode)'
-      })
-    }
-
-    // In production, save to backend
+    // Always save to backend database
+    console.log('🔍 Saving profile to backend database for wallet:', user.walletAddress || user.wallet_address)
+    
     const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
     const response = await fetch(`${backendUrl}/api/profile`, {
       method: 'POST',
@@ -189,14 +143,14 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    console.log('✅ Profile saved to backend')
+    console.log('✅ Profile saved to backend database')
     
     return NextResponse.json({
       success: true,
       profile: data.profile
     })
   } catch (error) {
-    console.error('❌ Error saving profile:', error)
+    console.error('❌ Error saving profile to database:', error)
     return NextResponse.json({ 
       error: 'Failed to save profile',
       details: error instanceof Error ? error.message : 'Unknown error'

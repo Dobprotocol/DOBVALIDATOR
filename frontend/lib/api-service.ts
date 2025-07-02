@@ -163,38 +163,14 @@ class ApiService {
     })
   }
 
-  // Profile - Modified to use local storage in development mode
+  // Profile - Always query database using wallet address
   async getProfile() {
-    if (isDevelopmentMode()) {
-      console.log('🔧 [Development Mode] Using local storage for profile')
-      const localProfile = this.getLocalProfile()
-      if (localProfile) {
-        console.log('✅ [Development Mode] Profile found in local storage:', localProfile)
-        return { success: true, profile: localProfile }
-      } else {
-        console.log('❌ [Development Mode] No profile found in local storage')
-        throw new Error('Profile not found')
-      }
-    }
-    
+    console.log('🔍 Querying database for profile with wallet address:', this.getWalletAddress())
     return this.request<{ success: boolean; profile: any }>('/api/profile')
   }
 
   async createProfile(profileData: { name: string; company?: string; email: string }) {
-    if (isDevelopmentMode()) {
-      console.log('🔧 [Development Mode] Creating profile in local storage')
-      const profileToCreate = {
-        ...profileData,
-        id: `local_${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      
-      this.setLocalProfile(profileToCreate)
-      console.log('✅ [Development Mode] Profile created in local storage')
-      return { success: true, profile: profileToCreate }
-    }
-    
+    console.log('🔍 Creating profile in database with wallet address:', this.getWalletAddress())
     return this.request<{ success: boolean; profile: any }>('/api/profile', {
       method: 'POST',
       body: JSON.stringify(profileData),
