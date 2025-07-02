@@ -196,27 +196,44 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('✅ Generating JWT token...')
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        walletAddress,
-        type: 'user',
-        iat: Math.floor(Date.now() / 1000),
+    console.log('✅ Calling backend for user creation and JWT...')
+    
+    // Call backend to create user and get JWT
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
+    const backendResponse = await fetch(`${backendUrl}/api/auth/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
       },
-      ***REMOVED***,
-      { expiresIn: JWT_EXPIRES_IN }
-    )
+      body: JSON.stringify({
+        walletAddress,
+        signature,
+        challenge
+      })
+    })
+    
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text()
+      console.error('❌ Backend verification failed:', backendResponse.status, errorText)
+      return NextResponse.json(
+        { error: 'Backend verification failed' },
+        { status: backendResponse.status }
+      )
+    }
+    
+    const backendData = await backendResponse.json()
+    console.log('✅ Backend verification successful:', backendData)
     
     // Store session using shared storage
     const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
-    storeSession(walletAddress, token, expiresAt)
+    storeSession(walletAddress, backendData.token, expiresAt)
     
-    console.log('✅ Authentication successful, returning token')
+    console.log('✅ Authentication successful, returning backend token')
     return NextResponse.json({
       success: true,
-      token,
-      expiresIn: JWT_EXPIRES_IN,
+      token: backendData.token,
+      expiresIn: backendData.expiresIn,
+      user: backendData.user,
       message: 'Authentication successful'
     })
     
