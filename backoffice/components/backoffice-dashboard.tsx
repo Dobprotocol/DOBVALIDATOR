@@ -305,7 +305,7 @@ function InboxSection() {
   }, [statusFilter, pagination.offset])
 
   // Filter submissions by search query
-  const filteredSubmissions = submissions.filter((submission) => {
+  const filteredSubmissions = (submissions || []).filter((submission) => {
     const matchesSearch =
       submission.device_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       submission.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -567,7 +567,7 @@ function ValidationToolsSection() {
                 <SelectValue placeholder="Select a project" />
               </SelectTrigger>
               <SelectContent>
-                {submissions.map((submission) => (
+                {(submissions || []).map((submission) => (
                   <SelectItem key={submission.id} value={submission.id}>
                     {submission.deviceName}
                   </SelectItem>
@@ -850,7 +850,7 @@ function ArchivedSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {submissions.map((submission) => (
+              {(submissions || []).map((submission) => (
                 <TableRow key={submission.id}>
                   <TableCell className="font-mono text-sm">{submission.id}</TableCell>
                   <TableCell className="font-medium">{submission.deviceName}</TableCell>
