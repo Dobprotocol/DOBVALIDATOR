@@ -28,6 +28,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <Script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-freighter-api/1.7.1/index.min.js" />
+        {/* Force cache refresh for drafts fix */}
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
       </head>
       <body className="min-h-screen bg-background">
         <ThemeProvider
@@ -40,9 +44,9 @@ export default function RootLayout({
             <StarsBackground className="!fixed inset-0 -z-10" />
             <Header />
             <main className="relative z-0">
-            {children}
-          </main>
-          <Footer />
+              {children}
+            </main>
+            <Footer />
           </div>
         </ThemeProvider>
       </body>

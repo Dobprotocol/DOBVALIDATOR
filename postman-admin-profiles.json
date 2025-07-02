@@ -1,0 +1,179 @@
+{
+  "info": {
+    "name": "DOB Validator - Admin Profiles",
+    "description": "Collection for fetching all profiles using admin endpoint",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "🔐 Admin Authentication",
+      "item": [
+        {
+          "name": "Get Challenge",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"{{adminWallet}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/challenge",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "challenge"]
+            },
+            "description": "Get authentication challenge for admin wallet"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Signature",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"{{adminWallet}}\",\n  \"signature\": \"admin_test_signature\",\n  \"challenge\": \"{{challenge}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify"]
+            },
+            "description": "Verify admin signature and get JWT token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Admin Profiles",
+      "item": [
+        {
+          "name": "Get All Profiles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/profiles?limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "profiles"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Fetch all profiles using admin endpoint"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profiles with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/profiles?limit={{limit}}&offset={{offset}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "profiles"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "key": "offset",
+                  "value": "{{offset}}"
+                }
+              ]
+            },
+            "description": "Fetch profiles with custom pagination"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔍 Profile Analysis",
+      "item": [
+        {
+          "name": "Get Profile Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/profiles?limit=1000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "profiles"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000"
+                }
+              ]
+            },
+            "description": "Get all profiles for analysis (up to 1000)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://v.dobprotocol.com"
+    },
+    {
+      "key": "adminWallet",
+      "value": "GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ"
+    },
+    {
+      "key": "adminToken",
+      "value": "YOUR_ADMIN_JWT_TOKEN_HERE"
+    },
+    {
+      "key": "challenge",
+      "value": "CHALLENGE_FROM_STEP_1"
+    },
+    {
+      "key": "limit",
+      "value": "50"
+    },
+    {
+      "key": "offset",
+      "value": "0"
+    }
+  ]
+} 

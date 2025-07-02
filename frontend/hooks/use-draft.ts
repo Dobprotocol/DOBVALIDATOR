@@ -111,11 +111,13 @@ export function useDraft() {
 
       console.log('Saving draft with data:', requestBody)
 
-      const response = await fetch('/api/drafts', {
+      const response = await fetch('/api/drafts?v=2', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenData.token}`
+          'Authorization': `Bearer ${tokenData.token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
         },
         body: JSON.stringify(requestBody)
       })
@@ -154,9 +156,11 @@ export function useDraft() {
       console.log('🔍 Loading draft with ID:', draftId)
       
       // Get draft from Next.js API route
-      const response = await fetch(`/api/drafts/${draftId}`, {
+      const response = await fetch(`/api/drafts/${draftId}?v=2`, {
         headers: {
-          'Authorization': `Bearer ${tokenData.token}`
+          'Authorization': `Bearer ${tokenData.token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
         }
       })
 
@@ -229,9 +233,11 @@ export function useDraft() {
 
       const tokenData = JSON.parse(authToken)
       
-      const response = await fetch('/api/drafts', {
+      const response = await fetch('/api/drafts?v=2', {
         headers: {
-          'Authorization': `Bearer ${tokenData.token}`
+          'Authorization': `Bearer ${tokenData.token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
         }
       })
 
