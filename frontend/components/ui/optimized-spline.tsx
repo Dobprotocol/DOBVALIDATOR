@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
-// Global flag to prevent multiple script loads
+// Global flags to prevent multiple script loads and initializations
 let splineScriptLoaded = false
+let globalInitializationInProgress = false
 
 interface OptimizedSplineProps {
   url: string
@@ -33,7 +34,7 @@ export function OptimizedSpline({
   const [hasError, setHasError] = useState(false)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
   const splineViewerRef = useRef<HTMLDivElement>(null)
-  const loadingTimeoutRef = useRef<NodeJS.Timeout>()
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const scriptLoadedRef = useRef(false)
   const splineInstanceRef = useRef<any>(null)
   const isInitializedRef = useRef(false)
@@ -118,8 +119,13 @@ export function OptimizedSpline({
 
   // Create Spline viewer element
   const createSplineViewer = useCallback(() => {
-    if (!splineViewerRef.current || isInitializedRef.current) {
-      console.log('Spline container not ready or already initialized')
+    if (!splineViewerRef.current) {
+      console.log('Spline container not ready')
+      return false
+    }
+
+    if (isInitializedRef.current) {
+      console.log('Spline already initialized, skipping')
       return false
     }
 
@@ -172,7 +178,9 @@ export function OptimizedSpline({
         console.error('Spline viewer error:', error)
         setHasError(true)
         setIsLoading(false)
-        onError?.(error)
+        if (onError) {
+          onError(error)
+        }
       })
 
       // Add load handling
@@ -185,7 +193,9 @@ export function OptimizedSpline({
         // Immediate transition for seamless experience
         setShowPlaceholder(false)
         
-        onLoad?.()
+        if (onLoad) {
+          onLoad()
+        }
       })
 
       // Add a timeout to detect if load event doesn't fire
@@ -221,9 +231,26 @@ export function OptimizedSpline({
   useEffect(() => {
     let mounted = true
 
+    // Prevent multiple initializations globally
+    if (globalInitializationInProgress) {
+      console.log('Global initialization already in progress, skipping')
+      return
+    }
+
     const initializeSpline = async () => {
       try {
         console.log('Initializing Spline...')
+        
+        // Set global initialization flag
+        globalInitializationInProgress = true
+        
+        // Check if already initialized
+        if (isInitializedRef.current) {
+          console.log('Spline already initialized, skipping')
+          globalInitializationInProgress = false
+          return
+        }
+        
         await loadSplineScript()
         
         if (!mounted) return
@@ -256,8 +283,13 @@ export function OptimizedSpline({
         if (mounted) {
           setHasError(true)
           setIsLoading(false)
-          onError?.(error)
+          if (onError) {
+            onError(error)
+          }
         }
+      } finally {
+        // Clear global initialization flag
+        globalInitializationInProgress = false
       }
     }
 
