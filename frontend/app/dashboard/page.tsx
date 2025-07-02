@@ -55,11 +55,11 @@ export default function DashboardPage() {
 
   // Fetch submissions and drafts from API
   const fetchData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
+    setLoading(true)
+    setError(null)
 
-      // Fetch submissions from backend database
+    try {
+      // Fetch submissions - try backend first, then fallback to frontend
       try {
         const authToken = localStorage.getItem('authToken')
         if (!authToken) {
@@ -73,51 +73,73 @@ export default function DashboardPage() {
         console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
         console.log('Fetching submissions from backend database...')
         
-        const submissionsResponse = await fetch('https://v.dobprotocol.com/api/submissions', {
-          headers: {
-            'Authorization': `Bearer ${tokenData.token}`
-          }
-        })
+        // Try backend first with timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+        
+        try {
+          const submissionsResponse = await fetch('https://v.dobprotocol.com/api/submissions', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.token}`
+            },
+            signal: controller.signal
+          })
 
-        if (submissionsResponse.ok) {
-          const submissionsData = await submissionsResponse.json()
-          console.log('Submissions response:', submissionsData)
-          if (submissionsData.success) {
-            console.log('Setting submissions to:', submissionsData.submissions || [])
-            setSubmissions(submissionsData.submissions || [])
-          } else {
-            console.log('Submissions API returned error:', submissionsData.error)
-            setSubmissions([])
-          }
-        } else {
-          console.log('Submissions API request failed:', submissionsResponse.status, submissionsResponse.statusText)
-          // Fall back to frontend submissions if backend is down
-          console.log('Falling back to frontend submissions...')
-          try {
-            const frontendResponse = await fetch('/api/submissions', {
-              headers: {
-                'Authorization': `Bearer ${tokenData.token}`
-              }
-            })
-            if (frontendResponse.ok) {
-              const frontendData = await frontendResponse.json()
-              if (frontendData.success) {
-                console.log('Using frontend submissions:', frontendData.submissions || [])
-                setSubmissions(frontendData.submissions || [])
-              } else {
-                setSubmissions([])
-              }
+          clearTimeout(timeoutId)
+
+          if (submissionsResponse.ok) {
+            const submissionsData = await submissionsResponse.json()
+            console.log('Submissions response:', submissionsData)
+            if (submissionsData.success) {
+              console.log('Setting submissions to:', submissionsData.submissions || [])
+              setSubmissions(submissionsData.submissions || [])
             } else {
+              console.log('Submissions API returned error:', submissionsData.error)
+              throw new Error(submissionsData.error || 'Backend API error')
+            }
+          } else {
+            console.log('Submissions API request failed:', submissionsResponse.status, submissionsResponse.statusText)
+            throw new Error(`Backend API failed: ${submissionsResponse.status}`)
+          }
+        } catch (backendError) {
+          clearTimeout(timeoutId)
+          console.log('Backend fetch failed, trying frontend fallback:', backendError)
+          throw backendError
+        }
+      } catch (backendError) {
+        // Fall back to frontend submissions if backend is down
+        console.log('Falling back to frontend submissions...')
+        
+        // Show user-friendly notification about backend being unavailable
+        toast({
+          title: "Backend Unavailable",
+          description: "Using local data. Some features may be limited.",
+          variant: "default",
+        })
+        
+        try {
+          const frontendResponse = await fetch('/api/submissions', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.token}`
+            }
+          })
+          if (frontendResponse.ok) {
+            const frontendData = await frontendResponse.json()
+            if (frontendData.success) {
+              console.log('Using frontend submissions:', frontendData.submissions || [])
+              setSubmissions(frontendData.submissions || [])
+            } else {
+              console.log('Frontend submissions API returned error:', frontendData.error)
               setSubmissions([])
             }
-          } catch (fallbackError) {
-            console.error('Fallback submissions failed:', fallbackError)
+          } else {
+            console.log('Frontend submissions API request failed:', frontendResponse.status, frontendResponse.statusText)
             setSubmissions([])
           }
+        } catch (fallbackError) {
+          console.error('Fallback submissions failed:', fallbackError)
+          setSubmissions([])
         }
-      } catch (submissionError) {
-        console.error('Error fetching submissions:', submissionError)
-        setSubmissions([])
       }
 
       // Fetch drafts from frontend API routes

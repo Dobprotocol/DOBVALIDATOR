@@ -49,11 +49,16 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
         console.error('Error parsing localStorage data:', error)
       }
     }
-  }, [])
+  }, []) // Remove updateDeviceData from dependencies
 
   // Save to localStorage whenever localData changes
   useEffect(() => {
-    localStorage.setItem('dobFormStep3Backup', JSON.stringify(localData))
+    // Use setTimeout to avoid blocking the render cycle
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('dobFormStep3Backup', JSON.stringify(localData))
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
   }, [localData])
 
   // Only sync on draftId change, not on parent state changes
@@ -69,9 +74,11 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
   const handleInputChange = (field: string, value: string) => {
     setLocalData(prev => ({ ...prev, [field]: value }))
     
-    // Trigger auto-save if available
+    // Trigger auto-save if available (debounced)
     if (onAutoSave) {
-      onAutoSave()
+      setTimeout(() => {
+        onAutoSave()
+      }, 500)
     }
   }
 

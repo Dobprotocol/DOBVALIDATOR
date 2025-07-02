@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import type { DeviceData } from "@/components/enhanced-device-verification-flow"
 import { Modal } from "@/components/ui/modal"
 import { PixelExplosion } from "@/components/ui/pixel-explosion"
@@ -23,19 +23,6 @@ interface DeviceBasicInfoProps {
   onAutoSave?: () => void
 }
 
-// Device types that match the backend schema
-const DEVICE_TYPES = [
-  { value: "renewable-energy", label: "Renewable Energy" },
-  { value: "wind-energy", label: "Wind Energy" },
-  { value: "energy-storage", label: "Energy Storage" },
-  { value: "solar-panel", label: "Solar Panel" },
-  { value: "wind-turbine", label: "Wind Turbine" },
-  { value: "battery-storage", label: "Battery Storage" },
-  { value: "hydro-generator", label: "Hydro Generator" },
-  { value: "geothermal", label: "Geothermal" },
-  { value: "biomass", label: "Biomass" }
-]
-
 export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, onSaveDraft, onAutoSave }: DeviceBasicInfoProps) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
   const [showExplosion, setShowExplosion] = useState(false)
@@ -44,6 +31,19 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
   const [isSaving, setIsSaving] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+
+  // Memoize device types to prevent re-creation on every render
+  const DEVICE_TYPES = useMemo(() => [
+    { value: "renewable-energy", label: "Renewable Energy" },
+    { value: "wind-energy", label: "Wind Energy" },
+    { value: "energy-storage", label: "Energy Storage" },
+    { value: "solar-panel", label: "Solar Panel" },
+    { value: "wind-turbine", label: "Wind Turbine" },
+    { value: "battery-storage", label: "Battery Storage" },
+    { value: "hydro-generator", label: "Hydro Generator" },
+    { value: "geothermal", label: "Geothermal" },
+    { value: "biomass", label: "Biomass" }
+  ], [])
 
   // Use local state for form inputs to prevent re-renders
   const [localData, setLocalData] = useState({
@@ -69,11 +69,16 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
         console.error('Error parsing localStorage data:', error)
       }
     }
-  }, [])
+  }, []) // Remove updateDeviceData from dependencies
 
   // Save to localStorage whenever localData changes
   useEffect(() => {
-    localStorage.setItem('dobFormStep1Backup', JSON.stringify(localData))
+    // Use setTimeout to avoid blocking the render cycle
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('dobFormStep1Backup', JSON.stringify(localData))
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
   }, [localData])
 
   // Only sync on draftId change, not on parent state changes
@@ -93,15 +98,22 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
     }
   }, [])
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = useCallback((field: string, value: string) => {
     console.log('🔍 Input change:', field, value)
     setLocalData(prev => ({ ...prev, [field]: value }))
     
-    // Trigger auto-save if available
+    // Trigger auto-save if available (debounced)
     if (onAutoSave) {
-      onAutoSave()
+      setTimeout(() => {
+        onAutoSave()
+      }, 500)
     }
-  }
+  }, [onAutoSave])
+
+  // Memoize the device type change handler specifically
+  const handleDeviceTypeChange = useCallback((value: string) => {
+    handleInputChange('deviceType', value)
+  }, [handleInputChange])
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {}
@@ -222,8 +234,8 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
               <div>
                 <Label htmlFor="deviceType">Device Type</Label>
                 <Select
-                  value={localData.deviceType}
-                  onValueChange={(value) => handleInputChange('deviceType', value)}
+                  value={localData.deviceType || ""}
+                  onValueChange={handleDeviceTypeChange}
                 >
                   <SelectTrigger id="deviceType" className="form-select">
                     <SelectValue placeholder="Select device type" />

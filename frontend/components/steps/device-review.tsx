@@ -71,10 +71,7 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
         'purchasePrice', 'currentValue', 'expectedRevenue', 'operationalCosts'
       ]
       
-      // Add customDeviceType only if deviceType is 'other' and customDeviceType has a value
-      if (deviceData.deviceType === 'other' && deviceData.customDeviceType && deviceData.customDeviceType.trim() !== '') {
-        formData.append('customDeviceType', deviceData.customDeviceType)
-      }
+      // Note: customDeviceType removed since "OTHER" option was removed from device types
       
       // Add all backend-defined device data to formData
       backendFields.forEach(field => {
@@ -178,11 +175,7 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
             </div>
             <div>
               <p className="text-sm text-gray-300">Device Type</p>
-              <p className="font-medium text-white">
-                {deviceData.deviceType === 'other' && deviceData.customDeviceType 
-                  ? deviceData.customDeviceType 
-                  : deviceData.deviceType || "-"}
-              </p>
+              <p className="font-medium text-white">{deviceData.deviceType || "-"}</p>
             </div>
             <div className="col-span-2">
               <p className="text-sm text-gray-300">Location</p>
