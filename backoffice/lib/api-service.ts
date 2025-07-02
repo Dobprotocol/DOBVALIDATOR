@@ -197,7 +197,7 @@ class ApiService {
   // Get pending submissions count
   async getPendingSubmissionsCount(): Promise<number> {
     const submissions = await this.getSubmissionsByStatus('PENDING')
-    return submissions?.length || 0
+    return submissions && Array.isArray(submissions) ? submissions.length : 0
   }
 
   // Get submissions statistics
@@ -205,7 +205,7 @@ class ApiService {
     const allSubmissions = await this.getAllSubmissions()
     
     const stats: SubmissionsStats = {
-      total: allSubmissions?.length || 0,
+      total: allSubmissions && Array.isArray(allSubmissions) ? allSubmissions.length : 0,
       pending: 0,
       underReview: 0,
       approved: 0,
