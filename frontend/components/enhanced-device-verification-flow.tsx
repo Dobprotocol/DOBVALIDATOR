@@ -171,11 +171,13 @@ export function EnhancedDeviceVerificationFlow() {
   const handleSaveDraft = async (currentStepData?: Partial<DeviceData>) => {
     try {
       console.log('🔍 Saving draft with ID:', currentDraftId)
+      console.log('🔍 Current step data:', currentStepData)
+      console.log('🔍 Current device data:', deviceData)
       
       // Use current step data if provided, otherwise use deviceData
       const dataToSave = currentStepData ? { ...deviceData, ...currentStepData } : deviceData
       
-      console.log('🔍 Current device data:', dataToSave)
+      console.log('🔍 Data to save:', dataToSave)
       console.log('🔍 Device data fields:', {
         deviceName: dataToSave.deviceName,
         deviceType: dataToSave.deviceType,
@@ -194,11 +196,18 @@ export function EnhancedDeviceVerificationFlow() {
       
       // Filter out customDeviceType to avoid backend schema issues
       const { customDeviceType, ...draftDataWithoutCustomType } = dataToSave
+      console.log('🔍 Draft data without customDeviceType:', draftDataWithoutCustomType)
+      
       const savedDraft = await saveDraft(draftDataWithoutCustomType, currentDraftId || undefined)
       console.log('🔍 Save response:', savedDraft)
-      if (!currentDraftId && savedDraft) {
+      
+      if (!currentDraftId && savedDraft && savedDraft.id) {
         console.log('🔍 Setting new draft ID:', savedDraft.id)
         setCurrentDraftId(savedDraft.id)
+        // Update the deviceData with the new draft ID
+        setDeviceData(prev => ({ ...prev, draftId: savedDraft.id }))
+        // Store the draft ID in localStorage for persistence
+        localStorage.setItem('currentDraftId', savedDraft.id)
       }
       
       // Reset failed attempts on successful save
@@ -216,7 +225,12 @@ export function EnhancedDeviceVerificationFlow() {
       console.error('🔍 Error in handleSaveDraft:', error)
       // Increment failed attempts
       setFailedSaveAttempts(prev => prev + 1)
-      // Error is already handled in the hook
+      // Show error toast
+      toast({
+        title: "Save Failed",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 

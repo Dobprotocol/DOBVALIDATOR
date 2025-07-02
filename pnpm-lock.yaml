@@ -235,6 +235,9 @@ importers:
       sonner:
         specifier: ^1.7.1
         version: 1.7.4(react-dom@19.1.0)(react@19.1.0)
+      stellar-sdk:
+        specifier: ^13.3.0
+        version: 13.3.0
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.6.0

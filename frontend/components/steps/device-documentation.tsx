@@ -86,15 +86,15 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     
     setIsSaving(true)
     try {
-      // Update parent state with current local data
+      // Update parent state first with current local data
       updateDeviceData(localData)
       
-      // Save draft
+      // Then save the draft
       await onSaveDraft()
       
       toast({
         title: "Draft Saved",
-        description: "Your progress has been automatically saved.",
+        description: "Your progress has been saved.",
       })
     } catch (error) {
       toast({
