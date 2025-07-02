@@ -157,49 +157,19 @@ export function StellarWallet() {
     } catch (error) {
       console.error('❌ Authentication failed:', error)
       
-      // Check if this is a development/testing environment
-      const isDevelopment = process.env.NODE_ENV === 'development' || 
-                           window.location.hostname === 'localhost' ||
-                           window.location.hostname.includes('vercel.app')
+      // Authentication failed - show error and clear wallet data
+      console.log('❌ Authentication failed:', error)
+      toast({
+        title: "Authentication failed",
+        description: error instanceof Error ? error.message : "Failed to authenticate wallet. Please try again with a valid signature.",
+        variant: "destructive"
+      })
       
-      if (isDevelopment) {
-        console.log('🔧 Development mode detected, creating fallback authentication...')
-        
-        // Create a fallback authentication token for development
-        const fallbackToken = {
-          token: 'dev_fallback_token_' + Date.now(),
-          expiresIn: '7d',
-          walletAddress: walletAddress
-        }
-        
-        // Store the fallback token
-        localStorage.setItem('authToken', JSON.stringify(fallbackToken))
-        
-        console.log('✅ Fallback authentication created')
-        toast({
-          title: "Development Mode",
-          description: "Using fallback authentication for development",
-        })
-        
-        // Update global state
-        walletStateManager.authenticate()
-        
-        // Close the modal
-        setIsOpen(false)
-      } else {
-        // Production error handling
-        toast({
-          title: "Authentication failed",
-          description: error instanceof Error ? error.message : "Failed to authenticate wallet",
-          variant: "destructive"
-        })
-        
-        // Clear wallet data on authentication failure
-        localStorage.removeItem('stellarPublicKey')
-        localStorage.removeItem('stellarWallet')
-        setPublicKey(null)
-        disconnectWallet()
-      }
+      // Clear wallet data on authentication failure
+      localStorage.removeItem('stellarPublicKey')
+      localStorage.removeItem('stellarWallet')
+      setPublicKey(null)
+      disconnectWallet()
     } finally {
       setWalletAuthenticating(false)
     }

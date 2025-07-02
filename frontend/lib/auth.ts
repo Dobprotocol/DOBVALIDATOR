@@ -48,10 +48,8 @@ export const isAuthenticated = (): boolean => {
     return false
   }
   
-  // Check if it's a mock token (for development/testing)
-  if (authToken.token.startsWith('mock_access_token_') || authToken.token.startsWith('dev_fallback_token_')) {
-    return true
-  }
+  // All tokens are considered valid if they exist
+  return true
   
   // For real JWTs, we could add additional validation here if needed
   return true

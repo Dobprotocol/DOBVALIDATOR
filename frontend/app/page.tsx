@@ -18,11 +18,6 @@ function clearAllLocalStorage() {
 
 function isValidJWT(token: string): boolean {
   try {
-    // Check if it's a mock token (for development/testing)
-    if (token.startsWith('mock_access_token_')) {
-      return true
-    }
-    
     // Check if it's a real JWT
     const parts = token.split('.')
     if (parts.length !== 3) {
