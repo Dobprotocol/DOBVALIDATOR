@@ -285,6 +285,52 @@ class ApiService {
       hasMore: boolean
     }>(endpoint)
   }
+
+  // Submit device for verification
+  async submitDevice(formData: FormData) {
+    console.log('🔍 Submitting device for verification')
+    
+    // Get auth token for the request
+    const token = this.getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    // Use frontend API endpoint which will forward to backend
+    const url = '/api/submit'
+    
+    // Prepare headers with auth token
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      // Don't set Content-Type for FormData - browser will set it with boundary
+    }
+
+    try {
+      console.log(`🔍 Making submission request to: ${url}`)
+      console.log(`🔍 FormData entries:`, Array.from(formData.entries()).map(([key, value]) => `${key}: ${value instanceof File ? value.name : value}`))
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+      
+      console.log(`🔍 Submission response status: ${response.status}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error(`❌ Submission failed: ${response.status}`, errorData)
+        throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log(`✅ Submission successful:`, data)
+      return data
+    } catch (error) {
+      console.error('Device submission failed:', error)
+      throw error
+    }
+  }
 }
 
 export const apiService = new ApiService()
