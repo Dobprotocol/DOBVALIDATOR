@@ -17,6 +17,7 @@ const nextConfig = {
   trailingSlash: false,
   // Disable static export for error pages
   output: 'standalone',
+
   webpack: (config, { isServer }) => {
     // Handle Stellar SDK browser compatibility
     config.resolve.fallback = {

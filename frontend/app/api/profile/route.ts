@@ -89,6 +89,12 @@ async function getProfile(user: any, authToken: string) {
       throw new Error('Profile not found')
     }
 
+    if (response.status === 401) {
+      // Authentication failed
+      console.log('❌ Authentication failed for wallet:', user.walletAddress)
+      throw new Error('Authentication failed: 401')
+    }
+
     // Other error
     const errorText = await response.text()
     console.error('❌ Backend error:', response.status, errorText)
@@ -115,13 +121,29 @@ export async function GET(request: NextRequest) {
   console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
   
   try {
-  const profile = await getProfile(user, token)
-  return NextResponse.json({
-    success: true,
-    profile
-  })
+    const profile = await getProfile(user, token)
+    return NextResponse.json({
+      success: true,
+      profile
+    })
   } catch (error) {
     console.error('❌ Error getting profile:', error)
+    
+    // Check if it's a 401 error (invalid token)
+    if (error instanceof Error && error.message.includes('401')) {
+      return NextResponse.json({ 
+        error: 'Authentication failed',
+        details: 'Invalid or expired token'
+      }, { status: 401 })
+    }
+    
+    // Check if it's a 404 error (profile not found)
+    if (error instanceof Error && error.message.includes('Profile not found')) {
+      return NextResponse.json({ 
+        error: 'Profile not found',
+        details: 'No profile exists for this user'
+      }, { status: 404 })
+    }
     
     // In development mode, return a default profile if backend fails
     if (isDevelopmentMode()) {
