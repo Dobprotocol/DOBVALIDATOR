@@ -25,23 +25,36 @@ async function getAuthenticatedUser(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
-    // Always verify the token with the backend
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
-    const response = await fetch(`${backendUrl}/api/auth/profile`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    // Decode JWT token to get user info
+    try {
+      // JWT tokens have 3 parts separated by dots
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        console.log('❌ Invalid JWT token format')
+        return null
       }
-    })
-
-    if (!response.ok) {
-      console.log('❌ Backend authentication failed:', response.status)
+      
+      // Decode the payload (second part)
+      const payload = JSON.parse(atob(parts[1]))
+      console.log('✅ Token decoded successfully:', payload)
+      
+      // Extract wallet address from token
+      const walletAddress = payload.walletAddress || payload.wallet_address
+      
+      if (walletAddress) {
+        return {
+          walletAddress,
+          userId: payload.userId,
+          role: payload.role || 'USER'
+        }
+      } else {
+        console.log('❌ No wallet address found in token')
+        return null
+      }
+    } catch (decodeError) {
+      console.error('❌ Error decoding JWT token:', decodeError)
       return null
     }
-
-    const data = await response.json()
-    console.log('✅ User authenticated via backend:', data.user || data.profile)
-    return data.user || data.profile
   } catch (error) {
     console.error('❌ Error getting authenticated user:', error)
     return null
@@ -49,15 +62,16 @@ async function getAuthenticatedUser(request: NextRequest) {
 }
 
 // Get profile from backend database
-async function getProfile(user: any) {
+async function getProfile(user: any, authToken: string) {
   try {
-    console.log('🔍 Querying backend for profile with wallet address:', user.walletAddress || user.wallet_address)
+    console.log('🔍 Querying backend for profile with wallet address:', user.walletAddress)
     
-    // Query backend database
+    // Query backend database with proper authorization
     const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
     const response = await fetch(`${backendUrl}/api/profile`, {
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
       }
     })
 
@@ -67,9 +81,16 @@ async function getProfile(user: any) {
       return data.profile
     }
 
-    // Profile not found in database
-    console.log('ℹ️ No profile found in database for wallet:', user.walletAddress || user.wallet_address)
-    throw new Error('Profile not found')
+    if (response.status === 404) {
+      // Profile not found in database
+      console.log('ℹ️ No profile found in database for wallet:', user.walletAddress)
+      throw new Error('Profile not found')
+    }
+
+    // Other error
+    const errorText = await response.text()
+    console.error('❌ Backend error:', response.status, errorText)
+    throw new Error(`Backend error: ${response.status}`)
   } catch (error) {
     console.error('❌ Error getting profile from database:', error)
     throw error
@@ -81,6 +102,9 @@ async function getProfile(user: any) {
 export async function GET(request: NextRequest) {
   console.log('🔍 Profile GET request received')
   
+  const authHeader = request.headers.get('authorization')
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null
+  
   const user = await getAuthenticatedUser(request)
   
   if (!user) {
@@ -90,7 +114,7 @@ export async function GET(request: NextRequest) {
 
   console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
   
-  const profile = await getProfile(user)
+  const profile = await getProfile(user, token)
 
   return NextResponse.json({
     success: true,
@@ -126,7 +150,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Always save to backend database
-    console.log('🔍 Saving profile to backend database for wallet:', user.walletAddress || user.wallet_address)
+    console.log('🔍 Saving profile to backend database for wallet:', user.walletAddress)
     
     const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
     const response = await fetch(`${backendUrl}/api/profile`, {
@@ -139,6 +163,8 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Backend error:', response.status, errorText)
       throw new Error(`Backend error: ${response.status}`)
     }
 
