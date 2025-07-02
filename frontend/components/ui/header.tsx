@@ -63,6 +63,9 @@ export function Header() {
               }
             } catch (error) {
               console.error('Profile check failed:', error)
+              // If user is authenticated but has no profile, they can still navigate
+              // The dashboard will handle users without profiles
+              setHasProfile(false)
             }
           }
         }
