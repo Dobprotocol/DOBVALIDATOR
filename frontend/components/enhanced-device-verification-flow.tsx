@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { DeviceBasicInfo } from "@/components/steps/device-basic-info"
 import { DeviceTechnicalInfo } from "@/components/steps/device-technical-info"
 import { DeviceFinancialInfo } from "@/components/steps/device-financial-info"
@@ -78,6 +78,7 @@ export function EnhancedDeviceVerificationFlow() {
   const [draftLoadKey, setDraftLoadKey] = useState(0)
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const isInitialLoad = useRef(true)
   
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -146,20 +147,26 @@ export function EnhancedDeviceVerificationFlow() {
         try {
           const parsedData = JSON.parse(savedData)
           console.log('🔍 Found localStorage backup:', parsedData)
-          setDeviceData(parsedData)
-          setCurrentDraftId(parsedData.draftId || null)
-          setHasShownFirstSaveToast(true) // Don't show first save toast for restored data
+          // Use setTimeout to avoid blocking the render cycle
+          setTimeout(() => {
+            setDeviceData(parsedData)
+            setCurrentDraftId(parsedData.draftId || null)
+            setHasShownFirstSaveToast(true) // Don't show first save toast for restored data
+          }, 0)
         } catch (error) {
           console.error('🔍 Error parsing localStorage data:', error)
           // Fall back to clean state
           resetFormToCleanState()
         }
-      } else {
-        console.log('🔍 No localStorage backup - creating new project with clean slate')
-        resetFormToCleanState()
+              } else {
+          console.log('🔍 No localStorage backup - creating new project with clean slate')
+          resetFormToCleanState()
+        }
       }
-    }
-  }, [searchParams, loadDraft, toast])
+      
+      // Mark initial load as complete
+      isInitialLoad.current = false
+    }, [searchParams, loadDraft, toast])
 
   // Helper function to reset form to clean state
   const resetFormToCleanState = () => {
@@ -195,16 +202,23 @@ export function EnhancedDeviceVerificationFlow() {
     setDeviceData((prev) => {
       const updatedData = { ...prev, ...data }
       
-      // Save to localStorage for persistence across Fast Refresh
-      // Only save non-file fields to localStorage
-      const localStorageData = {
-        ...updatedData,
-        technicalCertification: null, // Don't save files to localStorage
-        purchaseProof: null,
-        maintenanceRecords: null,
-        deviceImages: []
+      // Only save to localStorage if not during initial load
+      if (!isInitialLoad.current) {
+        // Save to localStorage for persistence across Fast Refresh
+        // Only save non-file fields to localStorage
+        const localStorageData = {
+          ...updatedData,
+          technicalCertification: null, // Don't save files to localStorage
+          purchaseProof: null,
+          maintenanceRecords: null,
+          deviceImages: []
+        }
+        
+        // Use setTimeout to avoid blocking the render cycle
+        setTimeout(() => {
+          localStorage.setItem('dobFormBackup', JSON.stringify(localStorageData))
+        }, 0)
       }
-      localStorage.setItem('dobFormBackup', JSON.stringify(localStorageData))
       
       return updatedData
     })
@@ -236,15 +250,8 @@ export function EnhancedDeviceVerificationFlow() {
         operationalCosts: dataToSave.operationalCosts,
       })
       
-      // Filter out customDeviceType to avoid backend schema issues
-      const { customDeviceType, ...draftDataWithoutCustomType } = dataToSave
-      console.log('🔍 Draft data without customDeviceType:', draftDataWithoutCustomType)
-      
-      // Add customDeviceType back for the saveDraft function
-      const draftDataForSave = {
-        ...draftDataWithoutCustomType,
-        customDeviceType: dataToSave.customDeviceType || ''
-      }
+      // Note: customDeviceType removed since "OTHER" option was removed from device types
+      const draftDataForSave = dataToSave
       
       const savedDraft = await saveDraft(draftDataForSave, currentDraftId || undefined)
       console.log('🔍 Save response:', savedDraft)
@@ -391,6 +398,13 @@ export function EnhancedDeviceVerificationFlow() {
       }
     }
   }, [autoSaveTimeout])
+
+  // Reset initial load flag when component unmounts
+  useEffect(() => {
+    return () => {
+      isInitialLoad.current = true
+    }
+  }, [])
 
   // Always start at step 1 when wallet connects
   useEffect(() => {
@@ -548,25 +562,8 @@ export function EnhancedDeviceVerificationFlow() {
     router.push('/form')
   }
 
-  if (!walletConnected) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <StellarWallet />
-      </div>
-    )
-  }
-
-  if (isLoadingDraft) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Loading your draft...</p>
-      </div>
-    )
-  }
-
   // Step Indicator with clickable steps - Fixed at top with frosted glass
-  const StepIndicator = () => {
+  const StepIndicator = useMemo(() => {
     return (
       <div className="fixed top-24 left-0 right-0 z-40 flex justify-center">
         <div className="bg-black/20 backdrop-blur-md border border-white/10 shadow-lg rounded-full px-6 py-3">
@@ -602,10 +599,10 @@ export function EnhancedDeviceVerificationFlow() {
         </div>
       </div>
     )
-  }
+  }, [currentStep, totalSteps, goToStep])
 
   // Multi-step View Component (show all cards for scrolling)
-  const MultiStepView = () => (
+  const MultiStepView = useMemo(() => (
     <div className="space-y-8">
       {/* Step 1: Basic Information */}
       <div 
@@ -698,7 +695,24 @@ export function EnhancedDeviceVerificationFlow() {
 
       {/* Success step removed - handled on review page */}
     </div>
-  )
+  ), [currentStep, currentDraftId, draftLoadKey, deviceData, updateDeviceData, handleSaveDraft, debouncedAutoSave])
+
+  if (!walletConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <StellarWallet />
+      </div>
+    )
+  }
+
+  if (isLoadingDraft) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading your draft...</p>
+      </div>
+    )
+  }
 
   return (
     <>

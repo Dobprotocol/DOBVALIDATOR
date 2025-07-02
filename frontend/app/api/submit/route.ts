@@ -7,6 +7,20 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Frontend submit endpoint received request')
     
+    // Check content length to prevent 413 errors
+    const contentLength = request.headers.get('content-length')
+    if (contentLength) {
+      const size = parseInt(contentLength, 10)
+      const MAX_REQUEST_SIZE = 50 * 1024 * 1024 // 50MB
+      if (size > MAX_REQUEST_SIZE) {
+        console.error(`❌ Request too large: ${size} bytes (max: ${MAX_REQUEST_SIZE})`);
+        return NextResponse.json(
+          { success: false, error: 'Request too large. Maximum size is 50MB.' },
+          { status: 413 }
+        )
+      }
+    }
+    
     // Get the authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -40,9 +54,9 @@ export async function POST(request: NextRequest) {
       // Handle FormData
       const formData = await request.formData()
       
-      // Define file size limits (5MB per file, 20MB total)
-      const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-      const MAX_TOTAL_SIZE = 20 * 1024 * 1024 // 20MB
+      // Define file size limits (10MB per file, 50MB total)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+      const MAX_TOTAL_SIZE = 50 * 1024 * 1024 // 50MB
       let totalFileSize = 0
       
       // Define the fields that are allowed in the backend schema
@@ -56,16 +70,18 @@ export async function POST(request: NextRequest) {
         if (value instanceof File) {
           // Check file size
           if (value.size > MAX_FILE_SIZE) {
+            console.error(`❌ File too large: ${value.name} (${value.size} bytes, max: ${MAX_FILE_SIZE})`);
             return NextResponse.json(
-              { success: false, error: `File ${value.name} is too large. Maximum size is 5MB.` },
+              { success: false, error: `File ${value.name} is too large. Maximum size is 10MB.` },
               { status: 413 }
             )
           }
           
           totalFileSize += value.size
           if (totalFileSize > MAX_TOTAL_SIZE) {
+            console.error(`❌ Total file size too large: ${totalFileSize} bytes (max: ${MAX_TOTAL_SIZE})`);
             return NextResponse.json(
-              { success: false, error: 'Total file size exceeds 20MB limit.' },
+              { success: false, error: 'Total file size exceeds 50MB limit.' },
               { status: 413 }
             )
           }

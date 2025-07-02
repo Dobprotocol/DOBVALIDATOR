@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 
 import type { DeviceData } from "@/components/enhanced-device-verification-flow"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,9 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
   const currentYear = new Date().getFullYear()
+
+  // Memoize condition options to prevent re-creation on every render
+  const conditionOptions = useMemo(() => ["New", "Like New", "Excellent", "Good", "Fair", "Poor"], [])
 
   // Use local state for form inputs to prevent re-renders
   const [localData, setLocalData] = useState({
@@ -54,11 +57,16 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
         console.error('Error parsing localStorage data:', error)
       }
     }
-  }, [])
+  }, []) // Remove updateDeviceData from dependencies
 
   // Save to localStorage whenever localData changes
   useEffect(() => {
-    localStorage.setItem('dobFormStep2Backup', JSON.stringify(localData))
+    // Use setTimeout to avoid blocking the render cycle
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('dobFormStep2Backup', JSON.stringify(localData))
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
   }, [localData])
 
   // Only sync on draftId change, not on parent state changes
@@ -73,14 +81,21 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
     })
   }, [deviceData.draftId]) // Only reset if draftId changes
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = useCallback((field: string, value: string) => {
     setLocalData(prev => ({ ...prev, [field]: value }))
     
-    // Trigger auto-save if available
+    // Trigger auto-save if available (debounced)
     if (onAutoSave) {
-      onAutoSave()
+      setTimeout(() => {
+        onAutoSave()
+      }, 500)
     }
-  }
+  }, [onAutoSave])
+
+  // Memoize the condition change handler specifically
+  const handleConditionChange = useCallback((value: string) => {
+    handleInputChange('condition', value)
+  }, [handleInputChange])
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {}
@@ -137,8 +152,6 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
       onNext()
     }
   }
-
-  const conditionOptions = ["New", "Like New", "Excellent", "Good", "Fair", "Poor"]
 
   return (
     <Card className="w-full max-w-2xl mx-auto bg-white/5 backdrop-blur-xl border-white/10">
@@ -202,8 +215,8 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
             <div>
               <Label htmlFor="condition">Condition</Label>
               <Select
-                value={localData.condition}
-                onValueChange={(value) => handleInputChange('condition', value)}
+                value={localData.condition || ""}
+                onValueChange={handleConditionChange}
               >
                 <SelectTrigger id="condition" className="form-select">
                   <SelectValue placeholder="Select device condition" />

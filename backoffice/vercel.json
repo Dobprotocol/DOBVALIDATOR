@@ -22,5 +22,16 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "develop": true,
+      "staging": true,
+      "preview": false
+    }
+  },
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".next",
+  "installCommand": "pnpm install"
 } 
