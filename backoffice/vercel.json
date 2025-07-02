@@ -26,12 +26,13 @@
   "git": {
     "deploymentEnabled": {
       "main": true,
-      "develop": true,
-      "staging": true,
+      "develop": false,
+      "staging": false,
       "preview": false
     }
   },
   "buildCommand": "pnpm build",
   "outputDirectory": ".next",
-  "installCommand": "pnpm install"
+  "installCommand": "pnpm install",
+  "ignoreCommand": "echo 'Skipping deployment for non-production branch' && exit 1"
 } 
