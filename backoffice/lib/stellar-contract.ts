@@ -83,10 +83,12 @@ class StellarContractService {
     const metadataString = JSON.stringify(data, Object.keys(data).sort())
     // Simple hash for now - in production, use a proper cryptographic hash
     let hash = 0
-    for (let i = 0; i < metadataString.length; i++) {
-      const char = metadataString.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
-      hash = hash & hash // Convert to 32-bit integer
+    if (metadataString && typeof metadataString === 'string') {
+      for (let i = 0; i < metadataString.length; i++) {
+        const char = metadataString.charCodeAt(i)
+        hash = ((hash << 5) - hash) + char
+        hash = hash & hash // Convert to 32-bit integer
+      }
     }
     return Math.abs(hash).toString(16)
   }
