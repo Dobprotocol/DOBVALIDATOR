@@ -62,19 +62,26 @@ export function StellarWallet() {
 
   // Check for existing authentication and admin status on mount
   useEffect(() => {
-    const authToken = getAuthToken()
-    const storedWallet = localStorage.getItem('stellarPublicKey')
-    
-    if (authToken && storedWallet) {
-      setPublicKey(storedWallet)
+    try {
+      const authToken = getAuthToken()
+      const storedWallet = localStorage.getItem('stellarPublicKey')
       
-      // Check admin status
-      const adminWallet = adminConfigService.getAdminWallet(storedWallet)
-      if (adminWallet) {
-        setIsAdmin(true)
-        setAdminRole(adminWallet.role)
-        setPermissions(adminWallet.permissions)
+      if (authToken && storedWallet) {
+        setPublicKey(storedWallet)
+        
+        // Check admin status
+        const adminWallet = adminConfigService.getAdminWallet(storedWallet)
+        if (adminWallet) {
+          setIsAdmin(true)
+          setAdminRole(adminWallet.role)
+          setPermissions(adminWallet.permissions)
+        }
       }
+    } catch (error) {
+      console.error('❌ Error during wallet initialization:', error)
+      // Clear corrupted data and continue
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('stellarPublicKey')
     }
   }, [])
 
