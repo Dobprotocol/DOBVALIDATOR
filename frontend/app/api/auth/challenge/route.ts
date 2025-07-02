@@ -39,36 +39,45 @@ export async function POST(request: NextRequest) {
     }
 
     const { walletAddress } = validationResult.data
-    console.log('🔍 Generating challenge for wallet:', walletAddress)
+    console.log('🔍 Getting challenge from backend for wallet:', walletAddress)
     
-    // Generate a unique challenge
-    const challenge = `DOB_VALIDATOR_AUTH_${Date.now()}_${Math.random().toString(36).substring(2)}`
-    console.log('🔍 Generated challenge:', challenge)
-    
-    // Store challenge using shared storage
-    try {
-      storeChallenge(walletAddress, challenge)
-      console.log('✅ Challenge stored successfully')
-      
-      // Debug: Check if challenge was stored
-      const debugInfo = getDebugInfo()
-      console.log('🔍 Debug info after storing:', {
-        challengesCount: debugInfo.challengesCount,
-        hasChallenge: debugInfo.challenges.some(([addr]) => addr === walletAddress)
+    // Call backend to get challenge
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
+    const backendResponse = await fetch(`${backendUrl}/api/auth/challenge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        walletAddress
       })
-      
-    } catch (storageError) {
-      console.error('❌ Failed to store challenge:', storageError)
+    })
+    
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text()
+      console.error('❌ Backend challenge request failed:', backendResponse.status, errorText)
       return NextResponse.json(
-        { error: 'Failed to store challenge', details: storageError instanceof Error ? storageError.message : 'Unknown error' },
-        { status: 500 }
+        { error: 'Backend challenge request failed' },
+        { status: backendResponse.status }
       )
     }
     
-    console.log('✅ Challenge generated and stored successfully')
+    const backendData = await backendResponse.json()
+    console.log('✅ Backend challenge received:', backendData)
+    
+    // Store challenge locally for frontend verification
+    try {
+      storeChallenge(walletAddress, backendData.challenge)
+      console.log('✅ Challenge stored locally for frontend verification')
+    } catch (storageError) {
+      console.error('❌ Failed to store challenge locally:', storageError)
+      // Don't fail the request, just log the error
+    }
+    
+    console.log('✅ Challenge received from backend and stored locally')
     return NextResponse.json({
       success: true,
-      challenge,
+      challenge: backendData.challenge,
       message: 'Please sign this challenge with your wallet to authenticate'
     })
     
