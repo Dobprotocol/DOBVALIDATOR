@@ -11,9 +11,11 @@ function playClickSound() {
   const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
   const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate)
   const data = buffer.getChannelData(0)
-  for (let i = 0; i < data.length; i++) {
-    // White noise
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-40 * i / data.length)
+  if (data && data.length > 0) {
+    for (let i = 0; i < data.length; i++) {
+      // White noise
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-40 * i / data.length)
+    }
   }
   const source = ctx.createBufferSource()
   source.buffer = buffer
