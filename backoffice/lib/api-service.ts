@@ -1,7 +1,9 @@
 // API Service for DOB Validator Backend
-// Base URL: https://v.dobprotocol.com
+// Base URL: Use Next.js API routes for frontend endpoints, backend for backend-only endpoints
 
-const API_BASE_URL = 'https://v.dobprotocol.com'
+const API_BASE_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3001' 
+  : 'https://v.dobprotocol.com'
 
 // Types for the backend API
 export interface Submission {
@@ -91,7 +93,10 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
+    // Use relative URL for Next.js API routes, absolute URL for backend endpoints
+    const isNextApiRoute = endpoint.startsWith('/api/')
+    const url = isNextApiRoute ? endpoint : `${this.baseUrl}${endpoint}`
+    
     const config: RequestInit = {
       ...options,
       headers: {
@@ -101,14 +106,18 @@ class ApiService {
     }
 
     try {
+      console.log(`🔍 Making API request to: ${url}`)
       const response = await fetch(url, config)
       
       if (!response.ok) {
         const errorText = await response.text()
+        console.error(`❌ API Error ${response.status}: ${errorText}`)
         throw new Error(`API Error ${response.status}: ${errorText}`)
       }
 
-      return await response.json()
+      const data = await response.json()
+      console.log(`✅ API request successful:`, data)
+      return data
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error)
       throw error
