@@ -76,8 +76,16 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
     
     setIsSaving(true)
     try {
-      // Pass current local data directly to save function without updating parent state
+      // Update parent state first with current local data
+      updateDeviceData(localData)
+      
+      // Then save the draft
       await onSaveDraft(localData)
+      
+      toast({
+        title: "Draft Saved",
+        description: "Your progress has been saved.",
+      })
     } catch (error) {
       toast({
         title: "Save Failed",

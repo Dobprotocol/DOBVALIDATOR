@@ -82,11 +82,6 @@ export function useDraft() {
         })
       })
 
-      // Create a meaningful draft name based on device name
-      const draftName = deviceData.deviceName 
-        ? `${deviceData.deviceName} - ${deviceData.deviceType || 'Device'}`
-        : 'Untitled Draft'
-
       // Only send fields that exist in the database schema
       const draftData = {
         deviceName: deviceData.deviceName || '',
@@ -104,25 +99,38 @@ export function useDraft() {
         operationalCosts: deviceData.operationalCosts || '',
       }
 
-      const requestBody = {
-        draftId,
-        ...draftData
+      let response
+      let data
+
+      if (draftId) {
+        // Update existing draft
+        console.log('🔍 Updating existing draft:', draftId)
+        response = await fetch(`/api/drafts/${draftId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenData.token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify(draftData)
+        })
+      } else {
+        // Create new draft
+        console.log('🔍 Creating new draft')
+        response = await fetch('/api/drafts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenData.token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify(draftData)
+        })
       }
 
-      console.log('Saving draft with data:', requestBody)
-
-      const response = await fetch('/api/drafts?v=2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenData.token}`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify(requestBody)
-      })
-
-      const data = await response.json()
+      data = await response.json()
 
       if (!response.ok) {
         console.error('Draft API Error:', {
@@ -133,7 +141,10 @@ export function useDraft() {
         throw new Error(data.error || 'Failed to save draft')
       }
 
-      return data.draft
+      console.log('✅ Draft saved successfully:', data)
+      
+      // Return the draft data with the ID
+      return data.draft || data
     } catch (error: any) {
       console.error('Error saving draft:', error)
       throw error
