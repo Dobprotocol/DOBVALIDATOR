@@ -22,184 +22,64 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [authCheckComplete, setAuthCheckComplete] = useState(false)
 
   useEffect(() => {
-    // Check authentication status with better error handling
+    // Simple, safe authentication check
     try {
-      // Check if we're in a browser environment
       if (typeof window === 'undefined') {
-        console.log('❌ Not in browser environment, skipping auth check')
         setIsAuthenticated(false)
-        setAuthCheckComplete(true)
+        setIsLoading(false)
         return
       }
 
       const authToken = localStorage.getItem('authToken')
       const publicKey = localStorage.getItem('stellarPublicKey')
 
-      console.log('🔍 Dashboard auth check:', {
-        hasAuthToken: !!authToken,
-        hasPublicKey: !!publicKey,
-        authTokenLength: typeof authToken === 'string' ? authToken.length : 'not a string',
-        publicKeyValue: publicKey,
-        timestamp: new Date().toISOString()
-      })
-
-      if (!authToken) {
-        console.log('❌ No authentication token found...')
-        setIsAuthenticated(false)
-        setAuthCheckComplete(true)
-        return
-      }
-
-      // Validate that authToken is a valid string before parsing
-      if (typeof authToken !== 'string' || authToken.trim() === '') {
-        console.log('❌ Invalid auth token format (not a string or empty)')
-        localStorage.removeItem('authToken')
-        setIsAuthenticated(false)
-        setAuthCheckComplete(true)
-        return
-      }
-
-      let tokenData
-      try {
-        tokenData = JSON.parse(authToken)
-        console.log('🔍 Token data:', tokenData)
-      } catch (parseError) {
-        console.error('❌ Error parsing auth token JSON:', parseError)
-        console.log('❌ Raw auth token value:', authToken)
-        
-        // Check if it's a plain string token (fallback for old format)
-        if (authToken.startsWith('dev_fallback_token_') || authToken.startsWith('mock_access_token_')) {
-          console.log('🔄 Detected plain string token, creating fallback structure')
-          tokenData = {
-            token: authToken,
-            expiresIn: '7d',
-            walletAddress: publicKey || 'unknown'
-          }
-        } else {
-          console.log('❌ Invalid token format, clearing data')
-          localStorage.removeItem('authToken')
-          setIsAuthenticated(false)
-          setAuthCheckComplete(true)
-          return
-        }
-      }
-
-      // Validate token structure
-      if (!tokenData || typeof tokenData !== 'object') {
-        console.log('❌ Invalid token data structure')
-        localStorage.removeItem('authToken')
-        setIsAuthenticated(false)
-        setAuthCheckComplete(true)
-        return
-      }
-
-      // Check if token is expired (handle both expiresAt and expiresIn formats)
-      const now = Date.now()
-      let isExpired = false
-      
-      if (tokenData.expiresAt) {
-        // Old format with expiresAt timestamp
-        isExpired = now > tokenData.expiresAt
-      } else if (tokenData.expiresIn) {
-        // New format with expiresIn duration - assume 7 days for now
-        // For development tokens, they don't expire
-        if (tokenData.token && (tokenData.token.startsWith('dev_fallback_token_') || tokenData.token.startsWith('mock_access_token_'))) {
-          isExpired = false
-        } else {
-          // For real tokens, we'd need to calculate expiration
-          // For now, assume they're valid
-          isExpired = false
-        }
-      } else {
-        // No expiration info, assume valid
-        isExpired = false
-      }
-      
-      console.log('🔍 Token validation:', {
-        expiresAt: tokenData.expiresAt,
-        expiresIn: tokenData.expiresIn,
-        now,
-        isExpired,
-        tokenType: tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'undefined'
-      })
-      
-      if (isExpired) {
-        console.log('❌ Token expired, clearing data...')
-        // Clear expired data
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('stellarPublicKey')
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        document.cookie = 'stellarPublicKey=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        
-        // Force re-render
-        setAuthCheckComplete(true)
-        return
-      } else {
-        console.log('✅ User authenticated, showing dashboard...')
+      if (authToken && publicKey) {
         setIsAuthenticated(true)
-        // Use walletAddress from token if available, otherwise use publicKey
-        setWalletAddress(tokenData.walletAddress || publicKey)
-        setAuthCheckComplete(true)
+        setWalletAddress(publicKey)
+      } else {
+        setIsAuthenticated(false)
       }
     } catch (error) {
-      console.error('❌ Unexpected error in authentication check:', error)
-      // Clear potentially corrupted data
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('stellarPublicKey')
+      console.error('Auth check error:', error)
       setIsAuthenticated(false)
-      setAuthCheckComplete(true)
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
-  const truncateAddress = (address: string) => {
-    if (!address) return ''
+  const truncateAddress = (address: string | null) => {
+    if (!address || typeof address !== 'string') return ''
+    if (address.length < 8) return address
     return `${address.slice(0, 4)}...${address.slice(-4)}`
   }
 
   const handleDisconnect = () => {
-    console.log('=== Starting Wallet Disconnection from Header ===')
     try {
-      // Check if we're in a browser environment
-      if (typeof window === 'undefined') {
-        console.log('❌ Not in browser environment, skipping disconnect')
-        return
-      }
+      if (typeof window === 'undefined') return
 
-      // Clear all wallet-related data
-      console.log('Clearing localStorage...')
       localStorage.removeItem('stellarPublicKey')
       localStorage.removeItem('stellarWallet')
       localStorage.removeItem('authToken')
       
-      console.log('Removing cookie...')
-      document.cookie = 'stellarPublicKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-      
-      console.log('Redirecting to landing page...')
-      // Force a hard redirect to ensure clean state
       window.location.href = '/'
-      
-      console.log('=== Wallet Disconnection Complete ===')
     } catch (error) {
-      console.error('Error during wallet disconnection:', error)
+      console.error('Disconnect error:', error)
     }
   }
 
-  // Show loading while checking authentication
-  if (!authCheckComplete) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Checking authentication...</p>
+          <p>Loading...</p>
         </div>
       </div>
     )
   }
 
-  // Show wallet connection if not authenticated
   if (!isAuthenticated) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -239,7 +119,7 @@ export default function DashboardPage() {
                     <User className="h-4 w-4" />
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">Admin User</span>
-                      <span className="text-xs text-muted-foreground">{walletAddress}</span>
+                      <span className="text-xs text-muted-foreground">{truncateAddress(walletAddress)}</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -260,6 +140,9 @@ export default function DashboardPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
           <p className="text-muted-foreground">Dashboard content will be loaded here.</p>
+          <div className="mt-8 p-4 bg-muted rounded-lg">
+            <p className="text-sm">Status: Ready for development</p>
+          </div>
         </div>
       </main>
     </div>

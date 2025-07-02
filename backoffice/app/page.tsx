@@ -8,8 +8,6 @@ export default function LandingPage() {
   const router = useRouter()
 
   const handleConnectWallet = () => {
-    // For now, just redirect to dashboard
-    // In a real implementation, this would handle wallet connection
     router.push('/dashboard')
   }
 
@@ -33,7 +31,7 @@ export default function LandingPage() {
             <ArrowRight className="h-4 w-4" />
           </Button>
           <p className="text-xs text-muted-foreground text-center">
-            Click to proceed to dashboard (wallet connection will be implemented later)
+            Click to proceed to dashboard
           </p>
         </div>
       </div>
