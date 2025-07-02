@@ -64,26 +64,45 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
         formData.append('draftId', draftId)
       }
       
-      // Add all device data to formData
-      Object.entries(deviceData).forEach(([key, value]) => {
-        if (value === null || value === undefined) return
-        
-        if (typeof value === 'string' || typeof value === 'number') {
-          formData.append(key, value.toString())
-        } else if (Array.isArray(value)) {
-          value.forEach((file, idx) => {
-            if (file instanceof File) {
-              formData.append(`${key}[${idx}]`, file)
-            }
-          })
-        } else if (value instanceof File) {
-          formData.append(key, value)
+      // Only add fields that are defined in the backend schema
+      const backendFields = [
+        'deviceName', 'deviceType', 'location', 'serialNumber', 'manufacturer', 
+        'model', 'yearOfManufacture', 'condition', 'specifications',
+        'purchasePrice', 'currentValue', 'expectedRevenue', 'operationalCosts'
+      ]
+      
+      // Add customDeviceType only if deviceType is 'other' and customDeviceType has a value
+      if (deviceData.deviceType === 'other' && deviceData.customDeviceType && deviceData.customDeviceType.trim() !== '') {
+        formData.append('customDeviceType', deviceData.customDeviceType)
+      }
+      
+      // Add all backend-defined device data to formData
+      backendFields.forEach(field => {
+        const value = deviceData[field as keyof DeviceData]
+        if (value !== null && value !== undefined && value !== '') {
+          formData.append(field, value.toString())
         }
       })
 
+      // Add files if they exist
+      if (deviceData.technicalCertification) {
+        formData.append('technicalCertification', deviceData.technicalCertification)
+      }
+      if (deviceData.purchaseProof) {
+        formData.append('purchaseProof', deviceData.purchaseProof)
+      }
+      if (deviceData.maintenanceRecords) {
+        formData.append('maintenanceRecords', deviceData.maintenanceRecords)
+      }
+      if (deviceData.deviceImages && deviceData.deviceImages.length > 0) {
+        deviceData.deviceImages.forEach((file, index) => {
+          formData.append(`deviceImages[${index}]`, file)
+        })
+      }
+
       console.log('🔍 Submitting form data:')
       for (let [key, value] of formData.entries()) {
-        console.log(`🔍 ${key}:`, value)
+        console.log(`🔍 ${key}:`, value instanceof File ? value.name : value)
       }
 
       // Submit using API service
