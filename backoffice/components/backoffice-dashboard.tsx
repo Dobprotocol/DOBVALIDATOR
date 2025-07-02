@@ -285,7 +285,7 @@ function InboxSection() {
       setSubmissions(submissions)
       setPagination(prev => ({
         ...prev,
-        total: submissions.length
+        total: submissions?.length || 0
       }))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -389,7 +389,7 @@ function InboxSection() {
         <CardHeader>
           <CardTitle>Submissions</CardTitle>
           <CardDescription>
-            {loading ? 'Loading...' : `${filteredSubmissions.length} of ${pagination.total} submissions`}
+            {loading ? 'Loading...' : `${filteredSubmissions?.length || 0} of ${pagination.total} submissions`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -508,7 +508,7 @@ function ValidationToolsSection() {
         if (response.success && response.data) {
           const pendingSubmissions = response.data.submissions
           setSubmissions(pendingSubmissions)
-          if (pendingSubmissions.length > 0) {
+          if (pendingSubmissions?.length > 0) {
             setSelectedProject(pendingSubmissions[0])
           }
         }
@@ -835,7 +835,7 @@ function ArchivedSection() {
       <Card>
         <CardHeader>
           <CardTitle>Completed Validations</CardTitle>
-          <CardDescription>{submissions.length} completed validations</CardDescription>
+          <CardDescription>{submissions?.length || 0} completed validations</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>

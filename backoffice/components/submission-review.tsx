@@ -527,7 +527,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 <CardDescription>Review submitted device documents</CardDescription>
               </CardHeader>
               <CardContent>
-                {submission.files && submission.files.length > 0 ? (
+                {submission.files && submission.files?.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {submission.files.map((file, index) => (
                       <div key={index} className="flex items-center gap-2">
