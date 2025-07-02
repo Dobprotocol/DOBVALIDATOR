@@ -131,10 +131,10 @@ class AdminConfigService {
   getAdminStats() {
     const activeAdmins = this.getActiveAdmins()
     return {
-      totalAdmins: activeAdmins.length,
-      superAdmins: activeAdmins.filter(a => a.role === 'SUPER_ADMIN').length,
-      validators: activeAdmins.filter(a => a.role === 'VALIDATOR').length,
-      reviewers: activeAdmins.filter(a => a.role === 'REVIEWER').length
+      totalAdmins: activeAdmins?.length || 0,
+      superAdmins: activeAdmins?.filter(a => a.role === 'SUPER_ADMIN')?.length || 0,
+      validators: activeAdmins?.filter(a => a.role === 'VALIDATOR')?.length || 0,
+      reviewers: activeAdmins?.filter(a => a.role === 'REVIEWER')?.length || 0
     }
   }
 }

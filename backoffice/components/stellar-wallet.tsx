@@ -181,7 +181,7 @@ export function StellarWallet() {
         
         toast({
           title: "Admin Authentication successful",
-          description: `Connected as ${adminWallet.role} with ${adminWallet.permissions.length} permissions`,
+          description: `Connected as ${adminWallet.role} with ${adminWallet.permissions?.length || 0} permissions`,
         })
       } else {
         setIsAdmin(false)

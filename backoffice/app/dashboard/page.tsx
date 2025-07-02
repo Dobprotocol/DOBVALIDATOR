@@ -31,7 +31,7 @@ export default function DashboardPage() {
       console.log('🔍 Dashboard auth check:', {
         hasAuthToken: !!authToken,
         hasPublicKey: !!publicKey,
-        authTokenLength: authToken?.length,
+        authTokenLength: typeof authToken === 'string' ? authToken.length : 'not a string',
         publicKeyValue: publicKey,
         timestamp: new Date().toISOString()
       })

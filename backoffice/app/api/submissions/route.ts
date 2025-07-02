@@ -25,16 +25,16 @@ export async function GET(request: NextRequest) {
       offset
     })
     
-    console.log('🔍 Found submissions:', submissions.length)
+    console.log('🔍 Found submissions:', submissions?.length || 0)
     
     return NextResponse.json({
       success: true,
       data: submissions,
       pagination: {
-        total: submissions.length,
+        total: submissions?.length || 0,
         limit,
         offset,
-        hasMore: submissions.length === limit
+        hasMore: (submissions?.length || 0) === limit
       }
     })
     
