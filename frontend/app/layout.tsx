@@ -3,12 +3,13 @@ import type { Metadata } from 'next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Footer } from '@/components/ui/footer'
 import { StarsBackground } from '@/components/ui/stars-background'
+import { Navbar } from '@/components/navbar'
 import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: 'DOB Validator',
   description: 'Device Ownership Blockchain Validator',
-  metadataBase: new URL('http://localhost:3000'),
+  metadataBase: new URL('https://validator.dobprotocol.com'),
   openGraph: {
     title: 'DOB Validator',
     description: 'Device Ownership Blockchain Validator',
@@ -37,6 +38,7 @@ export default function RootLayout({
         >
           <div className="relative min-h-screen overflow-hidden">
             <StarsBackground className="!fixed inset-0 -z-10" />
+            <Navbar />
             <main className="relative z-0">
             {children}
           </main>

@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://localhost:3002'
 
 async function testAuthFlow() {
   console.log('🧪 Testing authentication flow...')
-  
+
   // Test 1: Check if frontend is running
   try {
     const healthResponse = await fetch(`${API_BASE_URL}/api/health`)
@@ -49,8 +49,8 @@ async function testAuthFlow() {
     console.log('✅ Challenge endpoint:', challengeResponse.status, challengeData)
   } catch (error) {
     console.error('❌ Challenge endpoint error:', error.message)
-  }
-  
+}
+
   // Test 5: Check environment variables (these should be set in Vercel)
   console.log('🔍 Environment check:')
   console.log('- NODE_ENV:', process.env.NODE_ENV)

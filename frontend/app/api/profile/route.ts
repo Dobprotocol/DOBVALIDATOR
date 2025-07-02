@@ -115,11 +115,11 @@ export async function GET(request: NextRequest) {
   console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
   
   try {
-    const profile = await getProfile(user, token)
-    return NextResponse.json({
-      success: true,
-      profile
-    })
+  const profile = await getProfile(user, token)
+  return NextResponse.json({
+    success: true,
+    profile
+  })
   } catch (error) {
     console.error('❌ Error getting profile:', error)
     

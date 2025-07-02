@@ -49,7 +49,7 @@ export const isAuthenticated = (): boolean => {
   }
   
   // All tokens are considered valid if they exist
-  return true
+    return true
   
   // For real JWTs, we could add additional validation here if needed
   return true

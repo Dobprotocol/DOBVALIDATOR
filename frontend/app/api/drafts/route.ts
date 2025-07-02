@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         },
         { status: backendResponse.status }
       );
-    }
+        }
 
     const responseData = await backendResponse.json();
     console.log('✅ Backend drafts request successful:', responseData);

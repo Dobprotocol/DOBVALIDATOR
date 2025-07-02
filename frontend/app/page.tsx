@@ -119,8 +119,8 @@ export default function Home() {
         
         if (response.success && response.profile) {
           console.log('✅ Profile found, redirecting to dashboard')
-          hasRedirected.current = true
-          router.push('/dashboard')
+        hasRedirected.current = true
+        router.push('/dashboard')
         } else {
           console.log('ℹ️ No profile found, redirecting to profile creation')
           hasRedirected.current = true

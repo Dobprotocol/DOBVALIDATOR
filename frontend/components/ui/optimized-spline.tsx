@@ -191,7 +191,7 @@ export function OptimizedSpline({
         setIsLoading(false)
         
         // Immediate transition for seamless experience
-        setShowPlaceholder(false)
+            setShowPlaceholder(false)
         
         if (onLoad) {
           onLoad()
@@ -204,7 +204,7 @@ export function OptimizedSpline({
           console.log('Spline load timeout, forcing load state')
           splineInstanceRef.current = splineViewer
           setIsLoaded(true)
-          setIsLoading(false)
+        setIsLoading(false)
           
           // Immediate transition for seamless experience
           setShowPlaceholder(false)
@@ -285,7 +285,7 @@ export function OptimizedSpline({
           setIsLoading(false)
           if (onError) {
             onError(error)
-          }
+        }
         }
       } finally {
         // Clear global initialization flag
@@ -308,7 +308,7 @@ export function OptimizedSpline({
     }
   }, [loadSplineScript, createSplineViewer, loadingDelay, onError])
 
-  // Cleanup on unmount
+    // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (loadingTimeoutRef.current) {
@@ -361,9 +361,9 @@ export function OptimizedSpline({
           />
         </div>
       )}
-
+      
       {/* Spline Container - positioned absolutely to prevent layout shifts */}
-      <div 
+      <div
         ref={splineViewerRef}
         className={cn(
           'absolute inset-0 transition-opacity duration-150 ease-in-out',
@@ -382,8 +382,8 @@ export function OptimizedSpline({
                 <div className="text-xs mt-1">The page will work normally</div>
               </div>
             )}
-          </div>
-        )}
+        </div>
+      )}
       </div>
     </div>
   )
