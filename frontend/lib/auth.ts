@@ -30,7 +30,15 @@ export const getAuthToken = (): AuthToken | null => {
   if (!authData) return null
   
   try {
-    return JSON.parse(authData)
+    const token = JSON.parse(authData)
+    
+    // Check if this is a mock/test token
+    if (token.token && token.token.startsWith('dev_fallback_token_')) {
+      console.warn('⚠️ Detected mock/test token. Please authenticate properly to get a real JWT token.')
+      return null
+    }
+    
+    return token
   } catch {
     return null
   }
