@@ -130,11 +130,15 @@ class AdminConfigService {
    */
   getAdminStats() {
     const activeAdmins = this.getActiveAdmins()
+    const superAdmins = activeAdmins?.filter(a => a.role === 'SUPER_ADMIN') || []
+    const validators = activeAdmins?.filter(a => a.role === 'VALIDATOR') || []
+    const reviewers = activeAdmins?.filter(a => a.role === 'REVIEWER') || []
+    
     return {
-      totalAdmins: activeAdmins?.length || 0,
-      superAdmins: activeAdmins?.filter(a => a.role === 'SUPER_ADMIN')?.length || 0,
-      validators: activeAdmins?.filter(a => a.role === 'VALIDATOR')?.length || 0,
-      reviewers: activeAdmins?.filter(a => a.role === 'REVIEWER')?.length || 0
+      totalAdmins: activeAdmins && Array.isArray(activeAdmins) ? activeAdmins.length : 0,
+      superAdmins: superAdmins.length,
+      validators: validators.length,
+      reviewers: reviewers.length
     }
   }
 }

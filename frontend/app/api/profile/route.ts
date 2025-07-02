@@ -75,6 +75,8 @@ async function getProfile(user: any, authToken: string) {
       }
     })
 
+    console.log('🔍 Backend response status:', response.status)
+
     if (response.ok) {
       const data = await response.json()
       console.log('✅ Profile retrieved from backend database')
@@ -97,8 +99,6 @@ async function getProfile(user: any, authToken: string) {
   }
 }
 
-
-
 export async function GET(request: NextRequest) {
   console.log('🔍 Profile GET request received')
   
@@ -114,12 +114,38 @@ export async function GET(request: NextRequest) {
 
   console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
   
-  const profile = await getProfile(user, token)
-
-  return NextResponse.json({
-    success: true,
-    profile
-  })
+  try {
+    const profile = await getProfile(user, token)
+    return NextResponse.json({
+      success: true,
+      profile
+    })
+  } catch (error) {
+    console.error('❌ Error getting profile:', error)
+    
+    // In development mode, return a default profile if backend fails
+    if (isDevelopmentMode()) {
+      console.log('🔄 Development mode: returning default profile')
+      const defaultProfile = {
+        id: `local_${Date.now()}`,
+        walletAddress: user.walletAddress,
+        name: 'Local User',
+        email: `${user.walletAddress.substring(0, 8)}@local.dev`,
+        company: 'Local Development',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      return NextResponse.json({
+        success: true,
+        profile: defaultProfile
+      })
+    }
+    
+    return NextResponse.json({ 
+      error: 'Failed to get profile',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -162,6 +188,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(profileData)
     })
 
+    console.log('🔍 Backend response status:', response.status)
+
     if (!response.ok) {
       const errorText = await response.text()
       console.error('❌ Backend error:', response.status, errorText)
@@ -177,6 +205,23 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('❌ Error saving profile to database:', error)
+    
+    // In development mode, return success even if backend fails
+    if (isDevelopmentMode()) {
+      console.log('🔄 Development mode: returning local profile')
+      const localProfile = {
+        ...profileData,
+        id: `local_${Date.now()}`,
+        walletAddress: user.walletAddress,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      return NextResponse.json({
+        success: true,
+        profile: localProfile
+      })
+    }
+    
     return NextResponse.json({ 
       error: 'Failed to save profile',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -198,39 +243,35 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
-  try {
-    // In development mode, remove from local storage
-    if (isDevelopmentMode()) {
-      localStorage.removeItem(`localProfile_${user.walletAddress || user.wallet_address}`)
-      console.log('✅ Profile removed from local storage')
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Profile deleted (development mode)'
-      })
-    }
+  console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
 
-    // In production, delete from backend
+  try {
+    // Delete from backend database
+    console.log('🔍 Deleting profile from backend database for wallet:', user.walletAddress)
+    
     const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
     const response = await fetch(`${backendUrl}/api/profile`, {
       method: 'DELETE',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': request.headers.get('authorization') || ''
       }
     })
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Backend error:', response.status, errorText)
       throw new Error(`Backend error: ${response.status}`)
     }
 
-    console.log('✅ Profile deleted from backend')
+    console.log('✅ Profile deleted from backend database')
     
     return NextResponse.json({
       success: true,
-      message: 'Profile deleted'
+      message: 'Profile deleted successfully'
     })
   } catch (error) {
-    console.error('❌ Error deleting profile:', error)
+    console.error('❌ Error deleting profile from database:', error)
     return NextResponse.json({ 
       error: 'Failed to delete profile',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -239,5 +280,5 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  return POST(request) // Use same logic as POST for partial updates
+  return POST(request) // Use same logic as POST for updates
 } 

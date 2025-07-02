@@ -117,17 +117,25 @@ class ApiService {
     }
 
     try {
+      console.log(`🔍 Making API request to: ${url}`)
+      console.log(`🔍 Headers:`, headers)
+      
       const response = await fetch(url, {
         ...options,
         headers,
       })
       
+      console.log(`🔍 Response status: ${response.status}`)
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error(`❌ API request failed: ${response.status}`, errorData)
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
-      return await response.json()
+      const data = await response.json()
+      console.log(`✅ API request successful:`, data)
+      return data
     } catch (error) {
       console.error('API request failed:', error)
       throw error
@@ -166,15 +174,75 @@ class ApiService {
   // Profile - Always query database using wallet address
   async getProfile() {
     console.log('🔍 Querying database for profile with wallet address:', this.getWalletAddress())
-    return this.request<{ success: boolean; profile: any }>('/api/profile')
+    
+    // For development mode, try local storage first
+    if (isDevelopmentMode()) {
+      const localProfile = this.getLocalProfile()
+      if (localProfile) {
+        console.log('✅ Found local profile:', localProfile)
+        return { success: true, profile: localProfile }
+      }
+    }
+    
+    // Try backend API
+    try {
+      return this.request<{ success: boolean; profile: any }>('/api/profile')
+    } catch (error) {
+      console.error('❌ Backend profile request failed:', error)
+      
+      // In development mode, if backend fails, create a default profile
+      if (isDevelopmentMode()) {
+        const walletAddress = this.getWalletAddress()
+        if (walletAddress) {
+          const defaultProfile = {
+            id: `local_${Date.now()}`,
+            walletAddress,
+            name: 'Local User',
+            email: `${walletAddress.substring(0, 8)}@local.dev`,
+            company: 'Local Development',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+          this.setLocalProfile(defaultProfile)
+          console.log('✅ Created default local profile:', defaultProfile)
+          return { success: true, profile: defaultProfile }
+        }
+      }
+      
+      throw error
+    }
   }
 
   async createProfile(profileData: { name: string; company?: string; email: string }) {
     console.log('🔍 Creating profile in database with wallet address:', this.getWalletAddress())
-    return this.request<{ success: boolean; profile: any }>('/api/profile', {
-      method: 'POST',
-      body: JSON.stringify(profileData),
-    })
+    
+    // For development mode, save to local storage
+    if (isDevelopmentMode()) {
+      const walletAddress = this.getWalletAddress()
+      if (walletAddress) {
+        const profile = {
+          ...profileData,
+          id: `local_${Date.now()}`,
+          walletAddress,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+        this.setLocalProfile(profile)
+        console.log('✅ Profile saved to local storage:', profile)
+        return { success: true, profile }
+      }
+    }
+    
+    // Try backend API
+    try {
+      return this.request<{ success: boolean; profile: any }>('/api/profile', {
+        method: 'POST',
+        body: JSON.stringify(profileData),
+      })
+    } catch (error) {
+      console.error('❌ Backend profile creation failed:', error)
+      throw error
+    }
   }
 
   // Submissions (use backend API)
