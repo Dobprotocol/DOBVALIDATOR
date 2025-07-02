@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Footer } from '@/components/ui/footer'
+import { StarsBackground } from '@/components/ui/stars-background'
 import Script from 'next/script'
 
 export const metadata: Metadata = {
@@ -35,6 +36,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="relative min-h-screen overflow-hidden">
+            <StarsBackground className="!fixed inset-0 -z-10" />
             <main className="relative z-0">
             {children}
           </main>

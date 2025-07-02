@@ -244,6 +244,46 @@ class ApiService {
   async getAdminProfile(): Promise<User> {
     return this.request<User>('/api/auth/profile')
   }
+
+  // Generate challenge for wallet authentication
+  async generateChallenge(walletAddress: string): Promise<{ challenge: string }> {
+    return this.request<{ challenge: string }>('/api/auth/challenge', {
+      method: 'POST',
+      body: JSON.stringify({ walletAddress }),
+    })
+  }
+
+  // Verify signature and get JWT token
+  async verifySignature(
+    walletAddress: string,
+    signature: string,
+    challenge: string
+  ): Promise<{ token: string }> {
+    return this.request<{ token: string }>('/api/auth/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        walletAddress,
+        signature,
+        challenge,
+      }),
+    })
+  }
+
+  // Complete wallet login flow
+  async walletLogin(
+    walletAddress: string,
+    signature: string,
+    challenge: string
+  ): Promise<{ access_token: string }> {
+    return this.request<{ access_token: string }>('/api/auth/wallet-login', {
+      method: 'POST',
+      body: JSON.stringify({
+        walletAddress,
+        signature,
+        challenge,
+      }),
+    })
+  }
 }
 
 // Export singleton instance
