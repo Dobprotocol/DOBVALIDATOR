@@ -1,7 +1,7 @@
 // API Service for DOB Validator Backend
-// Base URL: https://validator.dobprotocol.com
+// Base URL: https://v.dobprotocol.com
 
-const API_BASE_URL = 'https://validator.dobprotocol.com'
+const API_BASE_URL = 'https://v.dobprotocol.com'
 
 // Types for the backend API
 export interface Submission {

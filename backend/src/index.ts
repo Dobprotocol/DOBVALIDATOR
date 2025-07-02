@@ -60,7 +60,11 @@ app.use(cors({
       'http://localhost:3002',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
-      'http://127.0.0.1:3002'
+      'http://127.0.0.1:3002',
+      // Production domains
+      'https://validator.dobprotocol.com',
+      'https://backoffice.dobprotocol.com',
+      'https://v.dobprotocol.com'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {

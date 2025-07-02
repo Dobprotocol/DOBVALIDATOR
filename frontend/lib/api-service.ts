@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001' // For backend-only endpoints
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com' // For backend-only endpoints
 
 // Check if we're in development/testing mode
 const isDevelopmentMode = () => {
