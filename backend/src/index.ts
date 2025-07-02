@@ -194,17 +194,30 @@ app.get('/api/profile', async (req, res) => {
     const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
+    console.log('🔍 Looking for profile with wallet:', walletAddress)
+
     const profile = await profileService.getByWallet(walletAddress)
     if (!profile) {
+      console.log('❌ Profile not found for wallet:', walletAddress)
       res.status(404).json({ error: 'Profile not found' })
       return
     }
 
+    console.log('✅ Profile found:', profile.id)
     res.json({ success: true, profile })
     return
-  } catch (error) {
+  } catch (error: any) {
     console.error('Profile fetch error:', error)
-    res.status(401).json({ error: 'Invalid token' })
+    
+    // Check if it's a JWT verification error
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      res.status(401).json({ error: 'Invalid token' })
+      return
+    }
+    
+    // For other errors, return 500 but with more details
+    console.error('Unexpected error in profile fetch:', error)
+    res.status(500).json({ error: 'Internal server error', details: error.message })
     return
   }
 })

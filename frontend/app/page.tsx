@@ -148,15 +148,10 @@ export default function Home() {
           console.log('❌ Authentication failed (401), clearing storage')
           clearAllLocalStorage()
         } else {
-          // For unexpected errors in development mode, still try to redirect to profile creation
-          const isDevelopment = process.env.NODE_ENV === 'development' || 
-                               window.location.hostname === 'localhost' ||
-                               window.location.hostname.includes('vercel.app');
-          if (isDevelopment) {
-            console.log('🔄 Development mode: redirecting to profile creation despite error')
-            hasRedirected.current = true
-            router.push('/profile')
-          }
+          // For unexpected errors (like 500), treat them as "no profile found" and redirect to profile creation
+          console.log('ℹ️ Unexpected error, treating as no profile found, redirecting to profile creation')
+          hasRedirected.current = true
+          router.push('/profile')
         }
       } finally {
         isCheckingProfile.current = false
