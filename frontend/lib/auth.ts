@@ -107,23 +107,24 @@ export const verifySignature = async (
   }
 }
 
-// Complete authentication flow using new wallet-login endpoint
+// Complete authentication flow using verify endpoint
 export const authenticateWallet = async (walletAddress: string, signature: string, challenge: string) => {
   try {
-    console.log('🚀 Starting Supabase-based authentication...')
+    console.log('🚀 Starting JWT-based authentication...')
     
-    // Use the new wallet-login endpoint
-    const response = await apiService.walletLogin(walletAddress, signature, challenge)
-    console.log('✅ Wallet login successful:', response)
+    // Use the verify endpoint to get JWT token
+    const response = await apiService.verifySignature(walletAddress, signature, challenge)
+    console.log('✅ Verification successful:', response)
     
-    // Store the session data
+    // Store the JWT token
     const authToken = {
-      token: response.access_token,
-      expiresIn: '7d',
+      token: response.token,
+      expiresIn: response.expiresIn || '7d',
       walletAddress
     }
     
     storeAuthToken(authToken.token, authToken.expiresIn, authToken.walletAddress)
+    console.log('✅ JWT token stored in localStorage')
     return authToken
   } catch (error) {
     console.error('❌ Authentication failed:', error)
