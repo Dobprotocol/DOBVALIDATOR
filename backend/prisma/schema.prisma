@@ -92,6 +92,7 @@ model Draft {
   id                String   @id @default(cuid())
   deviceName        String   @default("")
   deviceType        String   @default("")
+  customDeviceType  String?  @default("")
   location          String   @default("")
   serialNumber      String   @default("")
   manufacturer      String   @default("")

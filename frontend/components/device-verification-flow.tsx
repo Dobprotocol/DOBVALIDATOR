@@ -144,7 +144,9 @@ export function DeviceVerificationFlow() {
 
   const handleSaveDraft = async () => {
     try {
-      const savedDraft = await saveDraft(deviceData, currentDraftId || undefined)
+      // Filter out customDeviceType to avoid backend schema issues
+      const { customDeviceType, ...draftDataWithoutCustomType } = deviceData
+      const savedDraft = await saveDraft(draftDataWithoutCustomType, currentDraftId || undefined)
       if (!currentDraftId && savedDraft) {
         setCurrentDraftId(savedDraft.id)
       }
