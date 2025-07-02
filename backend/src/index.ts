@@ -716,6 +716,72 @@ app.delete('/api/drafts/:id', async (req, res) => {
   }
 })
 
+// Admin endpoints
+app.get('/api/admin/profiles', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.JWT_SECRET)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (user?.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Admin access required' })
+      return
+    }
+
+    const { limit = 50, offset = 0 } = req.query
+
+    // Get all profiles with user information
+    const [profiles, total] = await Promise.all([
+      prisma.profile.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              walletAddress: true,
+              email: true,
+              name: true,
+              company: true,
+              role: true,
+              createdAt: true,
+              updatedAt: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit as string),
+        skip: parseInt(offset as string)
+      }),
+      prisma.profile.count()
+    ])
+
+    res.json({ 
+      success: true, 
+      profiles,
+      total,
+      hasMore: (parseInt(offset as string) + parseInt(limit as string)) < total,
+      pagination: {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        total
+      }
+    })
+    return
+  } catch (error) {
+    console.error('Admin profiles fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch profiles' })
+    return
+  }
+})
+
 // Error handling middleware
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled error:', error)
