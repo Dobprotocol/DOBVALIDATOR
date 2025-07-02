@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Backend verification failed' },
         { status: backendResponse.status }
-      )
+    )
     }
     
     const backendData = await backendResponse.json()

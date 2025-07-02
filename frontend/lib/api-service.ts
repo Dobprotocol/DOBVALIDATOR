@@ -186,7 +186,7 @@ class ApiService {
     
     // Try backend API
     try {
-      return this.request<{ success: boolean; profile: any }>('/api/profile')
+    return this.request<{ success: boolean; profile: any }>('/api/profile')
     } catch (error) {
       console.error('❌ Backend profile request failed:', error)
       
@@ -235,10 +235,10 @@ class ApiService {
     
     // Try backend API
     try {
-      return this.request<{ success: boolean; profile: any }>('/api/profile', {
-        method: 'POST',
-        body: JSON.stringify(profileData),
-      })
+    return this.request<{ success: boolean; profile: any }>('/api/profile', {
+      method: 'POST',
+      body: JSON.stringify(profileData),
+    })
     } catch (error) {
       console.error('❌ Backend profile creation failed:', error)
       throw error

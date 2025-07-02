@@ -107,7 +107,7 @@ export async function PUT(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
-    })
+      })
 
     console.log('🔍 Backend response status:', backendResponse.status)
 
