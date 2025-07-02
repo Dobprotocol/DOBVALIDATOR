@@ -2,92 +2,26 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { LogOut, User, Wallet, Loader2 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
-// Temporarily disable complex components for build testing
-// import { BackOfficeDashboard } from "@/components/backoffice-dashboard"
-// import { StellarWallet } from "@/components/stellar-wallet"
 
 export default function DashboardPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Simple, safe authentication check
-    try {
-      if (typeof window === 'undefined') {
-        setIsAuthenticated(false)
-        setIsLoading(false)
-        return
-      }
-
-      const authToken = localStorage.getItem('authToken')
-      const publicKey = localStorage.getItem('stellarPublicKey')
-
-      if (authToken && publicKey) {
-        setIsAuthenticated(true)
-        setWalletAddress(publicKey)
-      } else {
-        setIsAuthenticated(false)
-      }
-    } catch (error) {
-      console.error('Auth check error:', error)
-      setIsAuthenticated(false)
-    } finally {
+    // Simple loading simulation
+    const timer = setTimeout(() => {
       setIsLoading(false)
-    }
+    }, 1000)
+
+    return () => clearTimeout(timer)
   }, [])
-
-  const truncateAddress = (address: string | null) => {
-    if (!address || typeof address !== 'string') return ''
-    if (address.length < 8) return address
-    return `${address.slice(0, 4)}...${address.slice(-4)}`
-  }
-
-  const handleDisconnect = () => {
-    try {
-      if (typeof window === 'undefined') return
-
-      localStorage.removeItem('stellarPublicKey')
-      localStorage.removeItem('stellarWallet')
-      localStorage.removeItem('authToken')
-      
-      window.location.href = '/'
-    } catch (error) {
-      console.error('Disconnect error:', error)
-    }
-  }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Connect Wallet</h2>
-            <p className="text-muted-foreground">Please connect your wallet to access the backoffice.</p>
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
@@ -95,56 +29,84 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">DOB Validator Backoffice</h1>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight mb-2">
+              DOB Validator Backoffice
+            </h1>
+            <p className="text-muted-foreground">
+              Welcome to the validator dashboard
+            </p>
           </div>
-          
-          {/* Wallet Info and Disconnect */}
-          {walletAddress && (
-            <div className="flex items-center gap-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4" />
-                    <span className="hidden sm:inline">{truncateAddress(walletAddress)}</span>
-                    <span className="sm:hidden">Wallet</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Wallet Information</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">Admin User</span>
-                      <span className="text-xs text-muted-foreground">{truncateAddress(walletAddress)}</span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleDisconnect}
-                    className="flex items-center gap-2 text-red-600 focus:text-red-600"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Disconnect Wallet</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="p-6 bg-card rounded-lg border">
+              <h3 className="text-lg font-semibold mb-2">Submissions</h3>
+              <p className="text-muted-foreground mb-4">
+                Review and manage device submissions
+              </p>
+              <button 
+                onClick={() => router.push('/submission-review')}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                View Submissions
+              </button>
             </div>
-          )}
-        </div>
-      </header>
-      <main className="container py-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-          <p className="text-muted-foreground">Dashboard content will be loaded here.</p>
-          <div className="mt-8 p-4 bg-muted rounded-lg">
-            <p className="text-sm">Status: Ready for development</p>
+
+            <div className="p-6 bg-card rounded-lg border">
+              <h3 className="text-lg font-semibold mb-2">Analytics</h3>
+              <p className="text-muted-foreground mb-4">
+                View validation statistics and metrics
+              </p>
+              <button 
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
+              >
+                View Analytics
+              </button>
+            </div>
+
+            <div className="p-6 bg-card rounded-lg border">
+              <h3 className="text-lg font-semibold mb-2">Settings</h3>
+              <p className="text-muted-foreground mb-4">
+                Configure validator settings and preferences
+              </p>
+              <button 
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
+              >
+                Open Settings
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 p-6 bg-card rounded-lg border">
+            <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                <div>
+                  <p className="font-medium">New submission received</p>
+                  <p className="text-sm text-muted-foreground">Device ID: ABC123</p>
+                </div>
+                <span className="text-sm text-muted-foreground">2 hours ago</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                <div>
+                  <p className="font-medium">Validation completed</p>
+                  <p className="text-sm text-muted-foreground">Device ID: XYZ789</p>
+                </div>
+                <span className="text-sm text-muted-foreground">5 hours ago</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                <div>
+                  <p className="font-medium">System update</p>
+                  <p className="text-sm text-muted-foreground">Backend services updated</p>
+                </div>
+                <span className="text-sm text-muted-foreground">1 day ago</span>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 } 
