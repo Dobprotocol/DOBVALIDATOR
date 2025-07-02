@@ -153,31 +153,7 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
     <div className="bg-background/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6">
       <h2 className="text-xl font-medium text-white mb-6">Review Information</h2>
 
-      {/* Check for missing required fields */}
-      {(() => {
-        const requiredFields = [
-          'deviceName', 'deviceType', 'location', 'serialNumber', 'manufacturer', 
-          'model', 'yearOfManufacture', 'condition', 'specifications',
-          'purchasePrice', 'currentValue', 'expectedRevenue', 'operationalCosts'
-        ]
-        
-        const missingFields = requiredFields.filter(field => {
-          const value = deviceData[field as keyof DeviceData]
-          return !value || (typeof value === 'string' && value.trim() === '')
-        })
-        
-        if (missingFields.length > 0) {
-          return (
-            <div className="mb-6 p-4 bg-yellow-900/50 border border-yellow-700/50 rounded-lg backdrop-blur-sm">
-              <h3 className="text-yellow-200 font-medium mb-2">⚠️ Incomplete Form</h3>
-              <p className="text-yellow-300 text-sm">
-                Please complete the following fields before submitting: <strong>{missingFields.join(', ')}</strong>
-              </p>
-            </div>
-          )
-        }
-        return null
-      })()}
+      {/* Validation message removed - now handled on the form page */}
 
       {validationErrors.length > 0 && (
         <div className="mb-6 p-4 bg-red-900/50 border border-red-700/50 rounded-lg backdrop-blur-sm">
@@ -326,29 +302,7 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
         </section>
       </div>
 
-      <div className="mt-8 pt-4 border-t flex justify-between">
-        <Button type="button" variant="outline" onClick={onBack}>
-          Back
-        </Button>
-        <Button
-          type="button"
-          className="bg-[#6366F1] hover:bg-[#5355d1] text-white btn-primary"
-          onClick={handleFinalSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-              {useIsMobile() ? "" : "Submitting..."}
-            </>
-          ) : (
-            <>
-              <Send className="h-4 w-4 mr-2 md:mr-2" />
-              {useIsMobile() ? "" : "Submit for Verification"}
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Navigation buttons removed - handled by parent component */}
 
       {success && (
         <div className="mt-4 text-center text-green-500">

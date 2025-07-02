@@ -33,6 +33,29 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
     operationalCosts: deviceData.operationalCosts || ""
   })
 
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('dobFormStep3Backup')
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData)
+        setLocalData(prev => ({
+          ...prev,
+          ...parsedData
+        }))
+        // Also update parent state
+        updateDeviceData(parsedData)
+      } catch (error) {
+        console.error('Error parsing localStorage data:', error)
+      }
+    }
+  }, [])
+
+  // Save to localStorage whenever localData changes
+  useEffect(() => {
+    localStorage.setItem('dobFormStep3Backup', JSON.stringify(localData))
+  }, [localData])
+
   // Only sync on draftId change, not on parent state changes
   useEffect(() => {
     setLocalData({
@@ -45,6 +68,11 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
 
   const handleInputChange = (field: string, value: string) => {
     setLocalData(prev => ({ ...prev, [field]: value }))
+    
+    // Trigger auto-save if available
+    if (onAutoSave) {
+      onAutoSave()
+    }
   }
 
   const validate = () => {
@@ -164,16 +192,7 @@ export function DeviceFinancialInfo({ deviceData, updateDeviceData, onNext, onBa
             </div>
           </div>
 
-          <div className="flex justify-between pt-6">
-            <Button type="button" variant="outline" onClick={onBack} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <Button type="submit" className="flex items-center gap-2 ml-auto">
-              Next
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* Navigation buttons removed - using single button at bottom */}
         </form>
       </CardContent>
     </Card>

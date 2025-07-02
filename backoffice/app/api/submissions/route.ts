@@ -17,13 +17,38 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 Query params:', { status, limit, offset })
     
-    // For now, we'll return all submissions without authentication check
-    // In production, you'd want to verify admin authentication here
-    const submissions = await apiService.getAllSubmissions({
-      status: status || undefined,
-      limit,
-      offset
-    })
+    let submissions;
+    
+    if (process.env.NODE_ENV === 'development') {
+      // Call backend directly in development
+      const params = new URLSearchParams()
+      if (status) params.append('status', status)
+      if (limit) params.append('limit', limit.toString())
+      if (offset) params.append('offset', offset.toString())
+      
+      const backendUrl = `http://localhost:3001/api/submissions?${params.toString()}`
+      console.log('🔍 Calling backend directly:', backendUrl)
+      
+      const res = await fetch(backendUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!res.ok) {
+        throw new Error(`Backend API error: ${res.status} ${res.statusText}`)
+      }
+      
+      const backendResponse = await res.json()
+      submissions = backendResponse.data || backendResponse
+    } else {
+      // Use apiService in production
+      submissions = await apiService.getAllSubmissions({
+        status: status || undefined,
+        limit,
+        offset
+      })
+    }
     
     console.log('🔍 Found submissions:', submissions?.length || 0)
     
@@ -60,7 +85,29 @@ export async function POST(request: NextRequest) {
     // Handle different types of POST requests
     if (body.action === 'updateStatus') {
       const { submissionId, status } = body
-      const updatedSubmission = await apiService.updateSubmissionStatus(submissionId, status)
+      
+      let updatedSubmission;
+      if (process.env.NODE_ENV === 'development') {
+        // Call backend directly in development
+        const backendUrl = `http://localhost:3001/api/submissions/${submissionId}`
+        const res = await fetch(backendUrl, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status }),
+        })
+        
+        if (!res.ok) {
+          throw new Error(`Backend API error: ${res.status} ${res.statusText}`)
+        }
+        
+        const backendResponse = await res.json()
+        updatedSubmission = backendResponse.data || backendResponse
+      } else {
+        // Use apiService in production
+        updatedSubmission = await apiService.updateSubmissionStatus(submissionId, status)
+      }
       
       return NextResponse.json({
         success: true,
@@ -80,7 +127,28 @@ export async function POST(request: NextRequest) {
         decision: body.decision
       }
       
-      const review = await apiService.upsertAdminReview(reviewData)
+      let review;
+      if (process.env.NODE_ENV === 'development') {
+        // Call backend directly in development
+        const backendUrl = 'http://localhost:3001/api/admin-reviews'
+        const res = await fetch(backendUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(reviewData),
+        })
+        
+        if (!res.ok) {
+          throw new Error(`Backend API error: ${res.status} ${res.statusText}`)
+        }
+        
+        const backendResponse = await res.json()
+        review = backendResponse.data || backendResponse
+      } else {
+        // Use apiService in production
+        review = await apiService.upsertAdminReview(reviewData)
+      }
       
       return NextResponse.json({
         success: true,
