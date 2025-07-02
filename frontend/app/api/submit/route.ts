@@ -40,8 +40,36 @@ export async function POST(request: NextRequest) {
       // Handle FormData
       const formData = await request.formData()
       
+      // Define file size limits (5MB per file, 20MB total)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+      const MAX_TOTAL_SIZE = 20 * 1024 * 1024 // 20MB
+      let totalFileSize = 0
+      
+      // Define the fields that are allowed in the backend schema
+      const allowedFields = [
+        'deviceName', 'deviceType', 'customDeviceType', 'location', 'serialNumber', 
+        'manufacturer', 'model', 'yearOfManufacture', 'condition', 'specifications',
+        'purchasePrice', 'currentValue', 'expectedRevenue', 'operationalCosts', 'draftId'
+      ]
+      
       for (const [key, value] of formData.entries()) {
         if (value instanceof File) {
+          // Check file size
+          if (value.size > MAX_FILE_SIZE) {
+            return NextResponse.json(
+              { success: false, error: `File ${value.name} is too large. Maximum size is 5MB.` },
+              { status: 413 }
+            )
+          }
+          
+          totalFileSize += value.size
+          if (totalFileSize > MAX_TOTAL_SIZE) {
+            return NextResponse.json(
+              { success: false, error: 'Total file size exceeds 20MB limit.' },
+              { status: 413 }
+            )
+          }
+          
           // Handle file uploads
           const fileData = {
             filename: value.name,
@@ -51,8 +79,8 @@ export async function POST(request: NextRequest) {
             documentType: key // Use the field name as document type
           }
           files.push(fileData)
-        } else {
-          // Handle regular form fields
+        } else if (allowedFields.includes(key)) {
+          // Only include fields that are defined in the backend schema
           submissionData[key] = value
         }
       }
@@ -61,7 +89,7 @@ export async function POST(request: NextRequest) {
       submissionData = await request.json()
     } else {
       return NextResponse.json(
-        { success: false, error: 'Unsupported content type. Use multipart/form-data or application/json' },
+        { success: false, error: 'Content-Type was not one of "multipart/form-data" or "application/x-www-form-urlencoded".' },
         { status: 400 }
       )
     }
