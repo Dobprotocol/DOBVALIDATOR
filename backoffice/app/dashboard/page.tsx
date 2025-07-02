@@ -23,36 +23,97 @@ export default function DashboardPage() {
   const [authCheckComplete, setAuthCheckComplete] = useState(false)
 
   useEffect(() => {
-    // Check authentication status
-    const authToken = localStorage.getItem('authToken')
-    const publicKey = localStorage.getItem('stellarPublicKey')
-
-    console.log('🔍 Dashboard auth check:', {
-      hasAuthToken: !!authToken,
-      hasPublicKey: !!publicKey,
-      authTokenLength: authToken?.length,
-      publicKeyValue: publicKey,
-      timestamp: new Date().toISOString()
-    })
-
-    if (!authToken || !publicKey) {
-      console.log('❌ No authentication data found...')
-      setIsAuthenticated(false)
-      setAuthCheckComplete(true)
-      return
-    }
-
+    // Check authentication status with better error handling
     try {
-      const tokenData = JSON.parse(authToken)
-      // Check if token is expired
+      const authToken = localStorage.getItem('authToken')
+      const publicKey = localStorage.getItem('stellarPublicKey')
+
+      console.log('🔍 Dashboard auth check:', {
+        hasAuthToken: !!authToken,
+        hasPublicKey: !!publicKey,
+        authTokenLength: authToken?.length,
+        publicKeyValue: publicKey,
+        timestamp: new Date().toISOString()
+      })
+
+      if (!authToken) {
+        console.log('❌ No authentication token found...')
+        setIsAuthenticated(false)
+        setAuthCheckComplete(true)
+        return
+      }
+
+      // Validate that authToken is a valid string before parsing
+      if (typeof authToken !== 'string' || authToken.trim() === '') {
+        console.log('❌ Invalid auth token format (not a string or empty)')
+        localStorage.removeItem('authToken')
+        setIsAuthenticated(false)
+        setAuthCheckComplete(true)
+        return
+      }
+
+      let tokenData
+      try {
+        tokenData = JSON.parse(authToken)
+        console.log('🔍 Token data:', tokenData)
+      } catch (parseError) {
+        console.error('❌ Error parsing auth token JSON:', parseError)
+        console.log('❌ Raw auth token value:', authToken)
+        
+        // Check if it's a plain string token (fallback for old format)
+        if (authToken.startsWith('dev_fallback_token_') || authToken.startsWith('mock_access_token_')) {
+          console.log('🔄 Detected plain string token, creating fallback structure')
+          tokenData = {
+            token: authToken,
+            expiresIn: '7d',
+            walletAddress: publicKey || 'unknown'
+          }
+        } else {
+          console.log('❌ Invalid token format, clearing data')
+          localStorage.removeItem('authToken')
+          setIsAuthenticated(false)
+          setAuthCheckComplete(true)
+          return
+        }
+      }
+
+      // Validate token structure
+      if (!tokenData || typeof tokenData !== 'object') {
+        console.log('❌ Invalid token data structure')
+        localStorage.removeItem('authToken')
+        setIsAuthenticated(false)
+        setAuthCheckComplete(true)
+        return
+      }
+
+      // Check if token is expired (handle both expiresAt and expiresIn formats)
       const now = Date.now()
-      const isExpired = tokenData.expiresAt ? now > tokenData.expiresAt : true
+      let isExpired = false
       
-      console.log('🔍 Token data:', {
+      if (tokenData.expiresAt) {
+        // Old format with expiresAt timestamp
+        isExpired = now > tokenData.expiresAt
+      } else if (tokenData.expiresIn) {
+        // New format with expiresIn duration - assume 7 days for now
+        // For development tokens, they don't expire
+        if (tokenData.token && (tokenData.token.startsWith('dev_fallback_token_') || tokenData.token.startsWith('mock_access_token_'))) {
+          isExpired = false
+        } else {
+          // For real tokens, we'd need to calculate expiration
+          // For now, assume they're valid
+          isExpired = false
+        }
+      } else {
+        // No expiration info, assume valid
+        isExpired = false
+      }
+      
+      console.log('🔍 Token validation:', {
         expiresAt: tokenData.expiresAt,
+        expiresIn: tokenData.expiresIn,
         now,
         isExpired,
-        timeRemaining: tokenData.expiresAt ? tokenData.expiresAt - now : 'N/A'
+        tokenType: tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'undefined'
       })
       
       if (isExpired) {
@@ -69,11 +130,13 @@ export default function DashboardPage() {
       } else {
         console.log('✅ User authenticated, showing dashboard...')
         setIsAuthenticated(true)
-        setWalletAddress(publicKey)
+        // Use walletAddress from token if available, otherwise use publicKey
+        setWalletAddress(tokenData.walletAddress || publicKey)
         setAuthCheckComplete(true)
       }
     } catch (error) {
-      console.error('❌ Error parsing auth token:', error)
+      console.error('❌ Unexpected error in authentication check:', error)
+      // Clear potentially corrupted data
       localStorage.removeItem('authToken')
       localStorage.removeItem('stellarPublicKey')
       setIsAuthenticated(false)

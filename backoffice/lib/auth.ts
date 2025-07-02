@@ -31,7 +31,22 @@ export const getAuthToken = (): AuthToken | null => {
   
   try {
     return JSON.parse(authData)
-  } catch {
+  } catch (error) {
+    console.error('❌ Error parsing auth token in getAuthToken:', error)
+    console.log('❌ Raw auth data:', authData)
+    
+    // Check if it's a plain string token (fallback for old format)
+    if (typeof authData === 'string' && (authData.startsWith('dev_fallback_token_') || authData.startsWith('mock_access_token_'))) {
+      console.log('🔄 Detected plain string token, creating fallback structure')
+      return {
+        token: authData,
+        expiresIn: '7d',
+        walletAddress: 'unknown'
+      }
+    }
+    
+    // Clear corrupted data
+    localStorage.removeItem('authToken')
     return null
   }
 }
