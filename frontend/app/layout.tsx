@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Footer } from '@/components/ui/footer'
 import { StarsBackground } from '@/components/ui/stars-background'
-import { Navbar } from '@/components/navbar'
+import { Header } from '@/components/ui/header'
 import Script from 'next/script'
 
 export const metadata: Metadata = {
@@ -38,7 +38,7 @@ export default function RootLayout({
         >
           <div className="relative min-h-screen overflow-hidden">
             <StarsBackground className="!fixed inset-0 -z-10" />
-            <Navbar />
+            <Header />
             <main className="relative z-0">
             {children}
           </main>
