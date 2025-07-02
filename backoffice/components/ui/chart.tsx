@@ -68,11 +68,11 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
+  const colorConfig = Object.entries(config || {}).filter(
+    ([_, config]) => config?.theme || config?.color
   )
 
-      if (!colorConfig?.length) {
+  if (!colorConfig || !colorConfig.length) {
     return null
   }
 
@@ -134,7 +134,7 @@ const ChartTooltipContent = React.forwardRef<
     const { config } = useChart()
 
     const tooltipLabel = React.useMemo(() => {
-      if (hideLabel || !payload?.length) {
+      if (hideLabel || !payload || !Array.isArray(payload) || !payload.length) {
         return null
       }
 
@@ -169,11 +169,11 @@ const ChartTooltipContent = React.forwardRef<
       labelKey,
     ])
 
-    if (!active || !payload?.length) {
+    if (!active || !payload || !Array.isArray(payload) || !payload.length) {
       return null
     }
 
-    const nestLabel = payload?.length === 1 && indicator !== "dot"
+    const nestLabel = payload.length === 1 && indicator !== "dot"
 
     return (
       <div
