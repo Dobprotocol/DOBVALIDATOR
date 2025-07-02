@@ -79,3 +79,4 @@ keys/account.json
 # Windows
 Thumbs.db
 desktop.ini
+.vercel
