@@ -95,15 +95,17 @@ SimpleSidebarMenu.displayName = "SimpleSidebarMenu"
 
 const SimpleSidebarMenuButton = React.forwardRef<HTMLButtonElement, SimpleSidebarMenuButtonProps>(
   ({ children, className, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? React.Fragment : Button
+    if (asChild) {
+      return <>{children}</>
+    }
     return (
-      <Comp
+      <Button
         ref={ref}
         className={cn("w-full justify-start", className)}
         {...props}
       >
         {children}
-      </Comp>
+      </Button>
     )
   }
 )
