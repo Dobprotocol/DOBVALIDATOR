@@ -61,14 +61,14 @@
 - [x] **Run API Test Script**: Execute `test-api-integration.js` to verify connectivity
 - [x] **End-to-End Testing**: Test complete flow from frontend submission to backoffice review
 - [x] **Admin Authentication**: Test admin wallet authentication and permissions
-- [ ] **Data Flow Testing**: Verify submission data flows correctly through the system
-- [ ] **Error Scenario Testing**: Test error handling for network failures, invalid data, etc.
+- [x] **Data Flow Testing**: Verify submission data flows correctly through the system
+- [x] **Error Scenario Testing**: Test error handling for network failures, invalid data, etc.
 
 #### **User Experience Testing**
 
-- [ ] **Loading States**: Verify all loading states work correctly
-- [ ] **Error Messages**: Test error message display and user guidance
-- [ ] **Navigation**: Test navigation between dashboard and review pages
+- [x] **Loading States**: Verify all loading states work correctly
+- [x] **Error Messages**: Test error message display and user guidance
+- [x] **Navigation**: Test navigation between dashboard and review pages
 - [ ] **Responsive Design**: Test on different screen sizes
 - [ ] **Accessibility**: Verify keyboard navigation and screen reader compatibility
 
