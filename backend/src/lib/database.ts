@@ -50,17 +50,27 @@ export const userService = {
 export const profileService = {
   // Create or update profile
   async create(userId: string, data: { name: string; company?: string; email: string; walletAddress: string }) {
-    return prisma.profile.upsert({
-      where: { userId },
-      update: {
-        ...data,
-        updatedAt: new Date()
-      },
-      create: {
-        userId,
-        ...data
-      }
-    })
+    console.log('🔍 ProfileService.create called with:', { userId, data })
+    
+    try {
+      const result = await prisma.profile.upsert({
+        where: { userId },
+        update: {
+          ...data,
+          updatedAt: new Date()
+        },
+        create: {
+          userId,
+          ...data
+        }
+      })
+      
+      console.log('✅ ProfileService.create successful:', result.id)
+      return result
+    } catch (error) {
+      console.error('❌ ProfileService.create failed:', error)
+      throw error
+    }
   },
 
   // Get profile by wallet address

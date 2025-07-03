@@ -442,8 +442,12 @@ app.get('/api/profile', async (req, res) => {
 
 app.post('/api/profile', async (req, res) => {
   try {
+    console.log('🔍 Profile POST request received')
+    console.log('🔍 Request body:', req.body)
+    
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ No authorization header')
       res.status(401).json({ error: 'Authorization header required' })
       return
     }
@@ -451,30 +455,39 @@ app.post('/api/profile', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
+    console.log('🔍 Verifying JWT token...')
     const decoded = jwt.verify(token, env.***REMOVED***)
     const { walletAddress } = decoded
+    console.log('✅ JWT verified, wallet address:', walletAddress)
 
     const { name, company, email } = req.body
+    console.log('🔍 Profile data:', { name, company, email })
 
     // Get user
+    console.log('🔍 Getting user by wallet...')
     const user = await userService.getByWallet(walletAddress)
     if (!user) {
+      console.log('❌ User not found for wallet:', walletAddress)
       res.status(404).json({ error: 'User not found' })
       return
     }
+    console.log('✅ User found:', user.id)
 
     // Create or update profile
+    console.log('🔍 Creating/updating profile...')
     const profile = await profileService.create(user.id, {
       name,
       company,
       email,
       walletAddress
     })
+    console.log('✅ Profile created/updated:', profile.id)
 
     res.json({ success: true, profile })
     return
   } catch (error) {
-    console.error('Profile creation error:', error)
+    console.error('❌ Profile creation error:', error)
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     res.status(500).json({ error: 'Failed to create profile' })
     return
   }
