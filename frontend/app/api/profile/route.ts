@@ -67,7 +67,8 @@ async function getProfile(user: any, authToken: string) {
     console.log('🔍 Querying backend for profile with wallet address:', user.walletAddress)
     
     // Query backend database with proper authorization
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const response = await fetch(`${backendUrl}/api/profile`, {
       headers: {
         'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
-  console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
+  console.log('✅ User authenticated:', user.walletAddress)
   
   try {
     const profile = await getProfile(user, token)
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
-  console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
+  console.log('✅ User authenticated:', user.walletAddress)
 
   const body = await request.json()
   const validationResult = profileSchema.safeParse(body)
@@ -200,7 +201,8 @@ export async function POST(request: NextRequest) {
     // Always save to backend database
     console.log('🔍 Saving profile to backend database for wallet:', user.walletAddress)
     
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const response = await fetch(`${backendUrl}/api/profile`, {
       method: 'POST',
       headers: {
@@ -265,13 +267,14 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
-  console.log('✅ User authenticated:', user.walletAddress || user.wallet_address)
+  console.log('✅ User authenticated:', user.walletAddress)
 
   try {
     // Delete from backend database
     console.log('🔍 Deleting profile from backend database for wallet:', user.walletAddress)
     
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const response = await fetch(`${backendUrl}/api/profile`, {
       method: 'DELETE',
       headers: {

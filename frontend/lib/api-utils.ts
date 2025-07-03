@@ -5,6 +5,11 @@
 export function getSafeBackendUrl(): string {
   let backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
   
+  // Production override: always use production backend in production
+  if (process.env.NODE_ENV === 'production') {
+    backendUrl = 'https://v.dobprotocol.com'
+  }
+  
   // Safety check: prevent calling the frontend domain as backend
   if (backendUrl.includes('validator.dobprotocol.com')) {
     console.warn('⚠️ Backend URL points to frontend domain, redirecting to v.dobprotocol.com')

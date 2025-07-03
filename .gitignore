@@ -80,3 +80,11 @@ temp/
 Thumbs.db
 desktop.ini
 .vercel
+
+# Ignore local test and migration scripts
+PRODUCTION_DATABASE_MIGRATION.sql
+test-frontend-backend-url.js
+test-production-api-endpoints.js
+test-production-with-auth.js
+PRODUCTION_DEPLOYMENT_CHECKLIST.md
+PRODUCTION_TEST_RESULTS.md
