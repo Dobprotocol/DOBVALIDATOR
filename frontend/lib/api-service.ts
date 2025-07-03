@@ -102,6 +102,12 @@ class ApiService {
     const isFrontendApi = endpoint.startsWith('/api/')
     const url = isFrontendApi ? endpoint : `${this.baseUrl}${endpoint}`
     
+    console.log(`🔍 URL resolution debug:`)
+    console.log(`  - endpoint: ${endpoint}`)
+    console.log(`  - isFrontendApi: ${isFrontendApi}`)
+    console.log(`  - baseUrl: ${this.baseUrl}`)
+    console.log(`  - final url: ${url}`)
+    
     // Check if this is a FormData request
     const isFormData = options.body instanceof FormData
     

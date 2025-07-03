@@ -86,6 +86,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Frontend submissions POST request received')
+    console.log('🔍 Request URL:', request.url)
+    console.log('🔍 Request method:', request.method)
+    console.log('🔍 Request headers:', Object.fromEntries(request.headers.entries()))
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization')
