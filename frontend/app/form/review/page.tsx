@@ -103,6 +103,24 @@ export default function FormReviewPage() {
 
     setLoading(true)
     try {
+      // Enforce all file fields are File objects
+      if (
+        !(deviceData.technicalCertification instanceof File) ||
+        !(deviceData.purchaseProof instanceof File) ||
+        !(deviceData.maintenanceRecords instanceof File) ||
+        !Array.isArray(deviceData.deviceImages) ||
+        !deviceData.deviceImages.length ||
+        !deviceData.deviceImages.every(f => f instanceof File)
+      ) {
+        toast({
+          title: "Missing or Invalid Files",
+          description: "Please re-upload all required files before submitting.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       // Validate that all required files are uploaded
       if (!deviceData.technicalCertification || !deviceData.purchaseProof || 
           !deviceData.maintenanceRecords || deviceData.deviceImages.length === 0) {
@@ -164,7 +182,7 @@ export default function FormReviewPage() {
         console.log('Draft ID cleared after successful submission')
         handleSubmissionSuccess()
       } else {
-        throw new Error(response.message || 'Submission failed')
+        throw new Error('Submission failed')
       }
     } catch (error: any) {
       console.error('Submission error:', error)
