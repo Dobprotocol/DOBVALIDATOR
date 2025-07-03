@@ -1,9 +1,7 @@
 // API Service for DOB Validator Backend
 // Base URL: Use Next.js API routes for frontend endpoints, backend for backend-only endpoints
 
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3001' 
-  : 'https://v.dobprotocol.com'
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
 
 // Types for the backend API
 export interface Submission {
@@ -81,11 +79,19 @@ class ApiService {
       'Content-Type': 'application/json',
     }
 
+    let token: string | null = null;
     if (this.authToken) {
-      headers['Authorization'] = `Bearer ${this.authToken}`
+      if (typeof this.authToken === 'object' && 'token' in this.authToken) {
+        token = (this.authToken as any).token;
+      } else if (typeof this.authToken === 'string') {
+        token = this.authToken;
+      }
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    return headers
+    return headers;
   }
 
   // Generic API request method
@@ -130,7 +136,6 @@ class ApiService {
     offset?: number
   }): Promise<Submission[]> {
     const params = new URLSearchParams()
-    
     if (options?.status) {
       params.append('status', options.status)
     }
@@ -140,11 +145,46 @@ class ApiService {
     if (options?.offset) {
       params.append('offset', options.offset.toString())
     }
-
     const queryString = params.toString()
     const endpoint = `/api/submissions${queryString ? `?${queryString}` : ''}`
+    const response = await this.request<any>(endpoint)
+    return response.submissions || []
+  }
+
+  // Get all drafts
+  async getAllDrafts(options?: {
+    limit?: number
+    offset?: number
+  }): Promise<any[]> {
+    const params = new URLSearchParams()
     
-    return this.request<Submission[]>(endpoint)
+    if (options?.limit) {
+      params.append('limit', options.limit.toString())
+    }
+    if (options?.offset) {
+      params.append('offset', options.offset.toString())
+    }
+
+    const queryString = params.toString()
+    const endpoint = `/api/drafts${queryString ? `?${queryString}` : ''}`
+    
+    return this.request<any[]>(endpoint)
+  }
+
+  // Get submissions and drafts combined
+  async getSubmissionsAndDrafts(options?: {
+    limit?: number
+    offset?: number
+  }): Promise<{ submissions: Submission[], drafts: any[] }> {
+    const [submissions, draftsResponse] = await Promise.all([
+      this.getAllSubmissions(options),
+      this.getAllDrafts(options)
+    ])
+
+    return {
+      submissions,
+      drafts: draftsResponse || []
+    }
   }
 
   // Get submissions by status
@@ -211,7 +251,6 @@ class ApiService {
   // Get submissions statistics
   async getSubmissionsStats(): Promise<SubmissionsStats> {
     const allSubmissions = await this.getAllSubmissions()
-    
     const stats: SubmissionsStats = {
       total: allSubmissions && Array.isArray(allSubmissions) ? allSubmissions.length : 0,
       pending: 0,
@@ -219,7 +258,6 @@ class ApiService {
       approved: 0,
       rejected: 0,
     }
-
     allSubmissions.forEach(submission => {
       switch (submission.status) {
         case 'PENDING':
@@ -236,7 +274,6 @@ class ApiService {
           break
       }
     })
-
     return stats
   }
 

@@ -88,6 +88,7 @@ async function seedDatabase() {
         currentValue: '14500',
         expectedRevenue: '2500',
         operationalCosts: '200',
+        location: 'California, USA',
         status: 'PENDING' as const
       },
       {
@@ -103,6 +104,7 @@ async function seedDatabase() {
         currentValue: '24000',
         expectedRevenue: '4000',
         operationalCosts: '300',
+        location: 'Texas, USA',
         status: 'APPROVED' as const
       },
       {
@@ -118,6 +120,7 @@ async function seedDatabase() {
         currentValue: '78000',
         expectedRevenue: '12000',
         operationalCosts: '500',
+        location: 'Nevada, USA',
         status: 'REJECTED' as const
       }
     ]

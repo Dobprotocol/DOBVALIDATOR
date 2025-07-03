@@ -34,20 +34,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Input } from "@/components/ui/input"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 // Temporary mock for stellar contract service to avoid build issues
 const mockStellarContractService = {
   createTrufaMetadata: (data: any) => ({
@@ -58,14 +45,15 @@ const mockStellarContractService = {
 }
 import { adminConfigService } from "@/lib/admin-config"
 import { apiService, Submission } from "@/lib/api-service"
+import { isAuthenticated } from "@/lib/auth"
 import { useSearchParams } from "next/navigation"
 
 const statusColors = {
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "under review": "bg-blue-100 text-blue-800 border-blue-200",
-  approved: "bg-green-100 text-green-800 border-green-200",
-  rejected: "bg-red-100 text-red-800 border-red-200",
-  draft: "bg-gray-100 text-gray-800 border-gray-200",
+  PENDING: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  UNDER_REVIEW: "bg-blue-100 text-blue-800 border-blue-200",
+  APPROVED: "bg-green-100 text-green-800 border-green-200",
+  REJECTED: "bg-red-100 text-red-800 border-red-200",
+  DRAFT: "bg-gray-100 text-gray-800 border-gray-200",
 }
 
 interface SubmissionReviewProps {
@@ -73,19 +61,7 @@ interface SubmissionReviewProps {
   onBack?: () => void
 }
 
-// Define the form schema
-const formSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
-  documentType: z.enum(["passport", "id_card", "drivers_license"], {
-    required_error: "Please select a document type",
-  }),
-  documentNumber: z.string().min(5, "Document number must be at least 5 characters"),
-  notes: z.string().optional(),
-})
 
-type FormValues = z.infer<typeof formSchema>
 
 export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps) {
   const { toast } = useToast()
@@ -119,18 +95,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
   // Calculate average score (must be before any conditional returns)
   const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
 
-  // Initialize form (must be before any conditional returns)
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      name: "",
-      dateOfBirth: "",
-      documentType: undefined,
-      documentNumber: "",
-      notes: "",
-    },
-  })
+
 
   // Fetch submission data
   useEffect(() => {
@@ -145,36 +110,27 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
         setLoading(true)
         setError(null)
 
-        if (!apiService.isAuthenticated()) {
+        if (!isAuthenticated()) {
           setError('Authentication required')
           return
         }
 
-        const response = await apiService.getSubmission(currentSubmissionId)
+        const submissionData = await apiService.getSubmissionById(currentSubmissionId)
         
-        if (response.success && response.data) {
-          setSubmission(response.data)
-          // Initialize TRUFA scores from existing admin score if available
-          if (response.data.adminScore) {
-            const score = response.data.adminScore
-            setTrufaScores({
-              technical: [score],
-              regulatory: [score],
-              financial: [score],
-              environmental: [score],
-            })
-          }
-          // Load existing admin notes
-          if (response.data.adminNotes) {
-            setReviewerNotes(response.data.adminNotes)
-          }
-        } else {
-          setError(response.error || 'Failed to fetch submission')
-          toast({
-            title: "Error",
-            description: response.error || 'Failed to fetch submission',
-            variant: "destructive",
+        setSubmission(submissionData)
+        // Initialize TRUFA scores from existing admin review if available
+        if (submissionData.admin_review) {
+          const review = submissionData.admin_review
+          setTrufaScores({
+            technical: [review.technical_score || 75],
+            regulatory: [review.regulatory_score || 80],
+            financial: [review.financial_score || 70],
+            environmental: [review.environmental_score || 85],
           })
+        }
+        // Load existing admin notes
+        if (submissionData.admin_review?.notes) {
+          setReviewerNotes(submissionData.admin_review.notes)
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -292,25 +248,27 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
       console.log('🚀 Starting validation submission...')
       // Defensive: log submission object
       console.log('Submission object:', submission)
-      // Update submission with admin decision
-      const updateResponse = await apiService.updateSubmission(submission.id, {
-        adminScore: averageScore,
-        adminNotes: reviewerNotes,
-        adminDecision: isApproved ? 'approved' : 'rejected',
-        adminDecisionAt: new Date().toISOString(),
-        status: isApproved ? 'approved' : 'rejected'
+      // Update submission status
+      const updateResponse = await apiService.updateSubmissionStatus(submission.id, isApproved ? 'APPROVED' : 'REJECTED')
+      
+      // Create or update admin review
+      await apiService.upsertAdminReview({
+        submission_id: submission.id,
+        notes: reviewerNotes,
+        technical_score: trufaScores.technical[0],
+        regulatory_score: trufaScores.regulatory[0],
+        financial_score: trufaScores.financial[0],
+        environmental_score: trufaScores.environmental[0],
+        overall_score: averageScore,
+        decision: isApproved ? 'APPROVED' : 'REJECTED',
       })
-
-      if (!updateResponse.success) {
-        throw new Error(updateResponse.error || 'Failed to update submission')
-      }
 
       // Create TRUFA metadata
       const metadata = mockStellarContractService.createTrufaMetadata({
         submissionId: submission.id,
-        deviceName: submission.deviceName || 'N/A',
-        deviceType: submission.deviceType || 'N/A',
-        operatorWallet: submission.operatorWallet || 'N/A',
+        deviceName: submission.device_name || 'N/A',
+        deviceType: submission.device_type || 'N/A',
+        operatorWallet: submission.user?.wallet_address || 'N/A',
         validatorWallet: connectedWallet,
         trufaScores: {
           technical: trufaScores.technical[0],
@@ -377,28 +335,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
 
   const canSign = isWalletConnected && isWalletWhitelisted && isApproved !== null && !isSubmitted
 
-  async function onSubmit(data: FormValues) {
-    setIsSubmitting(true)
-    try {
-      // TODO: Implement API call to validate submission
-      console.log("Form submitted:", data)
-      
-      toast({
-        title: "Submission received",
-        description: "We will review your submission and get back to you shortly.",
-      })
-      
-      form.reset()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -416,9 +353,9 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
             )}
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{submission.deviceName || 'N/A'}</h1>
+                <h1 className="text-2xl font-bold">{submission.device_name || 'N/A'}</h1>
                 <Badge className={statusColors[submission.status as keyof typeof statusColors]}>
-                  {submission.status?.replace("-", " ") || 'Unknown'}
+                  {submission.status?.replace("_", " ").toLowerCase() || 'Unknown'}
                 </Badge>
                 <Badge variant="outline" className="gap-1">
                   <Star className="h-3 w-3" />
@@ -426,8 +363,8 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                {submission.id} • Submitted by {submission.operatorWallet ? `${submission.operatorWallet.slice(0, 8)}...${submission.operatorWallet.slice(-8)}` : 'Unknown'} on{" "}
-                {new Date(submission.submittedAt).toLocaleDateString()}
+                {submission.id} • Submitted by {submission.user?.wallet_address ? `${submission.user.wallet_address.slice(0, 8)}...${submission.user.wallet_address.slice(-8)}` : 'Unknown'} on{" "}
+                {new Date(submission.submitted_at).toLocaleDateString()}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -462,7 +399,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Device Type</Label>
-                    <p className="font-medium">{submission.deviceType || 'N/A'}</p>
+                    <p className="font-medium">{submission.device_type || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Manufacturer</Label>
@@ -474,11 +411,11 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Serial Number</Label>
-                    <p className="font-medium">{submission.serialNumber || 'N/A'}</p>
+                    <p className="font-medium">{submission.serial_number || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Year of Manufacture</Label>
-                    <p className="font-medium">{submission.yearOfManufacture || 'N/A'}</p>
+                    <p className="font-medium">{submission.year_of_manufacture || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Condition</Label>
@@ -506,19 +443,19 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Purchase Price</Label>
-                    <p className="font-medium">${submission.purchasePrice ? Number(submission.purchasePrice).toLocaleString() : 'N/A'}</p>
+                    <p className="font-medium">${submission.purchase_price ? Number(submission.purchase_price).toLocaleString() : 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Current Value</Label>
-                    <p className="font-medium">${submission.currentValue ? Number(submission.currentValue).toLocaleString() : 'N/A'}</p>
+                    <p className="font-medium">${submission.current_value ? Number(submission.current_value).toLocaleString() : 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Expected Revenue</Label>
-                    <p className="font-medium">${submission.expectedRevenue ? Number(submission.expectedRevenue).toLocaleString() : 'N/A'}</p>
+                    <p className="font-medium">${submission.expected_revenue ? Number(submission.expected_revenue).toLocaleString() : 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">Operational Costs</Label>
-                    <p className="font-medium">${submission.operationalCosts ? Number(submission.operationalCosts).toLocaleString() : 'N/A'}</p>
+                    <p className="font-medium">${submission.operational_costs ? Number(submission.operational_costs).toLocaleString() : 'N/A'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -534,37 +471,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                 <CardDescription>Review submitted device documents</CardDescription>
               </CardHeader>
               <CardContent>
-                {submission.files && submission.files?.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {submission.files.map((file, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <span className="truncate">{file.filename}</span>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a
-                            href={`/uploads/${file.path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`View ${file.filename}`}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a
-                            href={`/uploads/${file.path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`Download ${file.filename}`}
-                          >
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No documents uploaded</p>
-                )}
+                <p className="text-muted-foreground">Documentation feature not yet implemented</p>
               </CardContent>
             </Card>
 

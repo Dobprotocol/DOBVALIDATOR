@@ -67,7 +67,7 @@ async function getProfile(user: any, authToken: string) {
     console.log('🔍 Querying backend for profile with wallet address:', user.walletAddress)
     
     // Query backend database with proper authorization
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
     const response = await fetch(`${backendUrl}/api/profile`, {
       headers: {
         'Content-Type': 'application/json',
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
     // Always save to backend database
     console.log('🔍 Saving profile to backend database for wallet:', user.walletAddress)
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
     const response = await fetch(`${backendUrl}/api/profile`, {
       method: 'POST',
       headers: {
@@ -271,7 +271,7 @@ export async function DELETE(request: NextRequest) {
     // Delete from backend database
     console.log('🔍 Deleting profile from backend database for wallet:', user.walletAddress)
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
     const response = await fetch(`${backendUrl}/api/profile`, {
       method: 'DELETE',
       headers: {

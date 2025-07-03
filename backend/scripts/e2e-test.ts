@@ -195,7 +195,8 @@ class E2ETestRunner {
         purchasePrice: '50000000',
         currentValue: '50000000',
         expectedRevenue: '8000000',
-        operationalCosts: '500000'
+        operationalCosts: '500000',
+        location: 'California, USA'
       }
 
       const createResponse = await axios.post(`${API_BASE_URL}/api/submissions`, submissionData, { headers })

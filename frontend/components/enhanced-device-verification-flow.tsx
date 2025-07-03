@@ -13,7 +13,7 @@ import { Save, Loader2, Download, Send } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { animateScroll as scroll } from 'react-scroll'
+// import { animateScroll as scroll } from 'react-scroll'
 
 export type DeviceData = {
   // Basic info
@@ -174,7 +174,6 @@ export function EnhancedDeviceVerificationFlow() {
     setDeviceData({
       deviceName: '',
       deviceType: '',
-      customDeviceType: '',
       location: '',
       serialNumber: '',
       manufacturer: '',
@@ -228,8 +227,43 @@ export function EnhancedDeviceVerificationFlow() {
       console.log('🔍 Current step data:', currentStepData)
       console.log('🔍 Current device data:', deviceData)
       
-      // Use current step data if provided, otherwise use deviceData
-      const dataToSave = currentStepData ? { ...deviceData, ...currentStepData } : deviceData
+      // Collect all current form data from localStorage
+      const step1Data = localStorage.getItem('dobFormStep1Backup')
+      const step2Data = localStorage.getItem('dobFormStep2Backup')
+      const step3Data = localStorage.getItem('dobFormStep3Backup')
+      
+      let currentFormData = { ...deviceData }
+      
+      // Parse and merge step data
+      if (step1Data) {
+        try {
+          const parsed = JSON.parse(step1Data)
+          currentFormData = { ...currentFormData, ...parsed }
+        } catch (error) {
+          console.error('Error parsing step 1 data:', error)
+        }
+      }
+      
+      if (step2Data) {
+        try {
+          const parsed = JSON.parse(step2Data)
+          currentFormData = { ...currentFormData, ...parsed }
+        } catch (error) {
+          console.error('Error parsing step 2 data:', error)
+        }
+      }
+      
+      if (step3Data) {
+        try {
+          const parsed = JSON.parse(step3Data)
+          currentFormData = { ...currentFormData, ...parsed }
+        } catch (error) {
+          console.error('Error parsing step 3 data:', error)
+        }
+      }
+      
+      // Use current step data if provided, otherwise use collected form data
+      const dataToSave = currentStepData ? { ...currentFormData, ...currentStepData } : currentFormData
       
       console.log('🔍 Data to save:', dataToSave)
       console.log('🔍 Device data fields:', {
@@ -257,10 +291,35 @@ export function EnhancedDeviceVerificationFlow() {
       if (!currentDraftId && savedDraft && savedDraft.id) {
         console.log('🔍 Setting new draft ID:', savedDraft.id)
         setCurrentDraftId(savedDraft.id)
-        // Update the deviceData with the new draft ID
-        setDeviceData(prev => ({ ...prev, draftId: savedDraft.id }))
+        // Update the deviceData with the new draft ID and current form data
+        setDeviceData(prev => ({ ...dataToSave, draftId: savedDraft.id }))
         // Store the draft ID in localStorage for persistence
         localStorage.setItem('currentDraftId', savedDraft.id)
+        
+        // Also update the main localStorage backup with current form data
+        const localStorageData = {
+          ...dataToSave,
+          draftId: savedDraft.id,
+          technicalCertification: null, // Don't save files to localStorage
+          purchaseProof: null,
+          maintenanceRecords: null,
+          deviceImages: []
+        }
+        localStorage.setItem('dobFormBackup', JSON.stringify(localStorageData))
+      } else if (currentDraftId && savedDraft) {
+        // Update the deviceData with current form data for existing drafts
+        setDeviceData(prev => ({ ...dataToSave, draftId: currentDraftId }))
+        
+        // Update the main localStorage backup with current form data
+        const localStorageData = {
+          ...dataToSave,
+          draftId: currentDraftId,
+          technicalCertification: null, // Don't save files to localStorage
+          purchaseProof: null,
+          maintenanceRecords: null,
+          deviceImages: []
+        }
+        localStorage.setItem('dobFormBackup', JSON.stringify(localStorageData))
       }
       
       // Reset failed attempts on successful save
@@ -580,7 +639,6 @@ export function EnhancedDeviceVerificationFlow() {
     setDeviceData({
       deviceName: '',
       deviceType: '',
-      customDeviceType: '',
       location: '',
       serialNumber: '',
       manufacturer: '',
