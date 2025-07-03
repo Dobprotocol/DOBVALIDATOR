@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
+import multer from 'multer'
 import { TransactionBuilder, Networks } from '@stellar/stellar-sdk'
 import { prisma } from './lib/database'
 import { userService, profileService, submissionService, authService, adminReviewService, draftService } from './lib/database'
@@ -9,6 +10,16 @@ import { env } from './lib/env-validation'
 
 const app = express()
 const PORT = env.PORT
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage()
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 10 // Max 10 files
+  }
+})
 
 // Helper function to verify XDR transaction
 async function verifyXDRTransaction(walletAddress: string, signedXDR: string, challenge: string): Promise<boolean> {
@@ -573,8 +584,17 @@ app.get('/api/submissions/:id', async (req, res) => {
   }
 })
 
-app.post('/api/submissions', async (req, res) => {
+app.post('/api/submissions', upload.fields([
+  { name: 'technicalCertification', maxCount: 1 },
+  { name: 'purchaseProof', maxCount: 1 },
+  { name: 'maintenanceRecords', maxCount: 1 },
+  { name: 'deviceImages', maxCount: 10 }
+]), async (req, res) => {
   try {
+    console.log('🔍 Submission POST request received')
+    console.log('🔍 Request body:', req.body)
+    console.log('🔍 Request files:', req.files)
+    
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({ error: 'Authorization header required' })
@@ -593,13 +613,98 @@ app.post('/api/submissions', async (req, res) => {
       return
     }
 
-    const submissionData = req.body
-    const submission = await submissionService.create(user.id, submissionData)
+    // Extract form data
+    const submissionData = {
+      deviceName: req.body.deviceName,
+      deviceType: req.body.deviceType,
+      location: req.body.location,
+      serialNumber: req.body.serialNumber,
+      manufacturer: req.body.manufacturer,
+      model: req.body.model,
+      yearOfManufacture: req.body.yearOfManufacture,
+      condition: req.body.condition,
+      specifications: req.body.specifications,
+      purchasePrice: req.body.purchasePrice,
+      currentValue: req.body.currentValue,
+      expectedRevenue: req.body.expectedRevenue,
+      operationalCosts: req.body.operationalCosts
+    }
+
+    // Process files if any
+    const files: Array<{
+      filename: string
+      path: string
+      size: number
+      mimeType: string
+      documentType: string
+    }> = []
+
+    if (req.files) {
+      const uploadedFiles = req.files as { [fieldname: string]: Express.Multer.File[] }
+      
+      // Process technical certification
+      if (uploadedFiles.technicalCertification) {
+        const file = uploadedFiles.technicalCertification[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/technical/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'technical_certification'
+        })
+      }
+
+      // Process purchase proof
+      if (uploadedFiles.purchaseProof) {
+        const file = uploadedFiles.purchaseProof[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/purchase/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'purchase_proof'
+        })
+      }
+
+      // Process maintenance records
+      if (uploadedFiles.maintenanceRecords) {
+        const file = uploadedFiles.maintenanceRecords[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/maintenance/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'maintenance_records'
+        })
+      }
+
+      // Process device images
+      if (uploadedFiles.deviceImages) {
+        uploadedFiles.deviceImages.forEach((file, index) => {
+          files.push({
+            filename: file.originalname,
+            path: `/uploads/images/${file.filename}`,
+            size: file.size,
+            mimeType: file.mimetype,
+            documentType: 'device_image'
+          })
+        })
+      }
+    }
+
+    console.log('🔍 Processed submission data:', submissionData)
+    console.log('🔍 Processed files:', files)
+
+    const submission = await submissionService.create(user.id, {
+      ...submissionData,
+      files: files.length > 0 ? files : undefined
+    })
 
     res.json({ success: true, submission })
     return
   } catch (error) {
     console.error('Submission creation error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     res.status(500).json({ error: 'Failed to create submission' })
     return
   }
