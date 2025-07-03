@@ -234,7 +234,7 @@ export default function FormReviewPage() {
           console.log('🔍 Added technical certification ID:', deviceData.technicalCertification.id)
         } else {
           // File object - this shouldn't happen in review, but handle it
-          formData.append('technicalCertification', deviceData.technicalCertification)
+        formData.append('technicalCertification', deviceData.technicalCertification)
           console.log('🔍 Added technical certification file:', deviceData.technicalCertification.name)
         }
       }
@@ -245,7 +245,7 @@ export default function FormReviewPage() {
           console.log('🔍 Added purchase proof ID:', deviceData.purchaseProof.id)
         } else {
           // File object - this shouldn't happen in review, but handle it
-          formData.append('purchaseProof', deviceData.purchaseProof)
+        formData.append('purchaseProof', deviceData.purchaseProof)
           console.log('🔍 Added purchase proof file:', deviceData.purchaseProof.name)
         }
       }
@@ -256,7 +256,7 @@ export default function FormReviewPage() {
           console.log('🔍 Added maintenance records ID:', deviceData.maintenanceRecords.id)
         } else {
           // File object - this shouldn't happen in review, but handle it
-          formData.append('maintenanceRecords', deviceData.maintenanceRecords)
+        formData.append('maintenanceRecords', deviceData.maintenanceRecords)
           console.log('🔍 Added maintenance records file:', deviceData.maintenanceRecords.name)
         }
       }
@@ -268,7 +268,7 @@ export default function FormReviewPage() {
             console.log(`🔍 Added device image ID ${index}:`, file.id)
           } else {
             // File object - this shouldn't happen in review, but handle it
-            formData.append(`deviceImages[${index}]`, file)
+          formData.append(`deviceImages[${index}]`, file)
             console.log(`🔍 Added device image file ${index}:`, file.name)
           }
         })

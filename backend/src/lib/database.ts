@@ -54,16 +54,16 @@ export const profileService = {
     
     try {
       const result = await prisma.profile.upsert({
-        where: { userId },
-        update: {
-          ...data,
-          updatedAt: new Date()
-        },
-        create: {
-          userId,
-          ...data
-        }
-      })
+      where: { userId },
+      update: {
+        ...data,
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        ...data
+      }
+    })
       
       console.log('✅ ProfileService.create successful:', result.id)
       return result

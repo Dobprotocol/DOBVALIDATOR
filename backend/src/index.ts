@@ -1335,7 +1335,7 @@ app.put('/api/drafts/:id', upload.fields([
 
     // Update the draft
     const updatedDraft = await draftService.update(id, {
-      ...updateData,
+        ...updateData,
       files: files.length > 0 ? files : undefined
     })
 

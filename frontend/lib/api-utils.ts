@@ -14,7 +14,7 @@ export function getSafeBackendUrl(): string {
     console.log('🔍 [getSafeBackendUrl] NODE_ENV=production, using v.dobprotocol.com');
     return 'https://v.dobprotocol.com';
   }
-
+  
   // Otherwise, use the environment variable or fallback to localhost
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
   console.log('🔍 [getSafeBackendUrl] Using backendUrl:', backendUrl);

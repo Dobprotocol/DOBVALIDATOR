@@ -355,10 +355,10 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
                       <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
                         {file && file.type && file.type.startsWith('image/') ? (
                           <img
-                            src={URL.createObjectURL(file)}
+                        src={URL.createObjectURL(file)}
                             alt={`Device Image ${index + 1}`}
                             className="w-full h-full object-cover"
-                          />
+                      />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <FileText className="text-gray-400" size={24} />

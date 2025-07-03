@@ -66,14 +66,14 @@ export default function LandingPage() {
       const isDevelopment = process.env.NODE_ENV === 'development'
       
       if (isFromSimpleSigner || isDevelopment) {
-        console.log('🔍 ALL MESSAGES - Origin:', e.origin)
-        console.log('🔍 ALL MESSAGES - Data:', e.data)
+      console.log('🔍 ALL MESSAGES - Origin:', e.origin)
+      console.log('🔍 ALL MESSAGES - Data:', e.data)
       }
       
       if (e.origin !== SIMPLE_SIGNER_URL) {
         // Only log filtered messages in development to reduce noise
         if (isDevelopment) {
-          console.log('❌ Message from wrong origin, ignoring')
+        console.log('❌ Message from wrong origin, ignoring')
         }
         return
       }

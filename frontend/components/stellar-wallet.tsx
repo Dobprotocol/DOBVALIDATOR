@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { 
@@ -26,8 +27,9 @@ import {
   Memo,
   BASE_FEE 
 } from '@stellar/stellar-sdk'
-import { Settings, Wallet, LogOut, Loader2 } from 'lucide-react'
+import { Settings, Wallet, LogOut, Loader2, AlertTriangle, HelpCircle } from 'lucide-react'
 import { apiService } from '@/lib/api-service'
+import { BrowserCompatibilityWarning } from './browser-compatibility-warning'
 
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
@@ -43,6 +45,8 @@ export function StellarWallet() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [isDisconnecting, setIsDisconnecting] = useState(false)
+  const [showCompatibilityWarning, setShowCompatibilityWarning] = useState(false)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -307,6 +311,7 @@ export function StellarWallet() {
 
   const handleConnect = () => {
     setWalletConnecting(true)
+    setConnectionError(null)
     console.log('Initiating wallet connection...')
     
     const connectWindow = window.open(
@@ -318,6 +323,8 @@ export function StellarWallet() {
     if (!connectWindow) {
       console.error('Failed to open Simple Signer connect window')
       setWalletConnecting(false)
+      setConnectionError('popup-blocked')
+      setShowCompatibilityWarning(true)
       toast({
         title: "Connection failed",
         description: "Failed to open wallet connection window. Please check your popup blocker.",
@@ -399,6 +406,33 @@ export function StellarWallet() {
 
   return (
     <>
+      {/* Browser Compatibility Warning */}
+      {showCompatibilityWarning && (
+        <div className="mb-4">
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertTitle className="text-red-800">Wallet Connection Issue</AlertTitle>
+            <AlertDescription className="text-red-700">
+              {connectionError === 'popup-blocked' 
+                ? "Your browser blocked the wallet connection popup. This is a common security feature."
+                : "There was an issue connecting to your wallet."
+              }
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-red-700 underline ml-1"
+                onClick={() => setShowCompatibilityWarning(false)}
+              >
+                Learn how to fix this
+              </Button>
+            </AlertDescription>
+          </Alert>
+          <BrowserCompatibilityWarning 
+            showOnConnect={true}
+            onDismiss={() => setShowCompatibilityWarning(false)}
+          />
+        </div>
+      )}
+
       <Button
         onClick={publicKey ? () => setIsOpen(true) : handleConnect}
         variant="outline"

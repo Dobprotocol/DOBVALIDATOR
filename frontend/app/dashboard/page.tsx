@@ -77,13 +77,13 @@ export default function DashboardPage() {
         try {
           const { apiService } = await import('@/lib/api-service')
           const submissionsData = await apiService.getSubmissions()
-          console.log('Submissions response:', submissionsData)
-          console.log('Setting submissions to:', submissionsData.submissions || [])
-          setSubmissions(submissionsData.submissions || [])
+            console.log('Submissions response:', submissionsData)
+              console.log('Setting submissions to:', submissionsData.submissions || [])
+              setSubmissions(submissionsData.submissions || [])
         } catch (apiError) {
           console.log('API service failed:', apiError)
           throw apiError
-        }
+          }
       } catch (apiError) {
         console.error('Error fetching submissions:', apiError)
         setSubmissions([])
@@ -98,9 +98,9 @@ export default function DashboardPage() {
       try {
         const { apiService } = await import('@/lib/api-service')
         const draftsData = await apiService.getDrafts()
-        console.log('Drafts response:', draftsData)
-        console.log('Setting drafts to:', draftsData.drafts || [])
-        setDrafts(draftsData.drafts || [])
+          console.log('Drafts response:', draftsData)
+            console.log('Setting drafts to:', draftsData.drafts || [])
+            setDrafts(draftsData.drafts || [])
       } catch (draftError) {
         console.error('Error fetching drafts:', draftError)
         setDrafts([])

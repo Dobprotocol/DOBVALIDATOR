@@ -124,19 +124,19 @@ export async function PUT(
     } else {
       // Handle JSON
       console.log('🔍 Processing JSON request');
-      
-      // Parse the request body
-      const body = await request.json()
-      console.log('🔍 Request body:', body)
 
-      // Forward the request to the backend
+    // Parse the request body
+    const body = await request.json()
+    console.log('🔍 Request body:', body)
+
+    // Forward the request to the backend
       backendResponse = await fetch(draftUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
       })
     }
 

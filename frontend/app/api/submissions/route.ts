@@ -152,20 +152,20 @@ export async function POST(request: NextRequest) {
     } else {
       // Handle JSON
       console.log('🔍 Processing JSON request')
-      
-      // Parse the request body
-      const body = await request.json()
-      console.log('🔍 Request body:', body)
 
-      // Forward the request to the backend
+    // Parse the request body
+    const body = await request.json()
+    console.log('🔍 Request body:', body)
+
+    // Forward the request to the backend
       backendResponse = await fetch(submissionsUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      })
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    })
     }
 
     console.log('🔍 Backend response status:', backendResponse.status)

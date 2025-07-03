@@ -82,15 +82,15 @@ export function useDraft() {
         // Add files
         if (deviceData.technicalCertification) {
           formData.append('technicalCertification', deviceData.technicalCertification)
-        }
-        if (deviceData.purchaseProof) {
+      }
+      if (deviceData.purchaseProof) {
           formData.append('purchaseProof', deviceData.purchaseProof)
-        }
-        if (deviceData.maintenanceRecords) {
+      }
+      if (deviceData.maintenanceRecords) {
           formData.append('maintenanceRecords', deviceData.maintenanceRecords)
         }
         if (deviceData.deviceImages && deviceData.deviceImages.length > 0) {
-          deviceData.deviceImages.forEach((file, index) => {
+      deviceData.deviceImages.forEach((file, index) => {
             formData.append(`deviceImages[${index}]`, file)
           })
         }
@@ -118,55 +118,55 @@ export function useDraft() {
               'Pragma': 'no-cache'
             },
             body: formData
-          })
+        })
         }
       } else {
         // Save draft without files using JSON
         console.log('🔍 Saving draft without files')
-        
-        // Only send fields that exist in the database schema
-        const draftData = {
-          deviceName: deviceData.deviceName || '',
-          deviceType: deviceData.deviceType || '',
-          location: deviceData.location || '',
-          serialNumber: deviceData.serialNumber || '',
-          manufacturer: deviceData.manufacturer || '',
-          model: deviceData.model || '',
-          yearOfManufacture: deviceData.yearOfManufacture || '',
-          condition: deviceData.condition || '',
-          specifications: deviceData.specifications || '',
-          purchasePrice: deviceData.purchasePrice || '',
-          currentValue: deviceData.currentValue || '',
-          expectedRevenue: deviceData.expectedRevenue || '',
-          operationalCosts: deviceData.operationalCosts || '',
-        }
 
-        if (draftId) {
-          // Update existing draft
-          console.log('🔍 Updating existing draft:', draftId)
-          response = await fetch(`/api/drafts/${draftId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${tokenData.token}`,
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache'
-            },
-            body: JSON.stringify(draftData)
-          })
-        } else {
-          // Create new draft
-          console.log('🔍 Creating new draft')
-          response = await fetch('/api/drafts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${tokenData.token}`,
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache'
-            },
-            body: JSON.stringify(draftData)
-          })
+      // Only send fields that exist in the database schema
+      const draftData = {
+        deviceName: deviceData.deviceName || '',
+        deviceType: deviceData.deviceType || '',
+        location: deviceData.location || '',
+        serialNumber: deviceData.serialNumber || '',
+        manufacturer: deviceData.manufacturer || '',
+        model: deviceData.model || '',
+        yearOfManufacture: deviceData.yearOfManufacture || '',
+        condition: deviceData.condition || '',
+        specifications: deviceData.specifications || '',
+        purchasePrice: deviceData.purchasePrice || '',
+        currentValue: deviceData.currentValue || '',
+        expectedRevenue: deviceData.expectedRevenue || '',
+        operationalCosts: deviceData.operationalCosts || '',
+      }
+
+      if (draftId) {
+        // Update existing draft
+        console.log('🔍 Updating existing draft:', draftId)
+        response = await fetch(`/api/drafts/${draftId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenData.token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify(draftData)
+        })
+      } else {
+        // Create new draft
+        console.log('🔍 Creating new draft')
+        response = await fetch('/api/drafts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenData.token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify(draftData)
+        })
         }
       }
 

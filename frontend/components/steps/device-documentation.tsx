@@ -78,11 +78,11 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
             uploadedAt: new Date().toISOString()
           }
           
-          const updatedData = {
-            ...localData,
+    const updatedData = {
+      ...localData,
             [field]: fileInfo
-          }
-          setLocalData(updatedData)
+    }
+    setLocalData(updatedData)
           updateDeviceData({ [field]: fileInfo })
           
           toast({
@@ -138,11 +138,11 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
             uploadedAt: new Date().toISOString()
           }))
           
-          const updatedData = {
-            ...localData,
+    const updatedData = {
+      ...localData,
             deviceImages: fileInfos
-          }
-          setLocalData(updatedData)
+    }
+    setLocalData(updatedData)
           updateDeviceData({ deviceImages: fileInfos })
           
           toast({
