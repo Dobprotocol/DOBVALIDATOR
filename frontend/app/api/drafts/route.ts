@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...');
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const draftsUrl = `${backendUrl}/api/drafts`;
 
     console.log('🔍 Forwarding to backend:', draftsUrl);
@@ -97,7 +98,8 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...');
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const draftsUrl = `${backendUrl}/api/drafts`;
 
     console.log('🔍 Forwarding to backend:', draftsUrl);

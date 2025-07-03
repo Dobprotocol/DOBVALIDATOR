@@ -271,21 +271,17 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
               </div>
             </div>
 
-            {deviceData.deviceImages.length > 0 && (
+            {deviceData.deviceImages && deviceData.deviceImages.length > 0 && (
               <div>
                 <div className="flex items-center mb-2">
                   <ImageIcon className="text-[#6366F1] mr-2" size={18} />
-                  <p className="font-medium">Device Images</p>
+                  <p className="font-medium">Device Images ({deviceData.deviceImages.length} files)</p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+                <div className="space-y-2">
                   {deviceData.deviceImages.map((file, index) => (
-                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                      <Image
-                        src={URL.createObjectURL(file)}
-                        alt={`Device image ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
+                    <div key={index} className="flex items-center text-sm text-gray-600">
+                      <span className="mr-2">•</span>
+                      <span>{file?.name || `Image ${index + 1}`}</span>
                     </div>
                   ))}
                 </div>
