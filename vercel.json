@@ -9,5 +9,10 @@
     }
   },
   "buildCommand": "echo 'Deployment controlled by branch settings'",
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; then echo 'Skipping deployment for non-production branch: $VERCEL_GIT_COMMIT_REF'; exit 1; fi"
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; then echo '🚫 Skipping deployment for non-production branch: $VERCEL_GIT_COMMIT_REF'; exit 1; fi",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  }
 } 

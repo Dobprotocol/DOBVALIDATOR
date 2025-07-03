@@ -64,7 +64,6 @@
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.54.1",
     "react-resizable-panels": "^2.1.7",
-    "react-scroll": "^1.9.3",
     "recharts": "2.15.0",
     "sonner": "^1.7.1",
     "soroban-client": "^1.0.1",
