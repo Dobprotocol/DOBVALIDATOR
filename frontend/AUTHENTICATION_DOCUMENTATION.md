@@ -46,7 +46,6 @@ We create a minimal transaction that:
 
 - ❌ **Message Signing**: Not supported by Simple Signer
 - ❌ **Fee-Free Authentication**: Cannot be achieved with Simple Signer
-- ❌ **Custom Wallet Integration**: Would require building our own wallet connector
 
 ### Security Comparison
 

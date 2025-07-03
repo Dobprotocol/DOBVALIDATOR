@@ -112,4 +112,40 @@ uploads/
 temp/
 
 # Prisma
-prisma/migrations/*/migration.sql 
+prisma/migrations/*/migration.sql
+
+# Sensitive data and credentials
+account.json
+service-account*.json
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cert
+gcp-credentials.json
+firebase-credentials.json
+
+# Database dumps and backups
+*.sql
+*.dump
+*.backup
+database-backup/
+db-backup/
+
+# Sensitive configuration files
+config.json
+secrets.json
+credentials.json
+auth.json
+
+# Environment files (comprehensive)
+.env*
+!.env.example
+!.env.template
+
+# Local development files
+*.local
+local.*
+dev.*
+test.* 
