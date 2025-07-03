@@ -298,7 +298,7 @@ class ApiService {
     }
 
     // Use frontend API endpoint which will forward to backend
-    const url = '/api/submit'
+    const url = '/api/submissions'
     
     // Prepare headers with auth token
     const headers: Record<string, string> = {
