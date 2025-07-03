@@ -19,7 +19,6 @@ export type DeviceData = {
   // Basic info
   deviceName: string
   deviceType: string
-  customDeviceType: string
   location: string
 
   // Technical info
@@ -51,7 +50,6 @@ export function EnhancedDeviceVerificationFlow() {
   const [deviceData, setDeviceData] = useState<DeviceData>({
     deviceName: '',
     deviceType: '',
-    customDeviceType: '',
     location: '',
     serialNumber: '',
     manufacturer: '',

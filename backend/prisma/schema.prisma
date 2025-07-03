@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,29 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =====================
-// USER & AUTHENTICATION
-// =====================
-
 model User {
-  id          String   @id @default(cuid())
-  walletAddress String @unique // Stellar wallet address
-  email       String?  @unique
-  name        String?
-  company     String?
-  role        Role     @default(OPERATOR)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String        @id @default(cuid())
+  walletAddress String        @unique
+  email         String?       @unique
+  name          String?
+  company       String?
+  role          Role          @default(OPERATOR)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  certificates  Certificate[]
+  drafts        Draft[]
+  profile       Profile?
+  submissions   Submission[]
 
-  // Relations
-  profile     Profile?
-  submissions Submission[]
-  drafts      Draft[]
-  certificates Certificate[]
-
+  @@index([walletAddress], map: "idx_users_wallet_address")
+  @@index([email], map: "idx_users_email")
   @@map("users")
-  @@index([walletAddress], name: "idx_users_wallet_address")
-  @@index([email], name: "idx_users_email")
 }
 
 model Profile {
@@ -41,26 +32,18 @@ model Profile {
   name          String
   company       String?
   email         String
-  walletAddress String   @unique // Stellar wallet address
+  walletAddress String   @unique
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
 }
 
-// =====================
-// SUBMISSIONS & DRAFTS
-// =====================
-
 model Submission {
-  id                String   @id @default(cuid())
+  id                String           @id @default(cuid())
   deviceName        String
   deviceType        String
-  customDeviceType  String?   
-  location          String
   serialNumber      String
   manufacturer      String
   model             String
@@ -72,65 +55,55 @@ model Submission {
   expectedRevenue   String
   operationalCosts  String
   status            SubmissionStatus @default(PENDING)
-  submittedAt       DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
+  submittedAt       DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
   userId            String
-  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  files             SubmissionFile[]
+  location          String
   adminReview       AdminReview?
   certificate       Certificate?
+  files             SubmissionFile[]
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], map: "idx_submissions_user_id")
+  @@index([status], map: "idx_submissions_status")
+  @@index([submittedAt], map: "idx_submissions_submitted_at")
   @@map("submissions")
-  @@index([userId], name: "idx_submissions_user_id")
-  @@index([status], name: "idx_submissions_status")
-  @@index([submittedAt], name: "idx_submissions_submitted_at")
 }
 
 model Draft {
-  id                String   @id @default(cuid())
-  deviceName        String   @default("")
-  deviceType        String   @default("")
-  customDeviceType  String?  @default("")
-  location          String   @default("")
-  serialNumber      String   @default("")
-  manufacturer      String   @default("")
-  model             String   @default("")
-  yearOfManufacture String   @default("")
-  condition         String   @default("")
-  specifications    String   @default("")
-  purchasePrice     String   @default("")
-  currentValue      String   @default("")
-  expectedRevenue   String   @default("")
-  operationalCosts  String   @default("")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
+  id                String      @id @default(cuid())
+  deviceName        String      @default("")
+  deviceType        String      @default("")
+  serialNumber      String      @default("")
+  manufacturer      String      @default("")
+  model             String      @default("")
+  yearOfManufacture String      @default("")
+  condition         String      @default("")
+  specifications    String      @default("")
+  purchasePrice     String      @default("")
+  currentValue      String      @default("")
+  expectedRevenue   String      @default("")
+  operationalCosts  String      @default("")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
   userId            String
-  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location          String      @default("")
   files             DraftFile[]
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], map: "idx_drafts_user_id")
+  @@index([updatedAt], map: "idx_drafts_updated_at")
   @@map("drafts")
-  @@index([userId], name: "idx_drafts_user_id")
-  @@index([updatedAt], name: "idx_drafts_updated_at")
 }
 
-// =====================
-// FILE MANAGEMENT
-// =====================
-
 model SubmissionFile {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   filename     String
   path         String
   size         Int
   mimeType     String
   documentType String
-  uploadedAt   DateTime @default(now())
-
-  // Relations
+  uploadedAt   DateTime   @default(now())
   submissionId String
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
@@ -145,91 +118,69 @@ model DraftFile {
   mimeType     String
   documentType String
   uploadedAt   DateTime @default(now())
-
-  // Relations
   draftId      String
-  draft        Draft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draft        Draft    @relation(fields: [draftId], references: [id], onDelete: Cascade)
 
   @@map("draft_files")
 }
 
-// =====================
-// ADMIN REVIEW SYSTEM
-// =====================
-
 model AdminReview {
-  id              String   @id @default(cuid())
-  notes           String?
-  technicalScore  Int?
-  regulatoryScore Int?
-  financialScore  Int?
+  id                 String         @id @default(cuid())
+  notes              String?
+  technicalScore     Int?
+  regulatoryScore    Int?
+  financialScore     Int?
   environmentalScore Int?
-  overallScore    Int?
-  decision        AdminDecision?
-  decisionAt      DateTime?
-  reviewedAt      DateTime @default(now())
-
-  // Relations
-  submissionId    String   @unique
-  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  overallScore       Int?
+  decision           AdminDecision?
+  decisionAt         DateTime?
+  reviewedAt         DateTime       @default(now())
+  submissionId       String         @unique
+  submission         Submission     @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@map("admin_reviews")
 }
 
-// =====================
-// CERTIFICATES
-// =====================
-
 model Certificate {
-  id              String   @id @default(cuid())
-  certificateHash String   @unique // Hash for blockchain verification
-  stellarTxHash   String?  // Stellar transaction hash
-  issuedAt        DateTime @default(now())
+  id              String            @id @default(cuid())
+  certificateHash String            @unique
+  stellarTxHash   String?
+  issuedAt        DateTime          @default(now())
   expiresAt       DateTime?
   status          CertificateStatus @default(ACTIVE)
-
-  // Relations
-  submissionId    String   @unique
-  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submissionId    String            @unique
   userId          String
-  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submission      Submission        @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([certificateHash], map: "idx_certificates_hash")
+  @@index([stellarTxHash], map: "idx_certificates_stellar_tx")
   @@map("certificates")
-  @@index([certificateHash], name: "idx_certificates_hash")
-  @@index([stellarTxHash], name: "idx_certificates_stellar_tx")
 }
 
-// =====================
-// AUTHENTICATION
-// =====================
-
 model AuthChallenge {
-  id        String   @id @default(cuid())
-  challenge String   @unique
+  id            String   @id @default(cuid())
+  challenge     String   @unique
   walletAddress String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
 
+  @@index([challenge], map: "idx_auth_challenges_challenge")
+  @@index([expiresAt], map: "idx_auth_challenges_expires_at")
   @@map("auth_challenges")
-  @@index([challenge], name: "idx_auth_challenges_challenge")
-  @@index([expiresAt], name: "idx_auth_challenges_expires_at")
 }
 
 model AuthSession {
-  id           String   @id @default(cuid())
-  token        String   @unique
+  id            String   @id @default(cuid())
+  token         String   @unique
   walletAddress String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
 
+  @@index([token], map: "idx_auth_sessions_token")
+  @@index([expiresAt], map: "idx_auth_sessions_expires_at")
   @@map("auth_sessions")
-  @@index([token], name: "idx_auth_sessions_token")
-  @@index([expiresAt], name: "idx_auth_sessions_expires_at")
 }
-
-// =====================
-// ENUMS
-// =====================
 
 enum Role {
   OPERATOR
@@ -254,4 +205,4 @@ enum CertificateStatus {
   ACTIVE
   EXPIRED
   REVOKED
-} 
+}
