@@ -1,78 +1,126 @@
 # DOB Validator
 
-A monorepo containing the DOB Protocol Validator system, including the public-facing validator interface, admin backoffice, and shared backend services.
+A comprehensive validation system for DOB Protocol.
 
-## Project Structure
+## 📚 Documentation Structure
 
-```
-dob-validator/
-├── frontend/        # Public-facing Validator
-├── backoffice/      # Admin CMS interface
-├── backend/         # Shared API, auth, database logic
-├── shared/          # Shared types, components, utils
-├── prisma/          # Database schema and migrations
-├── docker/          # Docker configurations
-```
+This repository uses the following documentation structure:
 
-## Getting Started
+1. [Stellar Kickstart Program](./STELLAR_KICKSTART.md)
+   - Project overview and goals
+   - Detailed deliverables and progress
+   - Technical implementation details
+   - Testing and deployment process
 
-### Prerequisites
+2. [Production Deployment Guide](./PRODUCTION_DEPLOYMENT_GUIDE.md)
+   - Complete deployment instructions
+   - Environment setup
+   - Infrastructure requirements
+   - Security considerations
 
-- Node.js 18+
-- pnpm
-- Docker (optional)
+3. [Test Results & Coverage](./BACKEND_API_TEST_RESULTS.md)
+   - API test results
+   - E2E test coverage
+   - Performance benchmarks
+   - Security audit results
 
-### Installation
+4. [UX Research](./UX_RESEARCH.md)
+   - User experience research findings
+   - Design decisions and rationale
+   - User testing results
+   - Interface optimization insights
 
-1. Clone the repository:
+## 🚀 Quick Start
+
+1. Development Setup:
+
 ```bash
-git clone https://github.com/your-org/dob-validator.git
-cd dob-validator
-```
-
-2. Install dependencies:
-```bash
+# Install dependencies
 pnpm install
+
+# Start development environment
+./build-dev.sh
 ```
 
-3. Set up environment variables:
+2. Production Build:
+
 ```bash
-cp .env.example .env
+# Build optimized production images
+./build-optimized.sh
+
+# Deploy to production
+./deploy-production.sh
 ```
 
-4. Start the development servers:
+## 🏗️ Project Structure
+
+```
+DOBVALIDATOR/
+├── backend/          # Backend API service
+├── frontend/         # User-facing web application
+├── backoffice/       # Admin dashboard
+├── shared/           # Shared utilities and components
+└── scripts/         # Deployment and maintenance scripts
+```
+
+## 🔐 Environment Setup
+
+1. Copy the example environment files:
+
 ```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+cp backoffice/.env.example backoffice/.env
+```
+
+2. Update the environment variables according to your setup.
+
+## 🛠️ Development
+
+1. Backend Development:
+
+```bash
+cd backend
 pnpm dev
 ```
 
-## Development
+2. Frontend Development:
 
-- `pnpm dev` - Start all services in development mode
-- `pnpm build` - Build all packages and applications
-- `pnpm start` - Start all services in production mode
-- `pnpm lint` - Run linting
-- `pnpm format` - Format code with Prettier
+```bash
+cd frontend
+pnpm dev
+```
 
-## Contributing
+3. Backoffice Development:
 
-1. Create a new branch for your feature
-2. Make your changes
-3. Submit a pull request
+```bash
+cd backoffice
+pnpm dev
+```
 
-## License
-Copyright (c) 2025 DOB Protocol.
+## 📦 Production Deployment
 
-This software and its contents are the exclusive property of DOB Protocol.  
-It is provided solely for evaluation, demonstration, and development collaboration purposes.
+See [Production Deployment Guide](./PRODUCTION_DEPLOYMENT_GUIDE.md) for detailed instructions.
 
-**You may not:**
-- Use this software for commercial purposes.
-- Copy, modify, or distribute this code without explicit written permission.
-- Fork or publish derivative projects publicly.
+## 🧪 Testing
 
-All rights reserved.
+See [Test Results & Coverage](./BACKEND_API_TEST_RESULTS.md) for current test status and coverage.
+
+## 🔒 Security
+
+- All API endpoints are authenticated
+- Rate limiting is enabled
+- SQL injection protection
+- XSS protection
+- CSRF protection
+- Security headers configured
+
+## 📄 License
+
+Proprietary - All rights reserved
 
 ## Overview
+
 DOB Validator is the official project validation portal of the DOB Protocol, designed to assess and certify DePIN projects through the TRUFA standard (Trustless Revenue Utility & Flow Automation). It enables infrastructure operators to submit documentation and metadata for review, aiming to tokenize their devices and qualify for inclusion in verified revenue pools.
 
 On the other side, the BackOffice CMS is an internal tool used by the DOB team to manage, review, and score incoming submissions. Admins can track submission statuses, leave comments, assign TRUFA scores, and push certified metadata to the Stellar blockchain.
@@ -123,13 +171,11 @@ The current proof of concept implements a comprehensive device verification flow
 ### Short-term Goals
 
 1. **AI-Powered Validation**
-
    - Implement automated document verification
    - Add device specification validation
    - Integrate with manufacturers database
 
 2. **Enhanced Security**
-
    - Add blockchain-based document verification
    - Implement secure file storage
 
@@ -141,13 +187,11 @@ The current proof of concept implements a comprehensive device verification flow
 ### Long-term Vision
 
 1. **Automated Due Diligence**
-
    - AI-driven risk assessment
    - Automated compliance checking
    - Real-time market value validation
 
 2. **Smart Contract Integration**
-
    - Direct integration with funding mechanisms
    - Automated tokenization process
    - Smart contract-based verification
@@ -166,4 +210,3 @@ The DOB Validator serves as the critical first step in the device funding proces
 3. Standardizing the onboarding process
 4. Providing a foundation for automated funding decisions
 5. Creating a trusted source of device information
-# Force Vercel redeploy - Sat Jun 28 15:28:08 -04 2025
