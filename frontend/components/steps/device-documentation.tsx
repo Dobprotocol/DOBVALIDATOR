@@ -57,49 +57,21 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     console.log('🔍 File change:', field, file)
     
     if (file) {
-      try {
-        // Upload file immediately to backend
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('field', field)
-        
-        console.log('🔍 Uploading file to backend:', field, file.name)
-        const response = await apiService.uploadFiles(formData)
-        
-        if (response.success) {
-          console.log('✅ File uploaded successfully:', response.files)
-          
-          // Store file info instead of File object
-          const fileInfo = {
-            id: response.files[0].id,
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            uploadedAt: new Date().toISOString()
-          }
-          
-    const updatedData = {
-      ...localData,
-            [field]: fileInfo
-    }
-    setLocalData(updatedData)
-          updateDeviceData({ [field]: fileInfo })
-          
-          toast({
-            title: "File Uploaded",
-            description: `${file.name} uploaded successfully`,
-          })
-        } else {
-          throw new Error('Upload failed')
-        }
-      } catch (error) {
-        console.error('❌ File upload failed:', error)
-        toast({
-          title: "Upload Failed",
-          description: `Failed to upload ${file.name}. Please try again.`,
-          variant: "destructive",
-        })
+      // TEMPORARY: Skip file upload for testing until backend deployment
+      console.log('🔍 TEMPORARY: Storing file locally without upload - backend deployment pending')
+      
+      // Store file locally without uploading
+      const updatedData = {
+        ...localData,
+        [field]: file
       }
+      setLocalData(updatedData)
+      updateDeviceData({ [field]: file })
+      
+      toast({
+        title: "File Stored",
+        description: `${file.name} stored locally (upload pending backend deployment)`,
+      })
     } else {
       // File removed
       const updatedData = {
@@ -115,51 +87,21 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     console.log('🔍 Images change:', files)
     
     if (files.length > 0) {
-      try {
-        // Upload all images immediately to backend
-        const formData = new FormData()
-        files.forEach((file, index) => {
-          formData.append(`files[${index}]`, file)
-        })
-        formData.append('field', 'deviceImages')
-        
-        console.log('🔍 Uploading images to backend:', files.map(f => f.name))
-        const response = await apiService.uploadFiles(formData)
-        
-        if (response.success) {
-          console.log('✅ Images uploaded successfully:', response.files)
-          
-          // Store file info instead of File objects
-          const fileInfos = response.files.map((file: any, index: number) => ({
-            id: file.id,
-            name: files[index].name,
-            type: files[index].type,
-            size: files[index].size,
-            uploadedAt: new Date().toISOString()
-          }))
-          
-    const updatedData = {
-      ...localData,
-            deviceImages: fileInfos
-    }
-    setLocalData(updatedData)
-          updateDeviceData({ deviceImages: fileInfos })
-          
-          toast({
-            title: "Images Uploaded",
-            description: `${files.length} image(s) uploaded successfully`,
-          })
-        } else {
-          throw new Error('Upload failed')
-        }
-      } catch (error) {
-        console.error('❌ Images upload failed:', error)
-        toast({
-          title: "Upload Failed",
-          description: `Failed to upload images. Please try again.`,
-          variant: "destructive",
-        })
+      // TEMPORARY: Skip file upload for testing until backend deployment
+      console.log('🔍 TEMPORARY: Storing images locally without upload - backend deployment pending')
+      
+      // Store files locally without uploading
+      const updatedData = {
+        ...localData,
+        deviceImages: files
       }
+      setLocalData(updatedData)
+      updateDeviceData({ deviceImages: files })
+      
+      toast({
+        title: "Images Stored",
+        description: `${files.length} image(s) stored locally (upload pending backend deployment)`,
+      })
     } else {
       // Images removed
       const updatedData = {
