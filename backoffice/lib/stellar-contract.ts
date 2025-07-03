@@ -167,24 +167,32 @@ class StellarContractService {
 
   /**
    * Get validation metadata from the blockchain
-   * This would query the smart contract in production
+   * Queries the smart contract for validation data
    */
   async getValidation(submissionId: string): Promise<ContractResult> {
     try {
       console.log('🔍 Fetching validation for submission:', submissionId)
       
-      // For now, we'll simulate getting validation data
-      // In production, this would call the smart contract
-      const mockResult = {
-        submissionId,
-        status: 'APPROVED',
-        timestamp: new Date().toISOString(),
-        contractAddress: CONTRACT_ADDRESS
+      // Query the smart contract for validation data
+      const deviceIdSymbol = nativeToScVal(submissionId, { type: 'symbol' })
+      const result = await this.contract.call('get_validation', deviceIdSymbol)
+      
+      if (result) {
+        const validationData = JSON.parse(result.toString())
+        return {
+          success: true,
+          metadata: {
+            submissionId,
+            ...validationData,
+            contractAddress: CONTRACT_ADDRESS,
+            timestamp: new Date().toISOString()
+          }
+        }
       }
       
       return {
-        success: true,
-        metadata: mockResult
+        success: false,
+        error: 'Validation not found'
       }
 
     } catch (error) {
@@ -198,20 +206,17 @@ class StellarContractService {
 
   /**
    * Verify admin wallet permissions
-   * This would check against the smart contract in production
+   * Checks against the smart contract for admin permissions
    */
   async verifyAdminWallet(walletAddress: string): Promise<boolean> {
     try {
       console.log('🔐 Verifying admin wallet:', walletAddress)
       
-      // For now, we'll use a simple whitelist
-      // In production, this would call the smart contract
-      const adminWallets = [
-        'GCKFBEIYTKP6RJGWLOUQBCGWDLNVTQJDKB7NQIU7SFJBQYDVD5GQJJQJ', // Mock admin wallet
-        // Add more admin wallets here
-      ]
+      // Query the smart contract for admin permissions
+      const walletAddressSymbol = nativeToScVal(walletAddress, { type: 'symbol' })
+      const result = await this.contract.call('is_admin', walletAddressSymbol)
       
-      const isAdmin = adminWallets.includes(walletAddress)
+      const isAdmin = result && result.toString() === 'true'
       console.log('🔐 Admin verification result:', isAdmin)
       
       return isAdmin
@@ -224,25 +229,30 @@ class StellarContractService {
 
   /**
    * Get contract statistics
-   * This would query the smart contract in production
+   * Queries the smart contract for statistics
    */
   async getContractStats(): Promise<ContractResult> {
     try {
       console.log('📊 Fetching contract statistics...')
       
-      // For now, return mock statistics
-      // In production, this would call the smart contract
-      const mockStats = {
-        totalValidations: 0,
-        approvedValidations: 0,
-        rejectedValidations: 0,
-        contractAddress: CONTRACT_ADDRESS,
-        lastUpdated: new Date().toISOString()
+      // Query the smart contract for statistics
+      const result = await this.contract.call('get_stats')
+      
+      if (result) {
+        const stats = JSON.parse(result.toString())
+        return {
+          success: true,
+          metadata: {
+            ...stats,
+            contractAddress: CONTRACT_ADDRESS,
+            lastUpdated: new Date().toISOString()
+          }
+        }
       }
       
       return {
-        success: true,
-        metadata: mockStats
+        success: false,
+        error: 'Failed to get contract statistics'
       }
 
     } catch (error) {
@@ -255,24 +265,32 @@ class StellarContractService {
   }
 
   /**
-   * Get transaction status
+   * Get transaction status from Stellar network
    */
   async getTransactionStatus(transactionHash: string): Promise<ContractResult> {
     try {
       console.log('🔍 Checking transaction status:', transactionHash)
       
-      // For now, return mock status
-      // In production, this would query the Stellar network
-      const mockStatus = {
-        hash: transactionHash,
-        status: 'SUCCESS',
-        ledger: 'mock_ledger',
-        timestamp: new Date().toISOString()
+      // Query the Stellar network for transaction status
+      const transaction = await this.server.getTransaction(transactionHash)
+      
+      if (transaction) {
+        return {
+          success: true,
+          metadata: {
+            hash: transactionHash,
+            status: transaction.successful ? 'SUCCESS' : 'FAILED',
+            ledger: transaction.ledger_attr,
+            timestamp: new Date(transaction.created_at).toISOString(),
+            fee: transaction.fee_charged,
+            operations: transaction.operation_count
+          }
+        }
       }
       
       return {
-        success: true,
-        metadata: mockStatus
+        success: false,
+        error: 'Transaction not found'
       }
 
     } catch (error) {
