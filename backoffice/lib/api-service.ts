@@ -140,6 +140,29 @@ class ApiService {
     }
   }
 
+  // Utility to convert camelCase to snake_case
+  private toSnakeCase(obj: any): any {
+    console.log('🔍 toSnakeCase called with:', obj)
+    if (Array.isArray(obj)) {
+      console.log('🔍 Processing array of length:', obj.length)
+      return obj.map((v) => this.toSnakeCase(v));
+    }
+    if (obj !== null && typeof obj === 'object') {
+      console.log('🔍 Processing object with keys:', Object.keys(obj))
+      const result = Object.fromEntries(
+        Object.entries(obj).map(([k, v]) => {
+          // Improved regex to handle camelCase to snake_case conversion
+          const newKey = k.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
+          console.log(`🔍 Converting ${k} -> ${newKey}`)
+          return [newKey, this.toSnakeCase(v)]
+        })
+      )
+      console.log('🔍 toSnakeCase result:', result)
+      return result
+    }
+    return obj;
+  }
+
   // Get all submissions with optional filters
   async getAllSubmissions(options?: {
     status?: string
@@ -159,7 +182,10 @@ class ApiService {
     const queryString = params.toString()
     const endpoint = `/api/submissions${queryString ? `?${queryString}` : ''}`
     const response = await this.request<any>(endpoint)
-    return response.submissions || []
+    console.log('🔍 Raw API response:', response)
+    const mappedSubmissions = this.toSnakeCase(response.submissions || [])
+    console.log('🔍 Mapped submissions:', mappedSubmissions)
+    return mappedSubmissions
   }
 
   // Get all drafts
@@ -205,7 +231,13 @@ class ApiService {
 
   // Get a single submission by ID
   async getSubmissionById(id: string): Promise<Submission> {
-    return this.request<Submission>(`/api/submissions/${id}`)
+    const response = await this.request<any>(`/api/submissions/${id}`)
+    console.log('🔍 Raw submission response:', response)
+    // Extract the submission object from the response and apply field mapping
+    const submission = response.submission || response
+    const mappedSubmission = this.toSnakeCase(submission)
+    console.log('🔍 Mapped submission:', mappedSubmission)
+    return mappedSubmission
   }
 
   // Update submission status

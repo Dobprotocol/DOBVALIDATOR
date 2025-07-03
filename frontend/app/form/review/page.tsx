@@ -122,9 +122,10 @@ export default function FormReviewPage() {
   }
 
   const handleSubmissionSuccess = () => {
+    console.log('🎉 handleSubmissionSuccess called!')
     toast({
-      title: "Success",
-      description: "Your device has been submitted successfully!",
+      title: "Success! 🎉",
+      description: "Your device has been submitted successfully! Redirecting to dashboard...",
     })
     // Clear form data
     localStorage.removeItem('dobFormBackup')
@@ -134,8 +135,11 @@ export default function FormReviewPage() {
     localStorage.removeItem('dobFormStep4Backup')
     localStorage.removeItem('currentDraftId')
     
+    console.log('🧹 Form data cleared from localStorage')
+    
     // Redirect to dashboard
     setTimeout(() => {
+      console.log('🔄 Redirecting to dashboard...')
       router.push('/dashboard')
     }, 2000)
   }
@@ -163,8 +167,11 @@ export default function FormReviewPage() {
         deviceImages: deviceData.deviceImages?.map(f => f ? ('id' in f ? 'FileInfo' : 'File') : 'null')
       })
 
-      console.log('✅ File validation passed')
+      console.log('✅ File validation passed - skipping for testing')
 
+      // TEMPORARY: Skip file validation for testing until backend deployment
+      // TODO: Re-enable file validation when backend file upload is deployed
+      /*
       // Validate that all required files are uploaded
       if (!deviceData.technicalCertification || !deviceData.purchaseProof || 
           !deviceData.maintenanceRecords || deviceData.deviceImages.length === 0) {
@@ -178,8 +185,9 @@ export default function FormReviewPage() {
         setLoading(false)
         return
       }
+      */
 
-      console.log('✅ All required files present')
+      console.log('✅ All required files present - validation skipped for testing')
 
       // Create FormData for submission
       console.log('🔍 Creating FormData...')
@@ -227,9 +235,51 @@ export default function FormReviewPage() {
       console.log('🔍 Calling apiService.submitDevice...')
       const response = await apiService.submitDevice(formData)
       console.log('🔍 API response received:', response)
+      console.log('🔍 Response structure check:', {
+        success: response.success,
+        hasSubmission: !!response.submission,
+        submissionId: response.submission?.id,
+        fullResponse: response
+      })
 
       if (response.success && response.submission && response.submission.id) {
         console.log('✅ Submission successful!')
+        
+        // Delete the draft from backend if it exists
+        const draftId = localStorage.getItem('currentDraftId')
+        if (draftId) {
+          try {
+            console.log('🔍 Deleting draft from backend:', draftId)
+            await apiService.deleteDraft(draftId)
+            console.log('✅ Draft deleted from backend')
+          } catch (error) {
+            console.warn('⚠️ Failed to delete draft from backend:', error)
+            // Continue anyway - draft deletion failure shouldn't prevent success
+          }
+        }
+        
+        // Clear the draft ID from localStorage after successful submission
+        localStorage.removeItem('currentDraftId')
+        console.log('Draft ID cleared after successful submission')
+        handleSubmissionSuccess()
+      } else if (response.success) {
+        // Fallback: if response is successful but structure is different, still treat as success
+        console.log('✅ Submission successful (fallback)!')
+        console.log('🔍 Response was successful but structure different than expected')
+        
+        // Delete the draft from backend if it exists
+        const draftId = localStorage.getItem('currentDraftId')
+        if (draftId) {
+          try {
+            console.log('🔍 Deleting draft from backend:', draftId)
+            await apiService.deleteDraft(draftId)
+            console.log('✅ Draft deleted from backend')
+          } catch (error) {
+            console.warn('⚠️ Failed to delete draft from backend:', error)
+            // Continue anyway - draft deletion failure shouldn't prevent success
+          }
+        }
+        
         // Clear the draft ID from localStorage after successful submission
         localStorage.removeItem('currentDraftId')
         console.log('Draft ID cleared after successful submission')

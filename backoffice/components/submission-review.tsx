@@ -38,8 +38,8 @@ import * as z from "zod"
 import { adminConfigService } from "@/lib/admin-config"
 import { apiService, Submission } from "@/lib/api-service"
 import { isAuthenticated } from "@/lib/auth"
-import { useSearchParams } from "next/navigation"
-import { stellarContractService } from "@/lib/stellar-contract"
+import { useSearchParams, useRouter } from "next/navigation"
+import { stellarContractService, signTransactionWithSimpleSigner } from "@/lib/stellar-contract"
 
 const statusColors = {
   PENDING: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -56,6 +56,7 @@ interface SubmissionReviewProps {
 
 export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps) {
   const { toast } = useToast()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [loading, setLoading] = useState(true)
@@ -101,6 +102,8 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
 
         if (!isAuthenticated()) {
           setError('Authentication required')
+          // Redirect to home for re-authentication
+          router.push('/')
           return
         }
 
@@ -123,6 +126,11 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        // If error is 401, redirect to home
+        if (errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized')) {
+          router.push('/')
+          return
+        }
         setError(errorMessage)
         toast({
           title: "Error",
@@ -135,7 +143,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
     }
 
     fetchSubmission()
-  }, [currentSubmissionId, toast])
+  }, [currentSubmissionId, toast, router])
 
   // Check wallet connection and admin status on mount
   useEffect(() => {
@@ -296,43 +304,49 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
       console.log('🔐 Preparing Stellar smart contract submission...')
       console.log('📋 TRUFA Metadata payload:', metadata)
       
-      // For production, this would integrate with a secure wallet service
-      // For now, we'll simulate the contract submission and store the metadata
-      // In a real implementation, you would:
-      // 1. Use Freighter wallet extension
-      // 2. Or integrate with Albedo wallet
-      // 3. Or use a secure backend service for contract interactions
+      // Initialize Stellar contract service
+      await stellarContractService.initialize()
       
-      // Simulate contract submission (replace with real implementation)
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Create transaction signing function using the connected wallet
+      const signTransaction = async (transactionXdr: string): Promise<string> => {
+        console.log('🔐 Requesting transaction signature from wallet...')
+        console.log('📝 Transaction XDR to sign:', transactionXdr.slice(0, 100) + '...')
+        
+        // Use Simple Signer to sign the transaction
+        const signedTransactionXdr = await signTransactionWithSimpleSigner(transactionXdr, connectedWallet)
+        console.log('✅ Transaction signed successfully')
+        
+        return signedTransactionXdr
+      }
       
-      // Generate a realistic transaction hash format
-      const txHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_stellar`
-      
-      setStellarTxHash(txHash)
-      setIsSubmitted(true)
-      setTxStatus("confirmed")
-      
-      toast({
-        title: "Validation Submitted Successfully! 🎉",
-        description: `Decision: ${isApproved ? 'APPROVED' : 'REJECTED'} | Score: ${averageScore}/100 | Metadata: ${metadata.metadataHash.slice(0, 8)}...`,
+      // Submit to Stellar contract
+      const contractResult = await stellarContractService.submitValidationToSoroban({
+        adminPublic: connectedWallet,
+        metadata,
+        signTransaction
       })
+      
+      if (contractResult.success && contractResult.transactionHash) {
+        setStellarTxHash(contractResult.transactionHash)
+        setIsSubmitted(true)
+        setTxStatus("confirmed")
+        
+        toast({
+          title: "Validation Submitted to Stellar! 🎉",
+          description: `Decision: ${isApproved ? 'APPROVED' : 'REJECTED'} | Score: ${averageScore}/100 | Tx: ${contractResult.transactionHash.slice(0, 8)}...`,
+        })
 
-      console.log('✅ Validation submission successful:', {
-        submissionId: submission.id,
-        decision: isApproved ? 'APPROVED' : 'REJECTED',
-        trufaScore: averageScore,
-        metadataHash: metadata.metadataHash,
-        transactionHash: txHash,
-        adminWallet: connectedWallet
-      })
-
-      // TODO: Implement real Stellar contract submission
-      // This would require:
-      // 1. Secure secret key management
-      // 2. Wallet integration (Freighter/Albedo)
-      // 3. Proper error handling for network issues
-      // 4. Transaction confirmation monitoring
+        console.log('✅ Stellar contract submission successful:', {
+          submissionId: submission.id,
+          decision: isApproved ? 'APPROVED' : 'REJECTED',
+          trufaScore: averageScore,
+          metadataHash: metadata.metadataHash,
+          transactionHash: contractResult.transactionHash,
+          adminWallet: connectedWallet
+        })
+      } else {
+        throw new Error(contractResult.error || 'Contract submission failed')
+      }
       
     } catch (error) {
       toast({

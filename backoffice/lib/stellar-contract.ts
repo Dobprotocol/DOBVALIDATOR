@@ -13,6 +13,7 @@ import {
 const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
 const SOROBAN_RPC = 'https://soroban-testnet.stellar.org:443'
 const NETWORK_PASSPHRASE = Networks.TESTNET
+const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
 // TRUFA Metadata structure for blockchain storage
 export interface TrufaMetadata {
@@ -40,6 +41,72 @@ export interface ContractResult {
   transactionHash?: string
   error?: string
   metadata?: any
+}
+
+/**
+ * Sign a transaction using Simple Signer
+ */
+export async function signTransactionWithSimpleSigner(
+  transactionXdr: string,
+  walletAddress: string
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      console.log('🔐 Opening Simple Signer for transaction signing...')
+      
+      // Open Simple Signer in a popup
+      const popup = window.open(
+        `${SIMPLE_SIGNER_URL}/sign?xdr=${encodeURIComponent(transactionXdr)}&publicKey=${walletAddress}&network=testnet&dApp=DOB Validator Backoffice`,
+        'simpleSigner',
+        'width=400,height=600,scrollbars=yes,resizable=yes'
+      )
+
+      if (!popup) {
+        throw new Error('Failed to open Simple Signer popup. Please allow popups for this site.')
+      }
+
+      const handleSignMessage = (e: MessageEvent) => {
+        if (e.origin !== SIMPLE_SIGNER_URL) return
+
+        const messageEvent = e.data
+        console.log('📨 Received sign message:', messageEvent.type)
+
+        if (messageEvent.type === 'onSign') {
+          const { signedXDR } = messageEvent.message
+          console.log('✅ Received signed transaction:', signedXDR.substring(0, 50) + '...')
+          
+          cleanup()
+          resolve(signedXDR)
+        } else if (messageEvent.type === 'onCancel') {
+          console.log('❌ Signing cancelled')
+          cleanup()
+          reject(new Error('Transaction signing was cancelled'))
+        }
+      }
+
+      const cleanup = () => {
+        window.removeEventListener('message', handleSignMessage)
+        if (popup && !popup.closed) {
+          popup.close()
+        }
+      }
+
+      window.addEventListener('message', handleSignMessage)
+
+      // Set a timeout to close the popup and reject if no response
+      setTimeout(() => {
+        if (popup && !popup.closed) {
+          popup.close()
+        }
+        cleanup()
+        reject(new Error('Transaction signing timeout'))
+      }, 300000) // 5 minutes timeout
+
+    } catch (error) {
+      console.error('❌ Error signing transaction:', error)
+      reject(error)
+    }
+  })
 }
 
 class StellarContractService {
@@ -95,27 +162,29 @@ class StellarContractService {
 
   /**
    * Submit validation metadata to the Soroban contract
+   * Uses wallet signing instead of secret key for security
    * Tries both symbol and bytes for deviceId
    * Logs all contract interactions for auditability
    */
   async submitValidationToSoroban({
-    adminSecret,
     adminPublic,
-    metadata
+    metadata,
+    signTransaction
   }: {
-    adminSecret: string
     adminPublic: string
     metadata: TrufaMetadata
+    signTransaction: (transactionXdr: string) => Promise<string>
   }): Promise<ContractResult> {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] [SorobanContract] Attempting contract call`);
     console.log(`  Admin wallet: ${adminPublic}`);
     console.log(`  Submission ID: ${metadata.submissionId}`);
     console.log('  Metadata:', metadata);
+    
     try {
-      const adminKeypair = Keypair.fromSecret(adminSecret)
       const account = await this.server.getAccount(adminPublic)
-      // Try symbol type for deviceId
+      
+      // Try symbol type for deviceId first
       const deviceIdSymbol = nativeToScVal(metadata.submissionId, { type: 'symbol' })
       const txSymbol = new TransactionBuilder(account, {
         fee: BASE_FEE,
@@ -124,9 +193,18 @@ class StellarContractService {
         .addOperation(this.contract.callOperation('submit_validation', deviceIdSymbol, nativeToScVal(JSON.stringify(metadata), { type: 'string' })))
         .setTimeout(30)
         .build()
-      txSymbol.sign(adminKeypair)
+      
       try {
-        const response = await this.server.sendTransaction(txSymbol)
+        // Get transaction XDR for wallet signing
+        const transactionXdr = txSymbol.toXDR()
+        console.log('📝 Transaction XDR generated, requesting wallet signature...')
+        
+        // Sign transaction with wallet
+        const signedTransactionXdr = await signTransaction(transactionXdr)
+        console.log('✅ Transaction signed by wallet')
+        
+        // Submit signed transaction
+        const response = await this.server.sendTransaction(signedTransactionXdr)
         console.log(`[${new Date().toISOString()}] [SorobanContract] SUCCESS (symbol)`);
         console.log(`  Tx hash: ${response.hash}`);
         return {
@@ -136,6 +214,7 @@ class StellarContractService {
         }
       } catch (e) {
         console.warn(`[${new Date().toISOString()}] [SorobanContract] Symbol call failed, trying bytes. Error:`, e)
+        
         // If symbol fails, try bytes
         const deviceIdBytes = nativeToScVal(metadata.submissionId, { type: 'bytes' })
         const txBytes = new TransactionBuilder(account, {
@@ -145,8 +224,17 @@ class StellarContractService {
           .addOperation(this.contract.callOperation('submit_validation', deviceIdBytes, nativeToScVal(JSON.stringify(metadata), { type: 'string' })))
           .setTimeout(30)
           .build()
-        txBytes.sign(adminKeypair)
-        const responseBytes = await this.server.sendTransaction(txBytes)
+        
+        // Get transaction XDR for wallet signing
+        const transactionXdr = txBytes.toXDR()
+        console.log('📝 Transaction XDR generated (bytes), requesting wallet signature...')
+        
+        // Sign transaction with wallet
+        const signedTransactionXdr = await signTransaction(transactionXdr)
+        console.log('✅ Transaction signed by wallet (bytes)')
+        
+        // Submit signed transaction
+        const responseBytes = await this.server.sendTransaction(signedTransactionXdr)
         console.log(`[${new Date().toISOString()}] [SorobanContract] SUCCESS (bytes)`);
         console.log(`  Tx hash: ${responseBytes.hash}`);
         return {
@@ -300,6 +388,13 @@ class StellarContractService {
         error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
+  }
+
+  /**
+   * Generate Stellar explorer URL for transaction
+   */
+  getExplorerUrl(transactionHash: string): string {
+    return `https://stellar.expert/explorer/testnet/tx/${transactionHash}`
   }
 }
 

@@ -19,36 +19,12 @@ export async function GET(request: NextRequest) {
     
     let submissions;
     
-    if (process.env.NODE_ENV === 'development') {
-      // Call backend directly in development
-      const params = new URLSearchParams()
-      if (status) params.append('status', status)
-      if (limit) params.append('limit', limit.toString())
-      if (offset) params.append('offset', offset.toString())
-      
-      const backendUrl = `http://localhost:3001/api/submissions?${params.toString()}`
-      console.log('🔍 Calling backend directly:', backendUrl)
-      
-      const res = await fetch(backendUrl, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      if (!res.ok) {
-        throw new Error(`Backend API error: ${res.status} ${res.statusText}`)
-      }
-      
-      const backendResponse = await res.json()
-      submissions = backendResponse.data || backendResponse
-    } else {
-      // Use apiService in production
-      submissions = await apiService.getAllSubmissions({
-        status: status || undefined,
-        limit,
-        offset
-      })
-    }
+    // Always use apiService to ensure field mapping is applied
+    submissions = await apiService.getAllSubmissions({
+      status: status || undefined,
+      limit,
+      offset
+    })
     
     console.log('🔍 Found submissions:', submissions?.length || 0)
     

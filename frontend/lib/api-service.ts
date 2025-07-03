@@ -347,6 +347,15 @@ class ApiService {
         body: JSON.stringify(submissionData),
       })
   }
+
+  // Delete draft
+  async deleteDraft(draftId: string) {
+    console.log('🔍 Deleting draft:', draftId)
+    
+    return this.request<{ success: boolean }>(`/api/drafts/${draftId}`, {
+      method: 'DELETE',
+    })
+  }
 }
 
 export const apiService = new ApiService()
