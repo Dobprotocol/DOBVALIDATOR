@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
-import { PlusCircle, FileText, Edit, Eye, AlertCircle, Loader2, Trash2 } from "lucide-react"
+import { PlusCircle, FileText, Edit, Eye, AlertCircle, Loader2, Trash2, RefreshCw } from "lucide-react"
 import { RejectionReviewModal } from "@/components/ui/rejection-review-modal"
 import { CertificateModal } from "@/components/ui/certificate-modal"
 import { AuthGuard } from "@/components/auth-guard"
@@ -78,7 +78,10 @@ export default function DashboardPage() {
         const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
         
         try {
-          const submissionsResponse = await fetch('https://v.dobprotocol.com/api/submissions', {
+          const backendUrl = process.env.NODE_ENV === 'development' 
+            ? 'http://localhost:3001' 
+            : 'https://v.dobprotocol.com'
+          const submissionsResponse = await fetch(`${backendUrl}/api/submissions`, {
             headers: {
               'Authorization': `Bearer ${tokenData.token}`
             },
@@ -118,6 +121,15 @@ export default function DashboardPage() {
         })
         
         try {
+          // Get auth token again for fallback
+          const authToken = localStorage.getItem('authToken')
+          if (!authToken) {
+            console.log('No auth token found for fallback submissions')
+            setSubmissions([])
+            return
+          }
+
+          const tokenData = JSON.parse(authToken)
           const frontendResponse = await fetch('/api/submissions', {
             headers: {
               'Authorization': `Bearer ${tokenData.token}`
@@ -201,6 +213,29 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData()
   }, [toast])
+
+  // Refresh data when user returns to the dashboard (e.g., after saving a draft)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Refresh data when window gains focus (user returns to tab)
+      fetchData()
+    }
+
+    const handleVisibilityChange = () => {
+      // Refresh data when page becomes visible
+      if (!document.hidden) {
+        fetchData()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   const handleCreateDevice = () => {
     // Clear all localStorage backups to ensure clean slate
@@ -404,7 +439,22 @@ export default function DashboardPage() {
             </h1>
           </div>
           
-          <div className="flex justify-end mb-8">
+          <div className="flex justify-between items-center mb-8">
+            <Button
+              onClick={fetchData}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Refresh
+            </Button>
+            
             <Button
               onClick={handleCreateDevice}
               className="inline-flex items-center gap-2 text-base py-3 px-6 rounded-lg font-semibold shadow-md bg-blue-600 text-white hover:animate-neon-glow hover:shadow-[0_0_16px_4px_rgba(59,130,246,0.7)] focus-visible:shadow-[0_0_24px_8px_rgba(59,130,246,0.8)] transition-all duration-200"

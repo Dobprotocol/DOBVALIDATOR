@@ -9,7 +9,7 @@ import { StellarWallet } from "@/components/stellar-wallet"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useDraft } from "@/hooks/use-draft"
 import { Button } from "@/components/ui/button"
-import { Save, Loader2, Download } from "lucide-react"
+import { Save, Loader2, Download, Send } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -329,7 +329,7 @@ export function EnhancedDeviceVerificationFlow() {
         const scrollPosition = window.scrollY + totalOffset
         const viewportHeight = window.innerHeight
 
-        // Check each step's position with improved detection
+        // More sensitive detection with smaller thresholds
         for (let step = 1; step <= totalSteps; step++) {
           const stepElement = document.getElementById(`step-${step}`)
           if (stepElement) {
@@ -337,22 +337,25 @@ export function EnhancedDeviceVerificationFlow() {
             const elementBottom = elementTop + stepElement.offsetHeight
             const elementCenter = elementTop + (elementBottom - elementTop) / 2
             
-            // More sophisticated detection based on scroll direction and element visibility
-            const isElementVisible = scrollPosition >= elementTop && scrollPosition < elementBottom
-            const isElementInViewport = elementTop < scrollPosition + viewportHeight && elementBottom > scrollPosition
+            // More sensitive detection - trigger when element is 30% visible
+            const visibilityThreshold = 0.3
+            const elementVisibleHeight = Math.min(elementBottom, scrollPosition + viewportHeight) - Math.max(elementTop, scrollPosition)
+            const elementVisibility = elementVisibleHeight / (elementBottom - elementTop)
             
-            if (isElementVisible && isElementInViewport) {
+            // Check if element is sufficiently visible or if we're near its center
+            const isElementVisible = elementVisibility > visibilityThreshold
+            const isNearCenter = Math.abs(scrollPosition + viewportHeight / 2 - elementCenter) < viewportHeight / 3
+            
+            if (isElementVisible || isNearCenter) {
               if (currentStep !== step) {
-                // Smooth transition to new step with slight delay for better UX
-                setTimeout(() => {
-                  setCurrentStep(step)
-                }, 50)
+                // Immediate transition for better responsiveness
+                setCurrentStep(step)
               }
               break
             }
           }
         }
-      }, 150) // Longer debounce for smoother performance
+      }, 50) // Much shorter debounce for better responsiveness
     }
 
     // Detect programmatic scrolling
@@ -360,7 +363,7 @@ export function EnhancedDeviceVerificationFlow() {
       isScrolling = true
       setTimeout(() => {
         isScrolling = false
-      }, 1200) // Allow updates after scroll animation completes
+      }, 800) // Shorter delay for better responsiveness
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
@@ -371,6 +374,55 @@ export function EnhancedDeviceVerificationFlow() {
       window.removeEventListener('scroll', handleScrollStart)
       clearTimeout(scrollTimeout)
     }
+  }, [currentStep, totalSteps])
+
+  // Add tab navigation with smooth scrolling
+  useEffect(() => {
+    const handleTabNavigation = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        const activeElement = document.activeElement as HTMLElement
+        if (!activeElement) return
+
+        // Check if we're on the last field of a step
+        const currentStepElement = document.getElementById(`step-${currentStep}`)
+        if (!currentStepElement) return
+
+        const inputs = currentStepElement.querySelectorAll('input, textarea, select')
+        const lastInput = inputs[inputs.length - 1] as HTMLElement
+
+        // If tabbing from the last field of current step, scroll to next step
+        if (activeElement === lastInput && !e.shiftKey && currentStep < totalSteps) {
+          e.preventDefault()
+          
+          // Smooth scroll to next step
+          setTimeout(() => {
+            const nextStepElement = document.getElementById(`step-${currentStep + 1}`)
+            if (nextStepElement) {
+              const headerHeight = 80
+              const stepIndicatorHeight = 56
+              const totalOffset = headerHeight + stepIndicatorHeight + 20
+              const elementTop = nextStepElement.offsetTop - totalOffset
+              
+              window.scrollTo({
+                top: elementTop,
+                behavior: 'smooth'
+              })
+
+              // Focus the first input of the next step
+              setTimeout(() => {
+                const firstInput = nextStepElement.querySelector('input, textarea, select') as HTMLElement
+                if (firstInput) {
+                  firstInput.focus()
+                }
+              }, 600) // Wait for scroll to complete
+            }
+          }, 50)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleTabNavigation)
+    return () => window.removeEventListener('keydown', handleTabNavigation)
   }, [currentStep, totalSteps])
 
   // Validation function
@@ -573,7 +625,7 @@ export function EnhancedDeviceVerificationFlow() {
                 <div key={index} className="flex items-center">
                   <button
                     onClick={() => goToStep(index + 1)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-500 ease-in-out hover:scale-110 active:scale-95 shadow-md ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 ease-in-out hover:scale-110 active:scale-95 shadow-md ${
                       index + 1 === currentStep
                         ? "bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/20 scale-110 step-indicator-active"
                         : index + 1 < currentStep
@@ -584,7 +636,7 @@ export function EnhancedDeviceVerificationFlow() {
                     {index + 1}
                   </button>
                   {index < totalSteps - 1 && (
-                    <div className={`h-0.5 w-8 transition-all duration-700 ease-in-out rounded-full ${
+                    <div className={`h-0.5 w-8 transition-all duration-400 ease-in-out rounded-full ${
                       index + 1 < currentStep 
                         ? "bg-primary scale-x-100" 
                         : index + 1 === currentStep 
@@ -607,7 +659,7 @@ export function EnhancedDeviceVerificationFlow() {
       {/* Step 1: Basic Information */}
       <div 
         id="step-1" 
-        className={`transition-all duration-700 ease-in-out transform ${
+        className={`transition-all duration-400 ease-in-out transform ${
           currentStep === 1 
             ? 'opacity-100 scale-100 step-active' 
             : currentStep > 1 
@@ -628,7 +680,7 @@ export function EnhancedDeviceVerificationFlow() {
       {/* Step 2: Technical Information */}
       <div 
         id="step-2" 
-        className={`transition-all duration-700 ease-in-out transform ${
+        className={`transition-all duration-400 ease-in-out transform ${
           currentStep === 2 
             ? 'opacity-100 scale-100 step-active' 
             : currentStep > 2 
@@ -650,7 +702,7 @@ export function EnhancedDeviceVerificationFlow() {
       {/* Step 3: Financial Information */}
       <div 
         id="step-3" 
-        className={`transition-all duration-700 ease-in-out transform ${
+        className={`transition-all duration-400 ease-in-out transform ${
           currentStep === 3 
             ? 'opacity-100 scale-100 step-active' 
             : currentStep > 3 
@@ -672,7 +724,7 @@ export function EnhancedDeviceVerificationFlow() {
       {/* Step 4: Documentation */}
       <div 
         id="step-4" 
-        className={`transition-all duration-700 ease-in-out transform ${
+        className={`transition-all duration-400 ease-in-out transform ${
           currentStep === 4 
             ? 'opacity-100 scale-100 step-active' 
             : currentStep > 4 
@@ -798,20 +850,11 @@ export function EnhancedDeviceVerificationFlow() {
                     router.push('/form/review')
                   }
                 }}
-                className="px-12 py-4 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-                size="lg"
+                className="px-8 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
+                size="default"
               >
+                <Send className="h-4 w-4" />
                 Review & Submit
-              </Button>
-              
-              {/* Manual validation trigger */}
-              <Button
-                onClick={() => validateForm()}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-              >
-                Check Form Completion
               </Button>
             </div>
           </div>

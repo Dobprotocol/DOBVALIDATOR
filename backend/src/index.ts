@@ -3,7 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { prisma } from './lib/database'
-import { userService, profileService, submissionService, authService, adminReviewService } from './lib/database'
+import { userService, profileService, submissionService, authService, adminReviewService, draftService } from './lib/database'
 import { env } from './lib/env-validation'
 
 const app = express()
@@ -540,23 +540,13 @@ app.post('/api/drafts', async (req, res) => {
     const { walletAddress } = decoded
 
     console.log('🔍 Looking for user with wallet:', walletAddress)
-    const user = await userService.getByWallet(walletAddress)
-    if (!user) {
-      console.log('❌ User not found for wallet:', walletAddress)
-      res.status(404).json({ error: 'User not found' })
-      return
-    }
-    console.log('🔍 User found:', user.id)
+    const user = await userService.findOrCreateByWallet(walletAddress)
+    console.log('🔍 User found/created:', user.id)
 
     const draftData = req.body
     console.log('🔍 Creating draft with data:', draftData)
     
-    const draft = await prisma.draft.create({
-      data: {
-        userId: user.id,
-        ...draftData
-      }
-    })
+    const draft = await draftService.create(user.id, draftData)
 
     console.log('🔍 Draft created successfully:', draft.id)
     res.json({ success: true, draft })
@@ -583,12 +573,7 @@ app.get('/api/drafts/:id', async (req, res) => {
     const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
-    const user = await userService.getByWallet(walletAddress)
-    if (!user) {
-      res.status(404).json({ error: 'User not found' })
-      return
-    }
-
+    const user = await userService.findOrCreateByWallet(walletAddress)
     const { id } = req.params
 
     // Get draft by ID and user
@@ -627,12 +612,7 @@ app.put('/api/drafts/:id', async (req, res) => {
     const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
-    const user = await userService.getByWallet(walletAddress)
-    if (!user) {
-      res.status(404).json({ error: 'User not found' })
-      return
-    }
-
+    const user = await userService.findOrCreateByWallet(walletAddress)
     const { id } = req.params
     const updateData = req.body
 
@@ -681,12 +661,7 @@ app.delete('/api/drafts/:id', async (req, res) => {
     const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
-    const user = await userService.getByWallet(walletAddress)
-    if (!user) {
-      res.status(404).json({ error: 'User not found' })
-      return
-    }
-
+    const user = await userService.findOrCreateByWallet(walletAddress)
     const { id } = req.params
 
     // Check if draft exists and belongs to user
@@ -833,4 +808,4 @@ process.on('SIGINT', async () => {
   process.exit(0)
 })
 
-startServer() 
+startServer()

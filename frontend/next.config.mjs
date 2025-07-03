@@ -19,11 +19,8 @@ const nextConfig = {
   output: 'standalone',
   
   // Increase file size limits for form submissions
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb', // Increase from default 1mb
-    },
-    responseLimit: '50mb',
+  experimental: {
+    serverComponentsExternalPackages: ['@stellar/stellar-sdk'],
   },
 
   webpack: (config, { isServer }) => {
