@@ -148,7 +148,7 @@ class ApiClient {
   }
 
   async submitDevice(formData: FormData): Promise<ApiResponse<any>> {
-    return this.request('/api/submit', {
+    return this.request('/api/submissions', {
       method: 'POST',
       body: formData,
       headers: {
