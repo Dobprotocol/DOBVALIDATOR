@@ -1,6 +1,12 @@
 // API Service for DOB Validator Backend
 // Base URL: Use Next.js API routes for frontend endpoints, backend for backend-only endpoints
 
+// Validate environment variables in production
+if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_BACKEND_URL) {
+  console.error('❌ NEXT_PUBLIC_BACKEND_URL is required in production')
+  throw new Error('NEXT_PUBLIC_BACKEND_URL environment variable is required in production')
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
 
 // Types for the backend API
