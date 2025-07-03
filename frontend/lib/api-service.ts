@@ -311,15 +311,44 @@ class ApiService {
   async submitDevice(formData: FormData) {
     console.log('🔍 Submitting device for verification')
     
-    // Use the request method which handles the URL resolution properly
-    return this.request<{ success: boolean; submission: any }>('/api/submissions', {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type for FormData - browser will set it with boundary
-      headers: {
-        // Remove Content-Type to let browser set it for FormData
+    // TEMPORARY FIX: Go directly to backend URL to bypass frontend API route issues
+    const backendUrl = 'https://v.dobprotocol.com'
+    const url = `${backendUrl}/api/submissions`
+    
+    // Get auth token
+    const token = this.getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+    
+    console.log(`🔍 TEMPORARY: Making direct backend request to: ${url}`)
+    console.log(`🔍 FormData entries:`, Array.from(formData.entries()).map(([key, value]) => `${key}: ${value instanceof File ? value.name : value}`))
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type for FormData - browser will set it with boundary
+        },
+        body: formData,
+      })
+      
+      console.log(`🔍 Backend response status: ${response.status}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error(`❌ Backend submission failed: ${response.status}`, errorData)
+        throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`)
       }
-    })
+
+      const data = await response.json()
+      console.log(`✅ Backend submission successful:`, data)
+      return data
+    } catch (error) {
+      console.error('Backend submission failed:', error)
+      throw error
+    }
   }
 }
 
