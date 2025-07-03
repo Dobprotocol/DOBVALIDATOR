@@ -82,7 +82,11 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
   }, [deviceData.draftId]) // Only reset if draftId changes
 
   const handleInputChange = useCallback((field: string, value: string) => {
-    setLocalData(prev => ({ ...prev, [field]: value }))
+    const newLocalData = { ...localData, [field]: value }
+    setLocalData(newLocalData)
+    
+    // Also update parent state immediately to persist the data
+    updateDeviceData({ [field]: value })
     
     // Trigger auto-save if available (debounced)
     if (onAutoSave) {
@@ -90,7 +94,7 @@ export function DeviceTechnicalInfo({ deviceData, updateDeviceData, onNext, onBa
         onAutoSave()
       }, 500)
     }
-  }, [onAutoSave])
+  }, [localData, updateDeviceData, onAutoSave])
 
   // Memoize the condition change handler specifically
   const handleConditionChange = useCallback((value: string) => {

@@ -414,8 +414,16 @@ export default function DashboardPage() {
   const realSubmissions = submissions.filter(s => s.status && [
     'pending', 'under review', 'approved', 'rejected', 'PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'
   ].includes(s.status))
-  // Only show drafts
-  const onlyDrafts = drafts.filter(d => d.status && (d.status === 'draft' || d.status === 'DRAFT'))
+  // Only show drafts - drafts don't have a status field, so we show all drafts
+  const onlyDrafts = drafts.filter(d => !d.status || d.status === 'draft' || d.status === 'DRAFT')
+  
+  console.log('🔍 Debug drafts:', {
+    totalDrafts: drafts.length,
+    draftsWithStatus: drafts.filter(d => d.status).length,
+    draftsWithoutStatus: drafts.filter(d => !d.status).length,
+    onlyDraftsCount: onlyDrafts.length,
+    draftStatuses: drafts.map(d => ({ id: d.id, status: d.status, deviceName: d.deviceName }))
+  })
 
   if (loading) {
   return (

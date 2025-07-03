@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     const { walletAddress } = validationResult.data
     console.log('🔍 Getting challenge from backend for wallet:', walletAddress)
     
-    // Call backend to get challenge
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
+    // Get the backend URL
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
     const backendResponse = await fetch(`${backendUrl}/api/auth/challenge`, {
       method: 'POST',
       headers: {

@@ -5,10 +5,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🔍 Frontend draft GET request received for ID:', params.id)
+    const { id } = await params
+    console.log('🔍 Frontend draft GET request received for ID:', id)
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization')
@@ -23,8 +24,8 @@ export async function GET(
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...')
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
-    const draftUrl = `${backendUrl}/api/drafts/${params.id}`
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const draftUrl = `${backendUrl}/api/drafts/${id}`
 
     console.log('🔍 Forwarding to backend:', draftUrl)
 
@@ -72,10 +73,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🔍 Frontend draft PUT request received for ID:', params.id)
+    const { id } = await params
+    console.log('🔍 Frontend draft PUT request received for ID:', id)
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization')
@@ -90,8 +92,8 @@ export async function PUT(
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...')
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
-    const draftUrl = `${backendUrl}/api/drafts/${params.id}`
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const draftUrl = `${backendUrl}/api/drafts/${id}`
 
     console.log('🔍 Forwarding to backend:', draftUrl)
 
@@ -144,10 +146,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🔍 Frontend draft DELETE request received for ID:', params.id)
+    const { id } = await params
+    console.log('🔍 Frontend draft DELETE request received for ID:', id)
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization')
@@ -162,8 +165,8 @@ export async function DELETE(
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...')
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://v.dobprotocol.com'
-    const draftUrl = `${backendUrl}/api/drafts/${params.id}`
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const draftUrl = `${backendUrl}/api/drafts/${id}`
 
     console.log('🔍 Forwarding to backend:', draftUrl)
 

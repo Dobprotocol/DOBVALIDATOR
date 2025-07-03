@@ -400,17 +400,6 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* Debug Panel */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="p-4 bg-muted rounded-lg text-xs space-y-2">
-            <div className="font-semibold">Debug Info:</div>
-            <div>Connecting: {isConnecting ? 'Yes' : 'No'}</div>
-            <div>Authenticating: {isAuthenticating ? 'Yes' : 'No'}</div>
-            <div>Has Checked Auth: {hasCheckedAuth ? 'Yes' : 'No'}</div>
-            <div>Error: {error || 'None'}</div>
-          </div>
-        )}
-
         {error && (
           <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive">
             <AlertCircle className="h-4 w-4" />

@@ -35,6 +35,7 @@ export default function DashboardPage() {
   
   // Real data state
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [drafts, setDrafts] = useState<any[]>([])
   const [stats, setStats] = useState<SubmissionsStats>({
     total: 0,
     pending: 0,
@@ -104,12 +105,20 @@ export default function DashboardPage() {
       const statsData = await apiService.getSubmissionsStats()
       setStats(statsData)
       
-      // Fetch recent submissions
-      const recentSubmissions = await apiService.getAllSubmissions({ 
-        limit: 5,
-        offset: 0 
-      })
+      // Fetch recent submissions and drafts
+      const [recentSubmissions, recentDrafts] = await Promise.all([
+        apiService.getAllSubmissions({ 
+          limit: 5,
+          offset: 0 
+        }),
+        apiService.getAllDrafts({ 
+          limit: 5,
+          offset: 0 
+        })
+      ])
+      
       setSubmissions(recentSubmissions)
+      setDrafts(recentDrafts)
       
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
@@ -358,57 +367,112 @@ export default function DashboardPage() {
                 </Card>
               </div>
 
-              {/* Recent Submissions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Submissions</CardTitle>
-                  <CardDescription>
-                    Latest device validation requests
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loadingData ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                      <span className="ml-2">Loading submissions...</span>
-                    </div>
-                  ) : submissions.length > 0 ? (
-                    <div className="space-y-4">
-                      {submissions.map((submission) => (
-                        <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{submission.device_name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {submission.device_type} • {submission.manufacturer} {submission.model}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Submitted {new Date(submission.submitted_at).toLocaleDateString()}
-                            </p>
+              {/* Recent Submissions and Drafts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Recent Submissions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Submissions</CardTitle>
+                    <CardDescription>
+                      Latest device validation requests
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingData ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span className="ml-2">Loading submissions...</span>
+                      </div>
+                    ) : submissions.length > 0 ? (
+                      <div className="space-y-4">
+                        {submissions.map((submission) => (
+                          <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{submission.device_name}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {submission.device_type} • {submission.manufacturer} {submission.model}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Submitted {new Date(submission.submitted_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusColor(submission.status)}>
+                                {submission.status.replace('_', ' ')}
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => router.push(`/submission-review?id=${submission.id}`)}
+                              >
+                                Review
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getStatusColor(submission.status)}>
-                              {submission.status.replace('_', ' ')}
-                            </Badge>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => router.push(`/submission-review?id=${submission.id}`)}
-                            >
-                              Review
-                            </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No submissions yet</p>
+                        <p className="text-sm">Submissions will appear here once users submit device validations</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Recent Drafts */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Drafts</CardTitle>
+                    <CardDescription>
+                      Draft device validations in progress
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingData ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span className="ml-2">Loading drafts...</span>
+                      </div>
+                    ) : drafts.length > 0 ? (
+                      <div className="space-y-4">
+                        {drafts.map((draft) => (
+                          <div key={draft.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{draft.deviceName || 'Untitled Draft'}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {draft.deviceType || 'No device type'} • {draft.manufacturer || 'No manufacturer'} {draft.model || ''}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Last updated {new Date(draft.updatedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+                                DRAFT
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => router.push(`/submission-review?id=${draft.id}&type=draft`)}
+                              >
+                                View
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No submissions yet</p>
-                      <p className="text-sm">Submissions will appear here once users submit device validations</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No drafts yet</p>
+                        <p className="text-sm">Drafts will appear here once users start creating device validations</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
 
               {/* Quick Actions */}
               <Card>

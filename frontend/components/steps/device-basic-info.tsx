@@ -100,7 +100,11 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
 
   const handleInputChange = useCallback((field: string, value: string) => {
     console.log('🔍 Input change:', field, value)
-    setLocalData(prev => ({ ...prev, [field]: value }))
+    const newLocalData = { ...localData, [field]: value }
+    setLocalData(newLocalData)
+    
+    // Also update parent state immediately to persist the data
+    updateDeviceData({ [field]: value })
     
     // Trigger auto-save if available (debounced)
     if (onAutoSave) {
@@ -108,7 +112,7 @@ export function DeviceBasicInfo({ deviceData, updateDeviceData, onNext, onBack, 
         onAutoSave()
       }, 500)
     }
-  }, [onAutoSave])
+  }, [localData, updateDeviceData, onAutoSave])
 
   // Memoize the device type change handler specifically
   const handleDeviceTypeChange = useCallback((value: string) => {
