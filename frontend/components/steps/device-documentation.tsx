@@ -3,13 +3,14 @@
 import type React from "react"
 import { useState, useEffect, useCallback } from "react"
 
-import type { DeviceData } from "@/components/enhanced-device-verification-flow"
+import type { DeviceData, FileInfo } from "@/components/enhanced-device-verification-flow"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, ArrowLeft, Upload, FileText, Image, DollarSign } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { apiService } from '@/lib/api-service'
 
 interface DeviceDocumentationProps {
   deviceData: DeviceData
@@ -26,7 +27,12 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
   const { toast } = useToast()
 
   // Use local state for form inputs to prevent re-renders
-  const [localData, setLocalData] = useState({
+  const [localData, setLocalData] = useState<{
+    technicalCertification: File | FileInfo | null
+    purchaseProof: File | FileInfo | null
+    maintenanceRecords: File | FileInfo | null
+    deviceImages: (File | FileInfo)[]
+  }>({
     technicalCertification: deviceData.technicalCertification || null,
     purchaseProof: deviceData.purchaseProof || null,
     maintenanceRecords: deviceData.maintenanceRecords || null,
@@ -47,28 +53,122 @@ export function DeviceDocumentation({ deviceData, updateDeviceData, onNext, onBa
     setLocalData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleFileChange = (field: keyof Pick<DeviceData, 'technicalCertification' | 'purchaseProof' | 'maintenanceRecords'>, file: File | null) => {
+  const handleFileChange = async (field: keyof Pick<DeviceData, 'technicalCertification' | 'purchaseProof' | 'maintenanceRecords'>, file: File | null) => {
     console.log('🔍 File change:', field, file)
-    const updatedData = {
-      ...localData,
-      [field]: file
-    }
-    setLocalData(updatedData)
     
-    // Immediate update for files (no debouncing)
-    updateDeviceData({ [field]: file })
+    if (file) {
+      try {
+        // Upload file immediately to backend
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('field', field)
+        
+        console.log('🔍 Uploading file to backend:', field, file.name)
+        const response = await apiService.uploadFiles(formData)
+        
+        if (response.success) {
+          console.log('✅ File uploaded successfully:', response.files)
+          
+          // Store file info instead of File object
+          const fileInfo = {
+            id: response.files[0].id,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            uploadedAt: new Date().toISOString()
+          }
+          
+          const updatedData = {
+            ...localData,
+            [field]: fileInfo
+          }
+          setLocalData(updatedData)
+          updateDeviceData({ [field]: fileInfo })
+          
+          toast({
+            title: "File Uploaded",
+            description: `${file.name} uploaded successfully`,
+          })
+        } else {
+          throw new Error('Upload failed')
+        }
+      } catch (error) {
+        console.error('❌ File upload failed:', error)
+        toast({
+          title: "Upload Failed",
+          description: `Failed to upload ${file.name}. Please try again.`,
+          variant: "destructive",
+        })
+      }
+    } else {
+      // File removed
+      const updatedData = {
+        ...localData,
+        [field]: null
+      }
+      setLocalData(updatedData)
+      updateDeviceData({ [field]: null })
+    }
   }
 
-  const handleImagesChange = (files: File[]) => {
+  const handleImagesChange = async (files: File[]) => {
     console.log('🔍 Images change:', files)
-    const updatedData = {
-      ...localData,
-      deviceImages: files
-    }
-    setLocalData(updatedData)
     
-    // Immediate update for files (no debouncing)
-    updateDeviceData({ deviceImages: files })
+    if (files.length > 0) {
+      try {
+        // Upload all images immediately to backend
+        const formData = new FormData()
+        files.forEach((file, index) => {
+          formData.append(`files[${index}]`, file)
+        })
+        formData.append('field', 'deviceImages')
+        
+        console.log('🔍 Uploading images to backend:', files.map(f => f.name))
+        const response = await apiService.uploadFiles(formData)
+        
+        if (response.success) {
+          console.log('✅ Images uploaded successfully:', response.files)
+          
+          // Store file info instead of File objects
+          const fileInfos = response.files.map((file: any, index: number) => ({
+            id: file.id,
+            name: files[index].name,
+            type: files[index].type,
+            size: files[index].size,
+            uploadedAt: new Date().toISOString()
+          }))
+          
+          const updatedData = {
+            ...localData,
+            deviceImages: fileInfos
+          }
+          setLocalData(updatedData)
+          updateDeviceData({ deviceImages: fileInfos })
+          
+          toast({
+            title: "Images Uploaded",
+            description: `${files.length} image(s) uploaded successfully`,
+          })
+        } else {
+          throw new Error('Upload failed')
+        }
+      } catch (error) {
+        console.error('❌ Images upload failed:', error)
+        toast({
+          title: "Upload Failed",
+          description: `Failed to upload images. Please try again.`,
+          variant: "destructive",
+        })
+      }
+    } else {
+      // Images removed
+      const updatedData = {
+        ...localData,
+        deviceImages: []
+      }
+      setLocalData(updatedData)
+      updateDeviceData({ deviceImages: [] })
+    }
   }
 
   const validate = () => {

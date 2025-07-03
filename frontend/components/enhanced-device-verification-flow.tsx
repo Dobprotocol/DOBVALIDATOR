@@ -15,6 +15,14 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 // import { animateScroll as scroll } from 'react-scroll'
 
+export type FileInfo = {
+  id: string
+  name: string
+  type: string
+  size: number
+  uploadedAt: string
+}
+
 export type DeviceData = {
   // Basic info
   deviceName: string
@@ -35,11 +43,11 @@ export type DeviceData = {
   expectedRevenue: string
   operationalCosts: string
 
-  // Documentation
-  technicalCertification: File | null
-  purchaseProof: File | null
-  maintenanceRecords: File | null
-  deviceImages: File[]
+  // Documentation - can be File objects (during upload) or FileInfo objects (after upload)
+  technicalCertification: File | FileInfo | null
+  purchaseProof: File | FileInfo | null
+  maintenanceRecords: File | FileInfo | null
+  deviceImages: (File | FileInfo)[]
 
   // Draft ID for state sync
   draftId?: string | null
