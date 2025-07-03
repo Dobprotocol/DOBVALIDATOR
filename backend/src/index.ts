@@ -605,6 +605,7 @@ app.post('/api/submissions', upload.fields([
 ]), async (req, res) => {
   try {
     console.log('🔍 Submission POST request received')
+    console.log('🔍 Request headers:', req.headers)
     console.log('🔍 Request body:', req.body)
     console.log('🔍 Request files:', req.files)
     
@@ -716,8 +717,18 @@ app.post('/api/submissions', upload.fields([
     res.json({ success: true, submission })
     return
   } catch (error) {
-    console.error('Submission creation error:', error)
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('❌ Submission creation error:', error)
+    console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown')
+    console.error('❌ Error message:', error instanceof Error ? error.message : 'No message')
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    // Check if it's a JWT verification error
+    if (error instanceof Error && (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError')) {
+      console.error('❌ JWT verification failed:', error.message)
+      res.status(401).json({ error: 'Invalid or expired token' })
+      return
+    }
+    
     res.status(500).json({ error: 'Failed to create submission' })
     return
   }
