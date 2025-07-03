@@ -29,13 +29,16 @@ export default function FormReviewPage() {
         const parsedData = JSON.parse(savedData)
         setDeviceData(parsedData)
         
-        // Check if files are missing and show file upload section
-        const hasFiles = parsedData.technicalCertification || 
-                        parsedData.purchaseProof || 
-                        parsedData.maintenanceRecords || 
-                        (parsedData.deviceImages && parsedData.deviceImages.length > 0)
+        // Check if files are missing or invalid (not File objects)
+        const hasValidFiles = parsedData.technicalCertification instanceof File && 
+                             parsedData.purchaseProof instanceof File && 
+                             parsedData.maintenanceRecords instanceof File && 
+                             Array.isArray(parsedData.deviceImages) &&
+                             parsedData.deviceImages.length > 0 &&
+                             parsedData.deviceImages.every(f => f instanceof File)
         
-        if (!hasFiles) {
+        if (!hasValidFiles) {
+          console.log('🔍 Files are missing or invalid, showing file upload section')
           setShowFileUpload(true)
         }
       } catch (error) {
@@ -64,19 +67,59 @@ export default function FormReviewPage() {
   const handleFileUpload = (field: keyof Pick<DeviceData, 'technicalCertification' | 'purchaseProof' | 'maintenanceRecords'>, file: File | null) => {
     if (!deviceData) return
     
-    setDeviceData(prev => ({
-      ...prev!,
-      [field]: file
-    }))
+    console.log(`🔍 Uploading ${field}:`, file ? `${file.name} (${file.type})` : 'null')
+    
+    setDeviceData(prev => {
+      const updated = { ...prev!, [field]: file }
+      
+      // Check if all files are now valid
+      const allFilesValid = updated.technicalCertification instanceof File && 
+                           updated.purchaseProof instanceof File && 
+                           updated.maintenanceRecords instanceof File && 
+                           Array.isArray(updated.deviceImages) &&
+                           updated.deviceImages.length > 0 &&
+                           updated.deviceImages.every(f => f instanceof File)
+      
+      if (allFilesValid) {
+        console.log('✅ All files are now valid, hiding file upload section')
+        setShowFileUpload(false)
+      }
+      
+      return updated
+    })
+    
+    // Update localStorage with the new file data
+    const updatedData = { ...deviceData, [field]: file }
+    localStorage.setItem('dobFormBackup', JSON.stringify(updatedData))
   }
 
   const handleImagesUpload = (files: File[]) => {
     if (!deviceData) return
     
-    setDeviceData(prev => ({
-      ...prev!,
-      deviceImages: files
-    }))
+    console.log(`🔍 Uploading device images:`, files.map(f => `${f.name} (${f.type})`))
+    
+    setDeviceData(prev => {
+      const updated = { ...prev!, deviceImages: files }
+      
+      // Check if all files are now valid
+      const allFilesValid = updated.technicalCertification instanceof File && 
+                           updated.purchaseProof instanceof File && 
+                           updated.maintenanceRecords instanceof File && 
+                           Array.isArray(updated.deviceImages) &&
+                           updated.deviceImages.length > 0 &&
+                           updated.deviceImages.every(f => f instanceof File)
+      
+      if (allFilesValid) {
+        console.log('✅ All files are now valid, hiding file upload section')
+        setShowFileUpload(false)
+      }
+      
+      return updated
+    })
+    
+    // Update localStorage with the new file data
+    const updatedData = { ...deviceData, deviceImages: files }
+    localStorage.setItem('dobFormBackup', JSON.stringify(updatedData))
   }
 
   const handleSubmissionSuccess = () => {
@@ -121,20 +164,23 @@ export default function FormReviewPage() {
         !deviceData.deviceImages.length ||
         !deviceData.deviceImages.every(f => f instanceof File)
       ) {
-        console.log('❌ File validation failed')
-        console.log('🔍 File types:', {
-          technicalCertification: deviceData.technicalCertification?.constructor?.name,
-          purchaseProof: deviceData.purchaseProof?.constructor?.name,
-          maintenanceRecords: deviceData.maintenanceRecords?.constructor?.name,
-          deviceImages: deviceData.deviceImages?.map(f => f?.constructor?.name)
-        })
-        toast({
-          title: "Missing or Invalid Files",
-          description: "Please re-upload all required files before submitting.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
+              console.log('❌ File validation failed')
+      console.log('🔍 File types:', {
+        technicalCertification: deviceData.technicalCertification?.constructor?.name,
+        purchaseProof: deviceData.purchaseProof?.constructor?.name,
+        maintenanceRecords: deviceData.maintenanceRecords?.constructor?.name,
+        deviceImages: deviceData.deviceImages?.map(f => f?.constructor?.name)
+      })
+      
+      // Show file upload section and helpful message
+      setShowFileUpload(true)
+      toast({
+        title: "Files Need to be Re-uploaded",
+        description: "Your files were restored from a saved draft. Please re-upload all required files before submitting.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
       }
 
       console.log('✅ File validation passed')
