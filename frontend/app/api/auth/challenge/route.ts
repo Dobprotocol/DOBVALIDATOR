@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { storeChallenge, getDebugInfo } from '@/lib/auth-storage'
+import { getSafeBackendUrl } from '@/lib/api-utils'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -41,8 +42,8 @@ export async function POST(request: NextRequest) {
     const { walletAddress } = validationResult.data
     console.log('🔍 Getting challenge from backend for wallet:', walletAddress)
     
-    // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    // Get the backend URL safely
+    const backendUrl = getSafeBackendUrl()
     const backendResponse = await fetch(`${backendUrl}/api/auth/challenge`, {
       method: 'POST',
       headers: {
