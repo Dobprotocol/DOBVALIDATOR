@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         // Call backend directly in development
         const backendUrl = `http://localhost:3001/api/submissions/${submissionId}`
         const res = await fetch(backendUrl, {
-          method: 'PATCH',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },

@@ -246,7 +246,7 @@ class ApiService {
     status: string
   ): Promise<Submission> {
     return this.request<Submission>(`/api/submissions/${submissionId}`, {
-      method: 'PATCH',
+      method: 'PUT',
       body: JSON.stringify({ status }),
     })
   }
