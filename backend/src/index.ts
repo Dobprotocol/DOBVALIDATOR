@@ -522,7 +522,12 @@ app.get('/api/submissions', async (req, res) => {
   } catch (error) {
     console.error('❌ Submissions fetch error:', error)
     console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-    res.status(500).json({ error: 'Failed to fetch submissions' })
+    console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown')
+    console.error('❌ Error message:', error instanceof Error ? error.message : 'No message')
+    res.status(500).json({ 
+      error: 'Failed to fetch submissions',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    })
     return
   }
 })
