@@ -100,6 +100,34 @@ app.get('/api/ping', (req, res) => {
   })
 })
 
+// Database test endpoint
+app.get('/test-db', async (req, res) => {
+  try {
+    console.log('🔍 Testing database connection...')
+    
+    // Test user service
+    const testUser = await userService.getByWallet('GCBA5O2JDZMG4TKBHAGWEQTMLTTHIPERZVQDQGGRYAIL3HAAJ3BAL3ZN')
+    console.log('✅ User service test:', testUser ? 'User found' : 'User not found')
+    
+    // Test submission service
+    const submissions = await submissionService.getAll({ limit: 1 })
+    console.log('✅ Submission service test:', submissions.submissions.length, 'submissions found')
+    
+    res.json({
+      status: 'ok',
+      userService: testUser ? 'working' : 'no user found',
+      submissionService: 'working',
+      submissionCount: submissions.submissions.length
+    })
+  } catch (error) {
+    console.error('❌ Database test error:', error)
+    res.status(500).json({
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
+})
+
 // Authentication endpoints
 app.post('/api/auth/challenge', async (req, res) => {
   try {
@@ -337,8 +365,11 @@ app.post('/api/profile', async (req, res) => {
 // Submissions endpoints
 app.get('/api/submissions', async (req, res) => {
   try {
+    console.log('🔍 Submissions request received')
+    
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ No authorization header')
       res.status(401).json({ error: 'Authorization header required' })
       return
     }
@@ -346,18 +377,23 @@ app.get('/api/submissions', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
+    console.log('🔍 Verifying JWT token...')
     const decoded = jwt.verify(token, env.***REMOVED***)
     const { walletAddress } = decoded
+    console.log('✅ JWT verified, wallet address:', walletAddress)
 
     const { status, limit = 10, offset = 0 } = req.query
 
     // Check if user is admin
+    console.log('🔍 Getting user by wallet...')
     const user = await userService.getByWallet(walletAddress)
     const isAdmin = user?.role === 'ADMIN'
+    console.log('✅ User found, isAdmin:', isAdmin, 'role:', user?.role)
 
     let result
     if (isAdmin) {
       // Admin can see all submissions
+      console.log('🔍 Getting all submissions (admin)...')
       result = await submissionService.getAll({
         status: status as string,
         limit: parseInt(limit as string),
@@ -365,6 +401,7 @@ app.get('/api/submissions', async (req, res) => {
       })
     } else {
       // Regular users can only see their own submissions
+      console.log('🔍 Getting user submissions...')
       result = await submissionService.getByUser(walletAddress, {
         status: status as string,
         limit: parseInt(limit as string),
@@ -372,10 +409,12 @@ app.get('/api/submissions', async (req, res) => {
       })
     }
 
+    console.log('✅ Submissions fetched successfully, count:', result.submissions?.length || 0)
     res.json({ success: true, ...result })
     return
   } catch (error) {
-    console.error('Submissions fetch error:', error)
+    console.error('❌ Submissions fetch error:', error)
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     res.status(500).json({ error: 'Failed to fetch submissions' })
     return
   }
