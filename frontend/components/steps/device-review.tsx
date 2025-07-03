@@ -54,15 +54,21 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
       return
     }
 
-    // Enforce all file fields are File objects
-    if (
-      !(deviceData.technicalCertification instanceof File) ||
-      !(deviceData.purchaseProof instanceof File) ||
-      !(deviceData.maintenanceRecords instanceof File) ||
-      !Array.isArray(deviceData.deviceImages) ||
-      !deviceData.deviceImages.length ||
-      !deviceData.deviceImages.every(f => f instanceof File)
-    ) {
+    // Check if files are valid (either File objects or FileInfo objects)
+    const hasValidFiles = deviceData.technicalCertification && 
+                         deviceData.purchaseProof && 
+                         deviceData.maintenanceRecords && 
+                         Array.isArray(deviceData.deviceImages) &&
+                         deviceData.deviceImages.length > 0
+    
+    if (!hasValidFiles) {
+      console.log('❌ File validation failed')
+      console.log('🔍 File types:', {
+        technicalCertification: deviceData.technicalCertification ? ('id' in deviceData.technicalCertification ? 'FileInfo' : 'File') : 'null',
+        purchaseProof: deviceData.purchaseProof ? ('id' in deviceData.purchaseProof ? 'FileInfo' : 'File') : 'null',
+        maintenanceRecords: deviceData.maintenanceRecords ? ('id' in deviceData.maintenanceRecords ? 'FileInfo' : 'File') : 'null',
+        deviceImages: deviceData.deviceImages?.map(f => f ? ('id' in f ? 'FileInfo' : 'File') : 'null')
+      })
       setError("Please re-upload all required files before submitting.");
       setLoading(false);
       return;
@@ -95,20 +101,53 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
         }
       })
 
-      // Add files if they exist
+      // Add file IDs (files are already uploaded to backend)
       if (deviceData.technicalCertification) {
-        formData.append('technicalCertification', deviceData.technicalCertification)
+        if ('id' in deviceData.technicalCertification) {
+          // FileInfo object - send the ID
+          formData.append('technicalCertificationId', deviceData.technicalCertification.id)
+          console.log('🔍 Added technical certification ID:', deviceData.technicalCertification.id)
+        } else {
+          // File object - this shouldn't happen in review, but handle it
+          formData.append('technicalCertification', deviceData.technicalCertification)
+          console.log('🔍 Added technical certification file:', deviceData.technicalCertification.name)
+        }
       }
       if (deviceData.purchaseProof) {
-        formData.append('purchaseProof', deviceData.purchaseProof)
+        if ('id' in deviceData.purchaseProof) {
+          // FileInfo object - send the ID
+          formData.append('purchaseProofId', deviceData.purchaseProof.id)
+          console.log('🔍 Added purchase proof ID:', deviceData.purchaseProof.id)
+        } else {
+          // File object - this shouldn't happen in review, but handle it
+          formData.append('purchaseProof', deviceData.purchaseProof)
+          console.log('🔍 Added purchase proof file:', deviceData.purchaseProof.name)
+        }
       }
       if (deviceData.maintenanceRecords) {
-        formData.append('maintenanceRecords', deviceData.maintenanceRecords)
+        if ('id' in deviceData.maintenanceRecords) {
+          // FileInfo object - send the ID
+          formData.append('maintenanceRecordsId', deviceData.maintenanceRecords.id)
+          console.log('🔍 Added maintenance records ID:', deviceData.maintenanceRecords.id)
+        } else {
+          // File object - this shouldn't happen in review, but handle it
+          formData.append('maintenanceRecords', deviceData.maintenanceRecords)
+          console.log('🔍 Added maintenance records file:', deviceData.maintenanceRecords.name)
+        }
       }
       if (deviceData.deviceImages && deviceData.deviceImages.length > 0) {
         deviceData.deviceImages.forEach((file, index) => {
-          formData.append(`deviceImages[${index}]`, file)
+          if ('id' in file) {
+            // FileInfo object - send the ID
+            formData.append(`deviceImageIds[${index}]`, file.id)
+            console.log(`🔍 Added device image ID ${index}:`, file.id)
+          } else {
+            // File object - this shouldn't happen in review, but handle it
+            formData.append(`deviceImages[${index}]`, file)
+            console.log(`🔍 Added device image file ${index}:`, file.name)
+          }
         })
+        console.log('🔍 Added device images:', deviceData.deviceImages.length, 'files')
       }
 
       console.log('🔍 Submitting form data:')
