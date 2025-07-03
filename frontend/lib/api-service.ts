@@ -313,6 +313,17 @@ class ApiService {
     }>(endpoint)
   }
 
+  // Upload files during form process
+  async uploadFiles(formData: FormData) {
+    console.log('🔍 Uploading files to backend')
+    
+    // Use the frontend API route which will proxy to the backend
+    return this.request<{ success: boolean; files: any[] }>('/api/upload-files', {
+      method: 'POST',
+      body: formData,
+    })
+  }
+
   // Submit device for verification
   async submitDevice(formData: FormData) {
     console.log('🔍 Submitting device for verification')
