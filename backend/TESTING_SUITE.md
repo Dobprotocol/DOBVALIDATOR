@@ -141,7 +141,7 @@ All tests use the validated environment configuration from `src/lib/env-validati
 - `PORT`: Backend server port (default: 3001)
 - `NODE_ENV`: Environment mode
 - `CORS_ORIGIN`: Allowed CORS origins
-- `***REMOVED***`: JWT signing secret
+- `JWT_SECRET`: JWT signing secret
 - `RATE_LIMIT_WINDOW_MS`: Rate limiting window
 
 ### Test Data

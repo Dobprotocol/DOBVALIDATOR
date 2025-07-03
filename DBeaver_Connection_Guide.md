@@ -23,7 +23,7 @@ sudo docker run \
   gcr.io/cloudsql-docker/gce-proxy:1.16 \
   /cloud_sql_proxy \
     -instances=stoked-utility-453816-e2:us-central1:dob-validator=tcp:0.0.0.0:5432 \
-    -credential_file=/config/***REMOVED***
+    -credential_file=/config/account.json
 ```
 
 ## Step 2: Configure DBeaver Connection
@@ -151,7 +151,7 @@ sudo docker stop cloud-sql-proxy
 
 ## Security Notes
 
-- The service account credentials in `***REMOVED******REMOVED***` should be kept secure
+- The service account credentials in `keys/account.json` should be kept secure
 - Never commit these credentials to version control
 - The proxy only listens on localhost (127.0.0.1) for security
 - Consider using environment variables for sensitive data in production

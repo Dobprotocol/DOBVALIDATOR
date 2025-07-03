@@ -15,7 +15,7 @@ if [ -z "$1" ]; then
 fi
 
 INSTANCE_CONNECTION_NAME=$1
-CREDENTIAL_FILE="***REMOVED******REMOVED***"
+CREDENTIAL_FILE="keys/account.json"
 
 echo "Starting Cloud SQL Proxy..."
 echo "Instance: $INSTANCE_CONNECTION_NAME"

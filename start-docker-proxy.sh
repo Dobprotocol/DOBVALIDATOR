@@ -21,9 +21,9 @@ if [ ! -d "$KEYS_DIR" ]; then
     exit 1
 fi
 
-# Check if ***REMOVED*** exists
-if [ ! -f "$KEYS_DIR/***REMOVED***" ]; then
-    echo "Error: ***REMOVED*** not found at $KEYS_DIR/***REMOVED***"
+# Check if account.json exists
+if [ ! -f "$KEYS_DIR/account.json" ]; then
+    echo "Error: account.json not found at $KEYS_DIR/account.json"
     exit 1
 fi
 
@@ -41,7 +41,7 @@ sudo docker run \
   gcr.io/cloudsql-docker/gce-proxy:1.16 \
   /cloud_sql_proxy \
     -instances="$INSTANCE_CONNECTION_NAME=tcp:0.0.0.0:$CONTAINER_PORT" \
-    -credential_file=/config/***REMOVED***
+    -credential_file=/config/account.json
 
 echo ""
 echo "Proxy stopped." 

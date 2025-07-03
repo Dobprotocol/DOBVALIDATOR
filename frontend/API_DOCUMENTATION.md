@@ -536,10 +536,10 @@ Create a `.env.local` file with the following variables:
 
 ```env
 # JWT Configuration
-***REMOVED***=your-super-secret-jwt-key-change-in-production
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
 
 # Database Configuration (for future use)
-***REMOVED***=postgresql://username:password@localhost:5432/dob_validator
+DATABASE_URL=postgresql://username:password@localhost:5432/dob_validator
 
 # Stellar Network Configuration
 STELLAR_NETWORK=testnet

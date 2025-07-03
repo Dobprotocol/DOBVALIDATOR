@@ -65,7 +65,7 @@ tmp/
 temp/
 
 # Ignore secret keys
-***REMOVED******REMOVED***
+keys/account.json
 
 # PNPM store
 .pnpm-store/

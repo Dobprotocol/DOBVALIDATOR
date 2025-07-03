@@ -307,7 +307,7 @@ app.post('/api/auth/verify', async (req, res) => {
     const jwt = require('jsonwebtoken')
     const token = jwt.sign(
       { walletAddress, userId: user.id },
-      env.***REMOVED***,
+      env.JWT_SECRET,
       { expiresIn: env.JWT_EXPIRES_IN }
     )
 
@@ -371,7 +371,7 @@ app.post('/api/auth/wallet-login', async (req, res) => {
     const jwt = require('jsonwebtoken')
     const token = jwt.sign(
       { walletAddress, userId: user.id },
-      env.***REMOVED***,
+      env.JWT_SECRET,
       { expiresIn: env.JWT_EXPIRES_IN }
     )
 
@@ -409,7 +409,7 @@ app.get('/api/profile', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     console.log('🔍 Looking for profile with wallet:', walletAddress)
@@ -456,7 +456,7 @@ app.post('/api/profile', async (req, res) => {
     const jwt = require('jsonwebtoken')
     
     console.log('🔍 Verifying JWT token...')
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
     console.log('✅ JWT verified, wallet address:', walletAddress)
 
@@ -509,7 +509,7 @@ app.get('/api/submissions', async (req, res) => {
     const jwt = require('jsonwebtoken')
     
     console.log('🔍 Verifying JWT token...')
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
     console.log('✅ JWT verified, wallet address:', walletAddress)
 
@@ -567,7 +567,7 @@ app.get('/api/submissions/:id', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const { id } = req.params
@@ -618,7 +618,7 @@ app.post('/api/upload-files', upload.fields([
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.getByWallet(walletAddress)
@@ -760,7 +760,7 @@ app.post('/api/submissions', upload.any(), async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.getByWallet(walletAddress)
@@ -920,7 +920,7 @@ app.put('/api/submissions/:id/status', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.getByWallet(walletAddress)
@@ -955,7 +955,7 @@ app.put('/api/submissions/:id', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.getByWallet(walletAddress)
@@ -1006,7 +1006,7 @@ app.get('/api/drafts', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const { limit = 10, offset = 0 } = req.query
@@ -1067,7 +1067,7 @@ app.post('/api/drafts', upload.fields([
     
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     console.log('🔍 JWT decoded:', decoded)
     const { walletAddress } = decoded
 
@@ -1184,7 +1184,7 @@ app.get('/api/drafts/:id', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.findOrCreateByWallet(walletAddress)
@@ -1232,7 +1232,7 @@ app.put('/api/drafts/:id', upload.fields([
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.findOrCreateByWallet(walletAddress)
@@ -1359,7 +1359,7 @@ app.delete('/api/drafts/:id', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.findOrCreateByWallet(walletAddress)
@@ -1404,7 +1404,7 @@ app.get('/api/admin/profiles', async (req, res) => {
     const token = authHeader.substring(7)
     const jwt = require('jsonwebtoken')
     
-    const decoded = jwt.verify(token, env.***REMOVED***)
+    const decoded = jwt.verify(token, env.JWT_SECRET)
     const { walletAddress } = decoded
 
     const user = await userService.getByWallet(walletAddress)

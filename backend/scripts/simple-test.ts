@@ -52,7 +52,7 @@ class SimpleTestRunner {
       console.log(`   🔧 Environment: ${env.NODE_ENV}`)
       console.log(`   🌐 CORS Origin: ${env.CORS_ORIGIN}`)
       console.log(`   ⭐ Stellar Network: ${env.STELLAR_NETWORK}`)
-      console.log(`   🔐 JWT Secret: ${env.***REMOVED*** ? 'Configured' : 'Missing'}`)
+      console.log(`   🔐 JWT Secret: ${env.JWT_SECRET ? 'Configured' : 'Missing'}`)
       console.log(`   📊 Rate Limit: ${env.RATE_LIMIT_WINDOW_MS}ms window`)
       console.log(`   ⏱️  Duration: ${Date.now() - startTime}ms`)
     } catch (error) {

@@ -27,7 +27,7 @@ const getNetworkConfig = () => {
 }
 
 // Contract configuration
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_STELLAR_CONTRACT_ADDRESS || 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
 
 // TRUFA Metadata structure for blockchain storage
 export interface TrufaMetadata {

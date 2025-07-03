@@ -14,7 +14,7 @@ This guide covers deploying the DOB Validator Stellar smart contract integration
 # Network Configuration
 NEXT_PUBLIC_STELLAR_NETWORK=public
 NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon.stellar.org
-NEXT_PUBLIC_STELLAR_CONTRACT_ADDRESS=YOUR_PRODUCTION_CONTRACT_ADDRESS
+CONTRACT_ADDRESS=YOUR_PRODUCTION_CONTRACT_ADDRESS
 
 # Application URLs
 NEXT_PUBLIC_FRONTEND_URL=https://your-frontend-domain.com
@@ -171,7 +171,7 @@ cp env.example .env.local
 # Configure production values
 NEXT_PUBLIC_STELLAR_NETWORK=public
 NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon.stellar.org
-NEXT_PUBLIC_STELLAR_CONTRACT_ADDRESS=YOUR_CONTRACT_ADDRESS
+CONTRACT_ADDRESS=YOUR_CONTRACT_ADDRESS
 ```
 
 #### **Step 2: Build & Deploy**

@@ -5,10 +5,10 @@ dotenv.config()
 
 interface EnvConfig {
   // Database
-  ***REMOVED***: string
+  DATABASE_URL: string
   
   // JWT
-  ***REMOVED***: string
+  JWT_SECRET: string
   JWT_EXPIRES_IN: string
   
   // Stellar
@@ -37,8 +37,8 @@ function validateEnv(): EnvConfig {
   
   // Required environment variables
   const requiredVars = {
-    ***REMOVED***: process.env.***REMOVED***,
-    ***REMOVED***: process.env.***REMOVED***,
+    DATABASE_URL: process.env.DATABASE_URL,
+    JWT_SECRET: process.env.JWT_SECRET,
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
     STELLAR_NETWORK: process.env.STELLAR_NETWORK,
     STELLAR_HORIZON_URL: process.env.STELLAR_HORIZON_URL,
@@ -54,13 +54,13 @@ function validateEnv(): EnvConfig {
     }
   })
   
-  // Validate ***REMOVED*** strength in production
-  if (process.env.NODE_ENV === 'production' && process.env.***REMOVED***) {
-    if (process.env.***REMOVED***.length < 32) {
-      errors.push('***REMOVED*** must be at least 32 characters long in production')
+  // Validate JWT_SECRET strength in production
+  if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET) {
+    if (process.env.JWT_SECRET.length < 32) {
+      errors.push('JWT_SECRET must be at least 32 characters long in production')
     }
-    if (process.env.***REMOVED*** === 'your-super-secret-jwt-key-change-in-production') {
-      errors.push('***REMOVED*** must be changed from default value in production')
+    if (process.env.JWT_SECRET === 'your-super-secret-jwt-key-change-in-production') {
+      errors.push('JWT_SECRET must be changed from default value in production')
     }
   }
   
@@ -95,8 +95,8 @@ function validateEnv(): EnvConfig {
   
   // Return validated config
   const config: EnvConfig = {
-    ***REMOVED***: process.env.***REMOVED***!,
-    ***REMOVED***: process.env.***REMOVED***!,
+    DATABASE_URL: process.env.DATABASE_URL!,
+    JWT_SECRET: process.env.JWT_SECRET!,
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN!,
     STELLAR_NETWORK: (process.env.STELLAR_NETWORK as 'testnet' | 'public') || 'testnet',
     STELLAR_HORIZON_URL: process.env.STELLAR_HORIZON_URL!,

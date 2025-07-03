@@ -318,9 +318,9 @@ CREATE TABLE sessions (
 ### Environment Variables
 
 ```bash
-***REMOVED***=your-super-secret-jwt-key
+JWT_SECRET=your-super-secret-jwt-key
 REDIS_URL=redis://localhost:6379
-***REMOVED***=postgresql://user:pass@localhost:5432/dobvalidator
+DATABASE_URL=postgresql://user:pass@localhost:5432/dobvalidator
 ```
 
 ## Simple Signer Integration Notes

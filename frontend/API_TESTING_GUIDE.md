@@ -12,7 +12,7 @@
 2. **Set up environment variables:**
    Create a `.env.local` file with:
    ```env
-   ***REMOVED***=your-test-secret-key
+   JWT_SECRET=your-test-secret-key
    ```
 
 ## 🔐 Testing Authentication Flow
