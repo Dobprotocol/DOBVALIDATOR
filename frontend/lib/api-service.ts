@@ -102,13 +102,24 @@ class ApiService {
     const isFrontendApi = endpoint.startsWith('/api/')
     const url = isFrontendApi ? endpoint : `${this.baseUrl}${endpoint}`
     
+    // Check if this is a FormData request
+    const isFormData = options.body instanceof FormData
+    
     // Add cache-busting headers for browser compatibility
-    const headers = {
-      'Content-Type': 'application/json',
+    const headers: Record<string, string> = {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
-      ...options.headers,
+    }
+
+    // Add any additional headers from options
+    if (options.headers) {
+      Object.assign(headers, options.headers)
+    }
+
+    // Only set Content-Type for non-FormData requests
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json'
     }
 
     // Add authorization header if token exists
@@ -120,6 +131,9 @@ class ApiService {
     try {
       console.log(`🔍 Making API request to: ${url}`)
       console.log(`🔍 Headers:`, headers)
+      if (isFormData) {
+        console.log(`🔍 FormData entries:`, Array.from((options.body as FormData).entries()).map(([key, value]) => `${key}: ${value instanceof File ? value.name : value}`))
+      }
       
       const response = await fetch(url, {
         ...options,
@@ -291,46 +305,15 @@ class ApiService {
   async submitDevice(formData: FormData) {
     console.log('🔍 Submitting device for verification')
     
-    // Get auth token for the request
-    const token = this.getAuthToken()
-    if (!token) {
-      throw new Error('No authentication token found')
-    }
-
-    // Use frontend API route which will forward to backend
-    const url = `/api/submissions`
-    
-    // Prepare headers with auth token
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${token}`,
+    // Use the request method which handles the URL resolution properly
+    return this.request<{ success: boolean; submission: any }>('/api/submissions', {
+      method: 'POST',
+      body: formData,
       // Don't set Content-Type for FormData - browser will set it with boundary
-    }
-
-    try {
-      console.log(`🔍 Making submission request to: ${url}`)
-      console.log(`🔍 FormData entries:`, Array.from(formData.entries()).map(([key, value]) => `${key}: ${value instanceof File ? value.name : value}`))
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-      })
-      
-      console.log(`🔍 Submission response status: ${response.status}`)
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error(`❌ Submission failed: ${response.status}`, errorData)
-        throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`)
+      headers: {
+        // Remove Content-Type to let browser set it for FormData
       }
-
-      const data = await response.json()
-      console.log(`✅ Submission successful:`, data)
-      return data
-    } catch (error) {
-      console.error('Device submission failed:', error)
-      throw error
-    }
+    })
   }
 }
 
