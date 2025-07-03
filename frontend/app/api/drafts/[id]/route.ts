@@ -24,7 +24,8 @@ export async function GET(
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...')
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const draftUrl = `${backendUrl}/api/drafts/${id}`
 
     console.log('🔍 Forwarding to backend:', draftUrl)
@@ -92,7 +93,8 @@ export async function PUT(
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...')
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const draftUrl = `${backendUrl}/api/drafts/${id}`
 
     console.log('🔍 Forwarding to backend:', draftUrl)
@@ -165,7 +167,8 @@ export async function DELETE(
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...')
 
     // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    const { getSafeBackendUrl } = await import('../../../../lib/api-utils')
+    const backendUrl = getSafeBackendUrl()
     const draftUrl = `${backendUrl}/api/drafts/${id}`
 
     console.log('🔍 Forwarding to backend:', draftUrl)
