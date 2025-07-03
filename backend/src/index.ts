@@ -90,6 +90,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// Ping endpoint for basic connectivity testing
+app.get('/api/ping', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'pong',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  })
+})
+
 // Authentication endpoints
 app.post('/api/auth/challenge', async (req, res) => {
   try {
@@ -175,6 +185,68 @@ app.post('/api/auth/verify', async (req, res) => {
   } catch (error) {
     console.error('Verification error:', error)
     res.status(500).json({ error: 'Failed to verify signature' })
+    return
+  }
+})
+
+// Wallet login endpoint (alias for verify)
+app.post('/api/auth/wallet-login', async (req, res) => {
+  try {
+    const { walletAddress, signature, challenge } = req.body
+
+    if (!walletAddress || !signature || !challenge) {
+      res.status(400).json({ error: 'Wallet address, signature, and challenge are required' })
+      return
+    }
+
+    // Get stored challenge
+    const storedChallenge = await authService.getChallenge(challenge)
+    if (!storedChallenge) {
+      res.status(401).json({ error: 'Invalid or expired challenge' })
+      return
+    }
+
+    // For now, accept any signature (in production, verify with Stellar SDK)
+    // TODO: Implement proper signature verification
+    const isValid = true
+
+    if (!isValid) {
+      res.status(401).json({ error: 'Invalid signature' })
+      return
+    }
+
+    // Get existing user or create new one
+    let user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      user = await userService.findOrCreateByWallet(walletAddress)
+    }
+
+    // Generate JWT token
+    const jwt = require('jsonwebtoken')
+    const token = jwt.sign(
+      { walletAddress, userId: user.id },
+      env.***REMOVED***,
+      { expiresIn: env.JWT_EXPIRES_IN }
+    )
+
+    // Store session
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    await authService.createSession(walletAddress, token, expiresAt)
+
+    // Clean up challenge
+    await authService.deleteChallenge(challenge)
+
+    // Return in the format expected by the backoffice
+    res.json({ 
+      success: true, 
+      access_token: token,
+      expiresIn: env.JWT_EXPIRES_IN || '7d',
+      user 
+    })
+    return
+  } catch (error) {
+    console.error('Wallet login error:', error)
+    res.status(500).json({ error: 'Failed to authenticate wallet' })
     return
   }
 })

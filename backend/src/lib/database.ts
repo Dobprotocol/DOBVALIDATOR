@@ -102,7 +102,6 @@ export const submissionService = {
   async create(userId: string, data: {
     deviceName: string
     deviceType: string
-    customDeviceType?: string
     location: string
     serialNumber: string
     manufacturer: string
