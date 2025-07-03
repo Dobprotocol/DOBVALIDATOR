@@ -1,7 +1,16 @@
 // API Service for DOB Validator Backend
 // Base URL: Use Next.js API routes for frontend endpoints, backend for backend-only endpoints
 
-import { getSafeBackendUrl } from './api-utils'
+// Get the safe backend URL for production
+function getSafeBackendUrl(): string {
+  // In production, always use the production backend URL
+  if (typeof window !== 'undefined' && window.location.hostname === 'backoffice.dobprotocol.com') {
+    return 'https://v.dobprotocol.com'
+  }
+  
+  // In development, use the environment variable or default
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+}
 
 const API_BASE_URL = getSafeBackendUrl()
 
