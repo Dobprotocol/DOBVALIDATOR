@@ -182,7 +182,7 @@ class ApiService {
     })
   }
 
-  // New Supabase-based wallet login
+  // Wallet login
   async walletLogin(walletAddress: string, signature: string, challenge: string) {
     return this.request<{ 
       success: boolean; 

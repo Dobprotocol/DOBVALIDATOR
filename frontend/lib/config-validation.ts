@@ -7,8 +7,7 @@ interface Config {
   FRONTEND_URL: string
   BACKEND_URL: string
   BACKOFFICE_URL: string
-  SUPABASE_URL: string
-  SUPABASE_ANON_KEY: string
+  // Removed Supabase references
   STELLAR_NETWORK: 'testnet' | 'public'
   STELLAR_HORIZON_URL: string
 }
@@ -21,8 +20,7 @@ function validateConfig(): Config {
     NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL,
     NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
     NEXT_PUBLIC_BACKOFFICE_URL: process.env.NEXT_PUBLIC_BACKOFFICE_URL,
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    // Removed Supabase references
     NEXT_PUBLIC_STELLAR_NETWORK: process.env.NEXT_PUBLIC_STELLAR_NETWORK,
     NEXT_PUBLIC_STELLAR_HORIZON_URL: process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL,
   }
@@ -69,8 +67,7 @@ function validateConfig(): Config {
     FRONTEND_URL: frontendUrl,
     BACKEND_URL: backendUrl,
     BACKOFFICE_URL: backofficeUrl,
-    SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    // Removed Supabase references
     STELLAR_NETWORK: (process.env.NEXT_PUBLIC_STELLAR_NETWORK as 'testnet' | 'public') || 'testnet',
     STELLAR_HORIZON_URL: process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL!,
   }

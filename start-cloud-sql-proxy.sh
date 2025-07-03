@@ -31,8 +31,9 @@ fi
 
 # Start the proxy
 ./cloud_sql_proxy \
-    -instances=$INSTANCE_CONNECTION_NAME=tcp:5433 \
-    -credential_file=$CREDENTIAL_FILE
+    $INSTANCE_CONNECTION_NAME \
+    --credentials-file=$CREDENTIAL_FILE \
+    --port=5433
 
 echo ""
 echo "Proxy stopped." 
