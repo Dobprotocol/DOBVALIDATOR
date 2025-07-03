@@ -123,42 +123,14 @@ export async function POST(request: NextRequest) {
     console.log('🔍 [API Route] NODE_ENV:', process.env.NODE_ENV)
     console.log('🔍 [API Route] NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL)
 
-    // Check if this is FormData or JSON
-    const contentType = request.headers.get('content-type') || ''
-    console.log('🔍 Content-Type:', contentType)
-
-    let backendResponse: Response
-
-    if (contentType.includes('multipart/form-data')) {
-      // Handle FormData
-      console.log('🔍 Processing FormData request')
-      
-      // Get the FormData from the request
-      const formData = await request.formData()
-      console.log('🔍 FormData entries:', Array.from(formData.entries()).map(([key, value]) => `${key}: ${value instanceof File ? value.name : value}`))
-      
-      // Forward the FormData to the backend
-      backendResponse = await fetch(submissionsUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Don't set Content-Type for FormData - let fetch set it with boundary
-        },
-        body: formData
-      })
-      
-      console.log('🔍 Backend response status:', backendResponse.status)
-      console.log('🔍 Backend response headers:', Object.fromEntries(backendResponse.headers.entries()))
-    } else {
-      // Handle JSON
-      console.log('🔍 Processing JSON request')
-
-    // Parse the request body
+    // Parse the request body as JSON (since we're converting FormData to JSON in the frontend)
+    console.log('🔍 Processing JSON request')
+    
     const body = await request.json()
     console.log('🔍 Request body:', body)
 
     // Forward the request to the backend
-      backendResponse = await fetch(submissionsUrl, {
+    const backendResponse = await fetch(submissionsUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -166,7 +138,6 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify(body)
     })
-    }
 
     console.log('🔍 Backend response status:', backendResponse.status)
 

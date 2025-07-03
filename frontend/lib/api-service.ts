@@ -326,10 +326,25 @@ class ApiService {
   async submitDevice(formData: FormData) {
     console.log('🔍 Submitting device for verification')
     
+    // Convert FormData to JSON object for backend compatibility
+    const submissionData: any = {}
+    
+    // Extract all form fields
+    for (let [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        // Skip files for now - they should be uploaded separately
+        console.log(`🔍 Skipping file field: ${key}`)
+        continue
+      }
+      submissionData[key] = value
+    }
+    
+    console.log('🔍 Converted FormData to JSON:', submissionData)
+    
     // Use the frontend API route which will proxy to the backend
     return this.request<{ success: boolean; submission: any }>('/api/submissions', {
         method: 'POST',
-        body: formData,
+        body: JSON.stringify(submissionData),
       })
   }
 }
