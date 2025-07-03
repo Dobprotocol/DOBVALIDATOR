@@ -19,18 +19,24 @@ class ApiService {
   private getAuthToken(): string | null {
     try {
       const authData = localStorage.getItem('authToken')
+      console.log('🔍 Auth data from localStorage:', authData)
+      
       if (authData) {
         const parsedAuth = JSON.parse(authData)
+        console.log('🔍 Parsed auth data:', parsedAuth)
         
         // Handle both real auth token format and mock token format
         if (parsedAuth.token) {
           // Real auth token format: { token: string, expiresIn: string, walletAddress: string, expiresAt: number }
+          console.log('🔍 Using real auth token format')
           return parsedAuth.token
         } else if (parsedAuth.access_token) {
           // Mock session format: { access_token: string, refresh_token: string, ... }
+          console.log('🔍 Using mock session format')
           return parsedAuth.access_token
         } else if (typeof parsedAuth === 'string') {
           // Direct token string
+          console.log('🔍 Using direct token string format')
           return parsedAuth
         }
       }
@@ -322,6 +328,7 @@ class ApiService {
     }
     
     console.log(`🔍 TEMPORARY: Making direct backend request to: ${url}`)
+    console.log(`🔍 Auth token (first 20 chars): ${token.substring(0, 20)}...`)
     console.log(`🔍 FormData entries:`, Array.from(formData.entries()).map(([key, value]) => `${key}: ${value instanceof File ? value.name : value}`))
     
     try {
@@ -335,6 +342,7 @@ class ApiService {
       })
       
       console.log(`🔍 Backend response status: ${response.status}`)
+      console.log(`🔍 Backend response headers:`, Object.fromEntries(response.headers.entries()))
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
