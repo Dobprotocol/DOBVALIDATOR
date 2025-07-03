@@ -54,6 +54,20 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
       return
     }
 
+    // Enforce all file fields are File objects
+    if (
+      !(deviceData.technicalCertification instanceof File) ||
+      !(deviceData.purchaseProof instanceof File) ||
+      !(deviceData.maintenanceRecords instanceof File) ||
+      !Array.isArray(deviceData.deviceImages) ||
+      !deviceData.deviceImages.length ||
+      !deviceData.deviceImages.every(f => f instanceof File)
+    ) {
+      setError("Please re-upload all required files before submitting.");
+      setLoading(false);
+      return;
+    }
+
     try {
       // Create FormData for submission
       const formData = new FormData()
@@ -120,7 +134,7 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
         onSubmissionSuccess()
         onNext()
       } else {
-        throw new Error(response.message || 'Submission failed')
+        throw new Error('Submission failed')
       }
     } catch (err: any) {
       console.error('Submission error:', err)
