@@ -254,9 +254,9 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
                 <p className="font-medium text-white">Technical Certification</p>
                 {deviceData.technicalCertification ? (
                   <div className="mt-1">
-                    <p className="text-sm text-gray-300">{deviceData.technicalCertification.name}</p>
+                    <p className="text-sm text-gray-300">{deviceData.technicalCertification.name || 'Technical Certification'}</p>
                     <p className="text-xs text-gray-400">
-                      Size: {(deviceData.technicalCertification.size / 1024 / 1024).toFixed(2)} MB
+                      Size: {deviceData.technicalCertification.size ? (deviceData.technicalCertification.size / 1024 / 1024).toFixed(2) : 'Unknown'} MB
                     </p>
                     {deviceData.technicalCertification.type === 'application/pdf' && (
                       <div className="mt-2">
@@ -281,9 +281,9 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
                 <p className="font-medium text-white">Proof of Purchase</p>
                 {deviceData.purchaseProof ? (
                   <div className="mt-1">
-                    <p className="text-sm text-gray-300">{deviceData.purchaseProof.name}</p>
+                    <p className="text-sm text-gray-300">{deviceData.purchaseProof.name || 'Purchase Proof'}</p>
                     <p className="text-xs text-gray-400">
-                      Size: {(deviceData.purchaseProof.size / 1024 / 1024).toFixed(2)} MB
+                      Size: {deviceData.purchaseProof.size ? (deviceData.purchaseProof.size / 1024 / 1024).toFixed(2) : 'Unknown'} MB
                     </p>
                     {deviceData.purchaseProof.type === 'application/pdf' && (
                       <div className="mt-2">
@@ -308,9 +308,9 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
                 <p className="font-medium text-white">Maintenance Records</p>
                 {deviceData.maintenanceRecords ? (
                   <div className="mt-1">
-                    <p className="text-sm text-gray-300">{deviceData.maintenanceRecords.name}</p>
+                    <p className="text-sm text-gray-300">{deviceData.maintenanceRecords.name || 'Maintenance Records'}</p>
                     <p className="text-xs text-gray-400">
-                      Size: {(deviceData.maintenanceRecords.size / 1024 / 1024).toFixed(2)} MB
+                      Size: {deviceData.maintenanceRecords.size ? (deviceData.maintenanceRecords.size / 1024 / 1024).toFixed(2) : 'Unknown'} MB
                     </p>
                     {deviceData.maintenanceRecords.type === 'application/pdf' && (
                       <div className="mt-2">
@@ -339,7 +339,7 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
                   {deviceData.deviceImages.map((file, index) => (
                     <div key={index} className="space-y-2">
                       <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
-                        {file.type.startsWith('image/') ? (
+                        {file && file.type && file.type.startsWith('image/') ? (
                           <img
                             src={URL.createObjectURL(file)}
                             alt={`Device Image ${index + 1}`}
@@ -351,7 +351,7 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
                           </div>
                         )}
                       </div>
-                      <p className="text-xs text-gray-300 truncate">{file.name}</p>
+                      <p className="text-xs text-gray-300 truncate">{file?.name || `Image ${index + 1}`}</p>
                     </div>
                   ))}
                 </div>
