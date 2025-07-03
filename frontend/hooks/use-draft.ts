@@ -51,83 +51,123 @@ export function useDraft() {
         throw new Error('Invalid authentication token')
       }
 
-      // Convert File objects to file metadata for draft storage
-      const files = []
-      if (deviceData.technicalCertification) {
-        files.push({
-          filename: deviceData.technicalCertification.name,
-          path: '', // Will be filled when files are actually uploaded
-          documentType: 'technical-certification'
-        })
-      }
-      if (deviceData.purchaseProof) {
-        files.push({
-          filename: deviceData.purchaseProof.name,
-          path: '',
-          documentType: 'purchase-proof'
-        })
-      }
-      if (deviceData.maintenanceRecords) {
-        files.push({
-          filename: deviceData.maintenanceRecords.name,
-          path: '',
-          documentType: 'maintenance-records'
-        })
-      }
-      deviceData.deviceImages.forEach((file, index) => {
-        files.push({
-          filename: file.name,
-          path: '',
-          documentType: 'device-images'
-        })
-      })
-
-      // Only send fields that exist in the database schema
-      const draftData = {
-        deviceName: deviceData.deviceName || '',
-        deviceType: deviceData.deviceType || '',
-        location: deviceData.location || '',
-        serialNumber: deviceData.serialNumber || '',
-        manufacturer: deviceData.manufacturer || '',
-        model: deviceData.model || '',
-        yearOfManufacture: deviceData.yearOfManufacture || '',
-        condition: deviceData.condition || '',
-        specifications: deviceData.specifications || '',
-        purchasePrice: deviceData.purchasePrice || '',
-        currentValue: deviceData.currentValue || '',
-        expectedRevenue: deviceData.expectedRevenue || '',
-        operationalCosts: deviceData.operationalCosts || '',
-      }
+      // Check if we have files to upload
+      const hasFiles = deviceData.technicalCertification || 
+                      deviceData.purchaseProof || 
+                      deviceData.maintenanceRecords || 
+                      deviceData.deviceImages.length > 0
 
       let response
       let data
 
-      if (draftId) {
-        // Update existing draft
-        console.log('🔍 Updating existing draft:', draftId)
-        response = await fetch(`/api/drafts/${draftId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${tokenData.token}`,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          body: JSON.stringify(draftData)
+      if (hasFiles) {
+        // Save draft with files using FormData
+        console.log('🔍 Saving draft with files')
+        const formData = new FormData()
+        
+        // Add draft data fields
+        const draftFields = [
+          'deviceName', 'deviceType', 'location', 'serialNumber', 'manufacturer', 
+          'model', 'yearOfManufacture', 'condition', 'specifications',
+          'purchasePrice', 'currentValue', 'expectedRevenue', 'operationalCosts'
+        ]
+        
+        draftFields.forEach(field => {
+          const value = deviceData[field as keyof DeviceData]
+          if (value !== null && value !== undefined && value !== '') {
+            formData.append(field, value.toString())
+          }
         })
+
+        // Add files
+        if (deviceData.technicalCertification) {
+          formData.append('technicalCertification', deviceData.technicalCertification)
+        }
+        if (deviceData.purchaseProof) {
+          formData.append('purchaseProof', deviceData.purchaseProof)
+        }
+        if (deviceData.maintenanceRecords) {
+          formData.append('maintenanceRecords', deviceData.maintenanceRecords)
+        }
+        if (deviceData.deviceImages && deviceData.deviceImages.length > 0) {
+          deviceData.deviceImages.forEach((file, index) => {
+            formData.append(`deviceImages[${index}]`, file)
+          })
+        }
+
+        if (draftId) {
+          // Update existing draft with files
+          console.log('🔍 Updating existing draft with files:', draftId)
+          response = await fetch(`/api/drafts/${draftId}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${tokenData.token}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            },
+            body: formData
+          })
+        } else {
+          // Create new draft with files
+          console.log('🔍 Creating new draft with files')
+          response = await fetch('/api/drafts', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${tokenData.token}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            },
+            body: formData
+          })
+        }
       } else {
-        // Create new draft
-        console.log('🔍 Creating new draft')
-        response = await fetch('/api/drafts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${tokenData.token}`,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          body: JSON.stringify(draftData)
-        })
+        // Save draft without files using JSON
+        console.log('🔍 Saving draft without files')
+        
+        // Only send fields that exist in the database schema
+        const draftData = {
+          deviceName: deviceData.deviceName || '',
+          deviceType: deviceData.deviceType || '',
+          location: deviceData.location || '',
+          serialNumber: deviceData.serialNumber || '',
+          manufacturer: deviceData.manufacturer || '',
+          model: deviceData.model || '',
+          yearOfManufacture: deviceData.yearOfManufacture || '',
+          condition: deviceData.condition || '',
+          specifications: deviceData.specifications || '',
+          purchasePrice: deviceData.purchasePrice || '',
+          currentValue: deviceData.currentValue || '',
+          expectedRevenue: deviceData.expectedRevenue || '',
+          operationalCosts: deviceData.operationalCosts || '',
+        }
+
+        if (draftId) {
+          // Update existing draft
+          console.log('🔍 Updating existing draft:', draftId)
+          response = await fetch(`/api/drafts/${draftId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tokenData.token}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(draftData)
+          })
+        } else {
+          // Create new draft
+          console.log('🔍 Creating new draft')
+          response = await fetch('/api/drafts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tokenData.token}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(draftData)
+          })
+        }
       }
 
       data = await response.json()
@@ -194,7 +234,6 @@ export function useDraft() {
       const deviceData: DeviceData = {
         deviceName: data.draft.deviceName || '',
         deviceType: data.draft.deviceType || '',
-        customDeviceType: '', // Not stored in database
         location: data.draft.location || '', // Now stored in database
         serialNumber: data.draft.serialNumber || '',
         manufacturer: data.draft.manufacturer || '',

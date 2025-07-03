@@ -245,43 +245,113 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
         </section>
 
         <section>
-          <h3 className="text-lg font-medium text-gray-700 mb-3">Documentation</h3>
-          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-center">
-              <FileText className="text-[#6366F1] mr-2" size={18} />
-              <div>
-                <p className="font-medium">Technical Certification</p>
-                <p className="text-sm text-gray-500">{deviceData.technicalCertification?.name || "Not uploaded"}</p>
+          <h3 className="text-lg font-medium text-white mb-3">Documentation</h3>
+          <div className="space-y-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 p-4 rounded-lg">
+            {/* Technical Certification */}
+            <div className="flex items-start space-x-3">
+              <FileText className="text-blue-400 mt-1" size={18} />
+              <div className="flex-1">
+                <p className="font-medium text-white">Technical Certification</p>
+                {deviceData.technicalCertification ? (
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-300">{deviceData.technicalCertification.name}</p>
+                    <p className="text-xs text-gray-400">
+                      Size: {(deviceData.technicalCertification.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    {deviceData.technicalCertification.type === 'application/pdf' && (
+                      <div className="mt-2">
+                        <iframe
+                          src={URL.createObjectURL(deviceData.technicalCertification)}
+                          className="w-full h-32 border border-gray-600 rounded"
+                          title="Technical Certification Preview"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-red-400">Not uploaded</p>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center">
-              <FileText className="text-[#6366F1] mr-2" size={18} />
-              <div>
-                <p className="font-medium">Proof of Purchase</p>
-                <p className="text-sm text-gray-500">{deviceData.purchaseProof?.name || "Not uploaded"}</p>
+            {/* Purchase Proof */}
+            <div className="flex items-start space-x-3">
+              <FileText className="text-blue-400 mt-1" size={18} />
+              <div className="flex-1">
+                <p className="font-medium text-white">Proof of Purchase</p>
+                {deviceData.purchaseProof ? (
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-300">{deviceData.purchaseProof.name}</p>
+                    <p className="text-xs text-gray-400">
+                      Size: {(deviceData.purchaseProof.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    {deviceData.purchaseProof.type === 'application/pdf' && (
+                      <div className="mt-2">
+                        <iframe
+                          src={URL.createObjectURL(deviceData.purchaseProof)}
+                          className="w-full h-32 border border-gray-600 rounded"
+                          title="Purchase Proof Preview"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-red-400">Not uploaded</p>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center">
-              <FileText className="text-[#6366F1] mr-2" size={18} />
-              <div>
-                <p className="font-medium">Maintenance Records</p>
-                <p className="text-sm text-gray-500">{deviceData.maintenanceRecords?.name || "Not uploaded"}</p>
+            {/* Maintenance Records */}
+            <div className="flex items-start space-x-3">
+              <FileText className="text-blue-400 mt-1" size={18} />
+              <div className="flex-1">
+                <p className="font-medium text-white">Maintenance Records</p>
+                {deviceData.maintenanceRecords ? (
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-300">{deviceData.maintenanceRecords.name}</p>
+                    <p className="text-xs text-gray-400">
+                      Size: {(deviceData.maintenanceRecords.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    {deviceData.maintenanceRecords.type === 'application/pdf' && (
+                      <div className="mt-2">
+                        <iframe
+                          src={URL.createObjectURL(deviceData.maintenanceRecords)}
+                          className="w-full h-32 border border-gray-600 rounded"
+                          title="Maintenance Records Preview"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-red-400">Not uploaded</p>
+                )}
               </div>
             </div>
 
+            {/* Device Images */}
             {deviceData.deviceImages && deviceData.deviceImages.length > 0 && (
               <div>
-                <div className="flex items-center mb-2">
-                  <ImageIcon className="text-[#6366F1] mr-2" size={18} />
-                  <p className="font-medium">Device Images ({deviceData.deviceImages.length} files)</p>
+                <div className="flex items-center mb-3">
+                  <ImageIcon className="text-blue-400 mr-2" size={18} />
+                  <p className="font-medium text-white">Device Images ({deviceData.deviceImages.length} files)</p>
                 </div>
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {deviceData.deviceImages.map((file, index) => (
-                    <div key={index} className="flex items-center text-sm text-gray-600">
-                      <span className="mr-2">•</span>
-                      <span>{file?.name || `Image ${index + 1}`}</span>
+                    <div key={index} className="space-y-2">
+                      <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
+                        {file.type.startsWith('image/') ? (
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Device Image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FileText className="text-gray-400" size={24} />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-300 truncate">{file.name}</p>
                     </div>
                   ))}
                 </div>
