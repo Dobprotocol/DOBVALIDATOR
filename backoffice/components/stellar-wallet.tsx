@@ -225,7 +225,7 @@ export function StellarWallet() {
       // Check if this is a development/testing environment
       const isDevelopment = process.env.NODE_ENV === 'development' || 
                            window.location.hostname === 'localhost' ||
-                           window.location.hostname.includes('vercel.app')
+                           window.location.hostname === '127.0.0.1'
       
       if (isDevelopment) {
         console.log('🔧 Development mode detected, creating fallback authentication...')
