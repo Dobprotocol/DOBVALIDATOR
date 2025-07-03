@@ -228,12 +228,20 @@ export default function FormReviewPage() {
       const response = await apiService.submitDevice(formData)
       console.log('🔍 API response received:', response)
 
-      if (response.success) {
+      if (response.success && response.submission && response.submission.id) {
         console.log('✅ Submission successful!')
         // Clear the draft ID from localStorage after successful submission
         localStorage.removeItem('currentDraftId')
         console.log('Draft ID cleared after successful submission')
         handleSubmissionSuccess()
+      } else if (response.success && (!response.submission || !response.submission.id)) {
+        toast({
+          title: "Submission Error",
+          description: "Submission data is missing or invalid (no ID).",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
       } else {
         console.log('❌ Submission failed:', response)
         throw new Error('Submission failed')

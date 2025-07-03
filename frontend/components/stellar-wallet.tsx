@@ -33,6 +33,18 @@ import { BrowserCompatibilityWarning } from './browser-compatibility-warning'
 
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
+// Environment-based network configuration
+const getNetworkConfig = () => {
+  const network = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet'
+  return {
+    network,
+    passphrase: network === 'testnet' ? Networks.TESTNET : Networks.PUBLIC,
+    explorerUrl: network === 'testnet' 
+      ? 'https://stellar.expert/explorer/testnet'
+      : 'https://stellar.expert/explorer/public'
+  }
+}
+
 // Helper function to truncate wallet address
 function truncateAddress(address: string): string {
   if (!address) return ''
@@ -183,6 +195,9 @@ export function StellarWallet() {
     return new Promise((resolve, reject) => {
       console.log('Requesting signature for challenge:', challenge)
       
+      // Get network configuration
+      const networkConfig = getNetworkConfig()
+      
       // Create a minimal Stellar transaction with the challenge as memo
       const createChallengeTransaction = (challenge: string) => {
         try {
@@ -196,6 +211,7 @@ export function StellarWallet() {
           }
           
           console.log('Using wallet as source account:', walletAddress)
+          console.log('Using network:', networkConfig.network)
           
           // Create a minimal transaction that won't actually execute
           // This is just for authentication purposes
@@ -203,7 +219,7 @@ export function StellarWallet() {
             new Account(walletAddress, '0'),
             {
               fee: BASE_FEE,
-              networkPassphrase: Networks.TESTNET
+              networkPassphrase: networkConfig.passphrase
             }
           )
           .addOperation(
@@ -239,7 +255,7 @@ export function StellarWallet() {
 
       // Open Simple Signer window for signing
       const signWindow = window.open(
-        `${SIMPLE_SIGNER_URL}/sign/?xdr=${encodeURIComponent(xdrTransaction)}&description=DOB Validator Authentication Challenge`,
+        `${SIMPLE_SIGNER_URL}/sign/?xdr=${encodeURIComponent(xdrTransaction)}&description=DOB Validator Authentication Challenge (${networkConfig.network})`,
         'Sign_Window',
         'width=360, height=450'
       )
@@ -404,6 +420,10 @@ export function StellarWallet() {
     window.location.href = '/'
   }
 
+  // Get network info for display
+  const networkConfig = getNetworkConfig()
+  const networkDisplay = networkConfig.network === 'testnet' ? 'Testnet' : 'Mainnet'
+
   return (
     <>
       {/* Browser Compatibility Warning */}
@@ -440,18 +460,46 @@ export function StellarWallet() {
       >
         {isAuthenticating ? "Authenticating..." : 
          isConnecting ? "Connecting..." :
-         publicKey ? truncateAddress(publicKey) : "Connect Wallet"}
+         publicKey ? (
+           <div className="flex items-center gap-2">
+             <span>{truncateAddress(publicKey)}</span>
+             <span className="text-xs text-muted-foreground">({networkDisplay})</span>
+           </div>
+         ) : "Connect Wallet"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Disconnect Wallet</DialogTitle>
+            <DialogTitle>Wallet Settings</DialogTitle>
             <DialogDescription>
-              Are you sure you want to disconnect your wallet?
+              Manage your connected wallet and network settings.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {publicKey && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Wallet Address:</span>
+                  <span className="text-sm font-mono">{publicKey}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Network:</span>
+                  <span className="text-sm">{networkDisplay}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Explorer:</span>
+                  <a 
+                    href={`${networkConfig.explorerUrl}/account/${publicKey}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    View Account
+                  </a>
+                </div>
+              </div>
+            )}
             <Button
               onClick={handleDisconnect}
               className="w-full"

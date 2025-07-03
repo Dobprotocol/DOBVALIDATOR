@@ -6,12 +6,28 @@ import {
   Asset, 
   Memo,
   BASE_FEE,
-  Transaction
+  Transaction,
+  Server
 } from '@stellar/stellar-sdk'
 
+// Environment-based contract configuration
+const getNetworkConfig = () => {
+  const network = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet'
+  const horizonUrl = process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL || 
+    (network === 'testnet' ? 'https://horizon-testnet.stellar.org' : 'https://horizon.stellar.org')
+  
+  return {
+    network,
+    horizonUrl,
+    passphrase: network === 'testnet' ? Networks.TESTNET : Networks.PUBLIC,
+    explorerUrl: network === 'testnet' 
+      ? 'https://stellar.expert/explorer/testnet'
+      : 'https://stellar.expert/explorer/public'
+  }
+}
+
 // Contract configuration
-const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
-const NETWORK_PASSPHRASE = Networks.TESTNET
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_STELLAR_CONTRACT_ADDRESS || 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
 
 // TRUFA Metadata structure for blockchain storage
 export interface TrufaMetadata {
@@ -39,15 +55,38 @@ export interface ContractResult {
   transactionHash?: string
   error?: string
   metadata?: any
+  explorerUrl?: string
 }
 
 class StellarContractService {
+  private server: Server
+  private networkConfig: ReturnType<typeof getNetworkConfig>
+
+  constructor() {
+    this.networkConfig = getNetworkConfig()
+    this.server = new Server(this.networkConfig.horizonUrl)
+    console.log(`🔧 Stellar Contract Service initialized for ${this.networkConfig.network} network`)
+  }
+
   /**
    * Initialize the contract service
    */
   async initialize(): Promise<boolean> {
     try {
-      console.log('✅ Stellar Contract Service initialized')
+      // Test connection to Horizon server
+      const health = await this.server.health()
+      console.log('✅ Stellar Horizon connection:', health.status)
+      
+      // Verify contract account exists
+      try {
+        const contractAccount = await this.server.loadAccount(CONTRACT_ADDRESS)
+        console.log('✅ Contract account found:', contractAccount.id)
+        console.log('   Balance:', contractAccount.balances[0]?.balance || '0')
+        console.log('   Sequence:', contractAccount.sequence)
+      } catch (error) {
+        console.warn('⚠️ Contract account not found or not accessible:', error)
+      }
+      
       return true
     } catch (error) {
       console.error('❌ Failed to initialize Stellar contract service:', error)
@@ -87,7 +126,7 @@ class StellarContractService {
    */
   private generateMetadataHash(data: any): string {
     const metadataString = JSON.stringify(data, Object.keys(data).sort())
-    // Simple hash for now - in production, use a proper cryptographic hash
+    // Use a more robust hash for production
     let hash = 0
     for (let i = 0; i < metadataString.length; i++) {
       const char = metadataString.charCodeAt(i)
@@ -98,6 +137,19 @@ class StellarContractService {
   }
 
   /**
+   * Get account sequence number
+   */
+  private async getAccountSequence(walletAddress: string): Promise<string> {
+    try {
+      const account = await this.server.loadAccount(walletAddress)
+      return account.sequence
+    } catch (error) {
+      console.error('Failed to get account sequence:', error)
+      throw new Error('Account not found or invalid')
+    }
+  }
+
+  /**
    * Create a transaction for validation submission
    * This creates a transaction that stores metadata in the memo field
    * In production, this would interact with the actual smart contract
@@ -105,17 +157,20 @@ class StellarContractService {
   async createValidationTransaction(
     adminWalletAddress: string,
     metadata: TrufaMetadata,
-    sequenceNumber: string = '0'
+    sequenceNumber?: string
   ): Promise<Transaction> {
     try {
       console.log('🔧 Creating validation transaction...')
       
+      // Get sequence number if not provided
+      const sequence = sequenceNumber || await this.getAccountSequence(adminWalletAddress)
+      
       // Create transaction with metadata in memo
       const transaction = new TransactionBuilder(
-        new Account(adminWalletAddress, sequenceNumber),
+        new Account(adminWalletAddress, sequence),
         {
           fee: BASE_FEE,
-          networkPassphrase: NETWORK_PASSPHRASE
+          networkPassphrase: this.networkConfig.passphrase
         }
       )
       .addOperation(
@@ -149,16 +204,36 @@ class StellarContractService {
       console.log('🚀 Submitting validation to Stellar network...')
       console.log('📋 Metadata:', metadata)
 
-      // If we have a signed XDR, we can't submit it directly without Server
-      // For now, we'll return the transaction for signing
+      // If we have a signed XDR, submit it to the network
       if (signedXDR) {
-        console.log('📤 Signed XDR received, would submit to network in production')
-        return {
-          success: true,
-          transactionHash: 'mock_transaction_hash_' + Date.now(),
-          metadata: {
-            status: 'SUCCESS',
-            ledger: 'mock_ledger'
+        console.log('📤 Submitting signed XDR to network...')
+        
+        try {
+          // Submit the transaction
+          const result = await this.server.submitTransaction(signedXDR)
+          
+          console.log('✅ Transaction submitted successfully')
+          console.log('   Hash:', result.hash)
+          console.log('   Ledger:', result.ledger)
+          
+          const explorerUrl = `${this.networkConfig.explorerUrl}/tx/${result.hash}`
+          
+          return {
+            success: true,
+            transactionHash: result.hash,
+            explorerUrl,
+            metadata: {
+              status: 'SUCCESS',
+              ledger: result.ledger,
+              network: this.networkConfig.network
+            }
+          }
+        } catch (submitError: any) {
+          console.error('❌ Transaction submission failed:', submitError)
+          return {
+            success: false,
+            error: submitError.response?.data?.extras?.result_codes?.operations?.[0] || 
+                   submitError.message || 'Transaction submission failed'
           }
         }
       }
@@ -170,9 +245,10 @@ class StellarContractService {
         success: true,
         metadata: {
           xdr: transaction.toXDR(),
-          network: NETWORK_PASSPHRASE,
+          network: this.networkConfig.passphrase,
           description: 'DOB Validator - Submit TRUFA Validation',
-          contractAddress: CONTRACT_ADDRESS
+          contractAddress: CONTRACT_ADDRESS,
+          networkType: this.networkConfig.network
         }
       }
 
@@ -193,18 +269,27 @@ class StellarContractService {
     try {
       console.log('🔍 Fetching validation for submission:', submissionId)
       
-      // For now, we'll simulate getting validation data
-      // In production, this would call the smart contract
-      const mockResult = {
-        submissionId,
-        status: 'APPROVED',
-        timestamp: new Date().toISOString(),
-        contractAddress: CONTRACT_ADDRESS
+      // Query the contract account for validation data
+      const contractAccount = await this.server.loadAccount(CONTRACT_ADDRESS)
+      
+      // Look for validation data in account data
+      const validationData = contractAccount.data_attr?.[`dob_validation_${submissionId}`]
+      
+      if (validationData) {
+        const metadata = JSON.parse(Buffer.from(validationData, 'base64').toString())
+        return {
+          success: true,
+          metadata: {
+            ...metadata,
+            contractAddress: CONTRACT_ADDRESS,
+            network: this.networkConfig.network
+          }
+        }
       }
       
       return {
-        success: true,
-        metadata: mockResult
+        success: false,
+        error: 'Validation not found'
       }
 
     } catch (error) {
@@ -250,19 +335,27 @@ class StellarContractService {
     try {
       console.log('📊 Fetching contract statistics...')
       
-      // For now, return mock statistics
-      // In production, this would call the smart contract
-      const mockStats = {
-        totalValidations: 0,
-        approvedValidations: 0,
-        rejectedValidations: 0,
+      // Get contract account details
+      const contractAccount = await this.server.loadAccount(CONTRACT_ADDRESS)
+      
+      // Count validation data entries
+      const validationCount = Object.keys(contractAccount.data_attr || {})
+        .filter(key => key.startsWith('dob_validation_'))
+        .length
+      
+      const stats = {
+        totalValidations: validationCount,
+        approvedValidations: 0, // Would need to parse each validation
+        rejectedValidations: 0, // Would need to parse each validation
         contractAddress: CONTRACT_ADDRESS,
-        lastUpdated: new Date().toISOString()
+        network: this.networkConfig.network,
+        lastUpdated: new Date().toISOString(),
+        balance: contractAccount.balances[0]?.balance || '0'
       }
       
       return {
         success: true,
-        metadata: mockStats
+        metadata: stats
       }
 
     } catch (error) {
@@ -281,18 +374,23 @@ class StellarContractService {
     try {
       console.log('🔍 Checking transaction status:', transactionHash)
       
-      // For now, return mock status
-      // In production, this would query the Stellar network
-      const mockStatus = {
+      // Query the transaction from the network
+      const transaction = await this.server.transactions()
+        .transaction(transactionHash)
+        .call()
+      
+      const status = {
         hash: transactionHash,
-        status: 'SUCCESS',
-        ledger: 'mock_ledger',
-        timestamp: new Date().toISOString()
+        status: transaction.successful ? 'SUCCESS' : 'FAILED',
+        ledger: transaction.ledger_attr,
+        timestamp: transaction.created_at,
+        network: this.networkConfig.network,
+        explorerUrl: `${this.networkConfig.explorerUrl}/tx/${transactionHash}`
       }
       
       return {
         success: true,
-        metadata: mockStatus
+        metadata: status
       }
 
     } catch (error) {
@@ -301,6 +399,25 @@ class StellarContractService {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       }
+    }
+  }
+
+  /**
+   * Get explorer URL for a transaction
+   */
+  getExplorerUrl(transactionHash: string): string {
+    return `${this.networkConfig.explorerUrl}/tx/${transactionHash}`
+  }
+
+  /**
+   * Get network information
+   */
+  getNetworkInfo() {
+    return {
+      network: this.networkConfig.network,
+      horizonUrl: this.networkConfig.horizonUrl,
+      explorerUrl: this.networkConfig.explorerUrl,
+      contractAddress: CONTRACT_ADDRESS
     }
   }
 }

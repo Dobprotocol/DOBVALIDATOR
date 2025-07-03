@@ -7,6 +7,7 @@ export function useStellar() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [network, setNetwork] = useState<Network | null>(null)
   const [baseFee, setBaseFee] = useState<string>('100')
+  const [networkType, setNetworkType] = useState<'testnet' | 'public'>('testnet')
 
   useEffect(() => {
     const initializeStellar = () => {
@@ -15,15 +16,24 @@ export function useStellar() {
           return
         }
 
-        // Set the network passphrase for testnet
-        Network.useTestNetwork()
+        // Get network configuration from environment
+        const networkType = (process.env.NEXT_PUBLIC_STELLAR_NETWORK as 'testnet' | 'public') || 'testnet'
+        setNetworkType(networkType)
+
+        // Set the network passphrase based on environment
+        if (networkType === 'testnet') {
+          Network.useTestNetwork()
+        } else {
+          Network.usePublicNetwork()
+        }
+        
         // Set the base fee
         BASE_FEE = '100'
         
         setNetwork(Network)
         setBaseFee(BASE_FEE)
         setIsInitialized(true)
-        console.log('✅ Stellar SDK initialized in hook')
+        console.log(`✅ Stellar SDK initialized in hook for ${networkType} network`)
       } catch (error) {
         console.error('Failed to initialize Stellar SDK in hook:', error)
         setIsInitialized(false)
@@ -41,6 +51,7 @@ export function useStellar() {
   return {
     network,
     baseFee,
-    isInitialized
+    isInitialized,
+    networkType
   }
 } 

@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Download, Share2, Star, Award, Shield, TrendingUp } from "lucide-react"
+import { CheckCircle, Download, Share2, Star, Award, TrendingUp } from "lucide-react"
 
 interface CertificateModalProps {
   isOpen: boolean
@@ -125,12 +125,33 @@ export function CertificateModal({ isOpen, onClose, certificateData }: Certifica
           {/* Blockchain Information */}
           <div className="bg-muted/50 p-4 rounded-lg">
             <h3 className="font-semibold text-foreground mb-3">Blockchain Verification</h3>
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-green-600" />
-              <span className="text-sm text-muted-foreground">Transaction Hash:</span>
-              <span className="font-mono text-sm bg-background px-2 py-1 rounded">
-                {certificateData.blockchainTx.slice(0, 20)}...{certificateData.blockchainTx.slice(-20)}
-              </span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <img src="/images/stellar_logo_white_small.svg" alt="Stellar Logo" className="h-4 w-4" />
+                <span className="text-sm text-muted-foreground">Transaction Hash:</span>
+                <span className="font-mono text-sm bg-background px-2 py-1 rounded">
+                  {certificateData.blockchainTx.slice(0, 20)}...{certificateData.blockchainTx.slice(-20)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Network:</span>
+                <span className="text-sm font-medium">
+                  {process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' ? 'Mainnet' : 'Testnet'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Explorer:</span>
+                <a 
+                  href={`${process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' 
+                    ? 'https://stellar.expert/explorer/public' 
+                    : 'https://stellar.expert/explorer/testnet'}/tx/${certificateData.blockchainTx}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline font-medium"
+                >
+                  View Transaction
+                </a>
+              </div>
             </div>
           </div>
 
