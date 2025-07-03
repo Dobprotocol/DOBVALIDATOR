@@ -597,12 +597,154 @@ app.get('/api/submissions/:id', async (req, res) => {
   }
 })
 
-app.post('/api/submissions', upload.fields([
-  { name: 'technicalCertification', maxCount: 1 },
-  { name: 'purchaseProof', maxCount: 1 },
-  { name: 'maintenanceRecords', maxCount: 1 },
-  { name: 'deviceImages', maxCount: 10 }
+// File upload endpoint for individual files during form process
+app.post('/api/upload-files', upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'files', maxCount: 10 },
+  { name: 'field', maxCount: 1 }
 ]), async (req, res) => {
+  try {
+    console.log('🔍 File upload request received')
+    console.log('🔍 Request headers:', req.headers)
+    console.log('🔍 Request body:', req.body)
+    console.log('🔍 Request files:', req.files)
+    
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.JWT_SECRET)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    const field = req.body.field
+    const uploadedFiles = req.files as { [fieldname: string]: Express.Multer.File[] }
+    const files: Array<{
+      id: string
+      filename: string
+      path: string
+      size: number
+      mimeType: string
+      documentType: string
+      uploadedAt: string
+    }> = []
+
+    // Get or create a draft for this user to store the files
+    let draft = await prisma.draft.findFirst({
+      where: { userId: user.id },
+      orderBy: { updatedAt: 'desc' }
+    })
+
+    if (!draft) {
+      // Create a new draft if none exists
+      draft = await prisma.draft.create({
+        data: {
+          userId: user.id,
+          deviceName: '',
+          deviceType: '',
+          serialNumber: '',
+          manufacturer: '',
+          model: '',
+          yearOfManufacture: '',
+          condition: '',
+          specifications: '',
+          purchasePrice: '',
+          currentValue: '',
+          expectedRevenue: '',
+          operationalCosts: '',
+          location: ''
+        }
+      })
+    }
+
+    // Process single file
+    if (uploadedFiles.file && uploadedFiles.file.length > 0) {
+      const file = uploadedFiles.file[0]
+      
+      // Store file in database
+      const dbFile = await prisma.draftFile.create({
+        data: {
+          filename: file.originalname,
+          path: `/uploads/${field}/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: field,
+          draftId: draft.id
+        }
+      })
+      
+      files.push({
+        id: dbFile.id,
+        filename: dbFile.filename,
+        path: dbFile.path,
+        size: dbFile.size,
+        mimeType: dbFile.mimeType,
+        documentType: dbFile.documentType,
+        uploadedAt: dbFile.uploadedAt.toISOString()
+      })
+    }
+
+    // Process multiple files
+    if (uploadedFiles.files && uploadedFiles.files.length > 0) {
+      for (const file of uploadedFiles.files) {
+        // Store file in database
+        const dbFile = await prisma.draftFile.create({
+          data: {
+            filename: file.originalname,
+            path: `/uploads/${field}/${file.filename}`,
+            size: file.size,
+            mimeType: file.mimetype,
+            documentType: field,
+            draftId: draft.id
+          }
+        })
+        
+        files.push({
+          id: dbFile.id,
+          filename: dbFile.filename,
+          path: dbFile.path,
+          size: dbFile.size,
+          mimeType: dbFile.mimeType,
+          documentType: dbFile.documentType,
+          uploadedAt: dbFile.uploadedAt.toISOString()
+        })
+      }
+    }
+
+    console.log('🔍 Processed uploaded files:', files)
+    console.log('🔍 Files stored in draft:', draft.id)
+
+    res.json({ success: true, files })
+    return
+  } catch (error) {
+    console.error('❌ File upload error:', error)
+    console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown')
+    console.error('❌ Error message:', error instanceof Error ? error.message : 'No message')
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    // Check if it's a JWT verification error
+    if (error instanceof Error && (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError')) {
+      console.error('❌ JWT verification failed:', error.message)
+      res.status(401).json({ error: 'Invalid or expired token' })
+      return
+    }
+    
+    res.status(500).json({ error: 'Failed to upload files' })
+    return
+  }
+})
+
+app.post('/api/submissions', upload.any(), async (req, res) => {
   try {
     console.log('🔍 Submission POST request received')
     console.log('🔍 Request headers:', req.headers)
@@ -644,7 +786,7 @@ app.post('/api/submissions', upload.fields([
       operationalCosts: req.body.operationalCosts
     }
 
-    // Process files if any
+    // Process files from file IDs or actual files
     const files: Array<{
       filename: string
       path: string
@@ -653,57 +795,89 @@ app.post('/api/submissions', upload.fields([
       documentType: string
     }> = []
 
-    if (req.files) {
-      const uploadedFiles = req.files as { [fieldname: string]: Express.Multer.File[] }
-      
-      // Process technical certification
-      if (uploadedFiles.technicalCertification) {
-        const file = uploadedFiles.technicalCertification[0]
+    // Handle file IDs (files already uploaded to backend)
+    if (req.body.technicalCertificationId) {
+      const fileId = req.body.technicalCertificationId
+      const draftFile = await prisma.draftFile.findUnique({
+        where: { id: fileId }
+      })
+      if (draftFile) {
         files.push({
-          filename: file.originalname,
-          path: `/uploads/technical/${file.filename}`,
-          size: file.size,
-          mimeType: file.mimetype,
+          filename: draftFile.filename,
+          path: draftFile.path,
+          size: draftFile.size,
+          mimeType: draftFile.mimeType,
           documentType: 'technical_certification'
         })
       }
+    }
 
-      // Process purchase proof
-      if (uploadedFiles.purchaseProof) {
-        const file = uploadedFiles.purchaseProof[0]
+    if (req.body.purchaseProofId) {
+      const fileId = req.body.purchaseProofId
+      const draftFile = await prisma.draftFile.findUnique({
+        where: { id: fileId }
+      })
+      if (draftFile) {
         files.push({
-          filename: file.originalname,
-          path: `/uploads/purchase/${file.filename}`,
-          size: file.size,
-          mimeType: file.mimetype,
+          filename: draftFile.filename,
+          path: draftFile.path,
+          size: draftFile.size,
+          mimeType: draftFile.mimeType,
           documentType: 'purchase_proof'
         })
       }
+    }
 
-      // Process maintenance records
-      if (uploadedFiles.maintenanceRecords) {
-        const file = uploadedFiles.maintenanceRecords[0]
+    if (req.body.maintenanceRecordsId) {
+      const fileId = req.body.maintenanceRecordsId
+      const draftFile = await prisma.draftFile.findUnique({
+        where: { id: fileId }
+      })
+      if (draftFile) {
         files.push({
-          filename: file.originalname,
-          path: `/uploads/maintenance/${file.filename}`,
-          size: file.size,
-          mimeType: file.mimetype,
+          filename: draftFile.filename,
+          path: draftFile.path,
+          size: draftFile.size,
+          mimeType: draftFile.mimeType,
           documentType: 'maintenance_records'
         })
       }
+    }
 
-      // Process device images
-      if (uploadedFiles.deviceImages) {
-        uploadedFiles.deviceImages.forEach((file, index) => {
-          files.push({
-            filename: file.originalname,
-            path: `/uploads/images/${file.filename}`,
-            size: file.size,
-            mimeType: file.mimetype,
-            documentType: 'device_image'
-          })
+    // Handle device image IDs
+    const deviceImageIds = Object.keys(req.body)
+      .filter(key => key.startsWith('deviceImageIds['))
+      .map(key => req.body[key])
+
+    for (const fileId of deviceImageIds) {
+      const draftFile = await prisma.draftFile.findUnique({
+        where: { id: fileId }
+      })
+      if (draftFile) {
+        files.push({
+          filename: draftFile.filename,
+          path: draftFile.path,
+          size: draftFile.size,
+          mimeType: draftFile.mimeType,
+          documentType: 'device_image'
         })
       }
+    }
+
+    // Handle actual files (fallback for direct file uploads)
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      const uploadedFiles = req.files as Express.Multer.File[]
+      
+      // Process any actual files that might be uploaded
+      uploadedFiles.forEach((file) => {
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/submissions/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'submission_file'
+        })
+      })
     }
 
     console.log('🔍 Processed submission data:', submissionData)
