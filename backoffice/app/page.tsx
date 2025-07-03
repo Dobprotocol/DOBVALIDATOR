@@ -61,11 +61,20 @@ export default function LandingPage() {
     if (typeof window === 'undefined') return
 
     const handleMessage = (e: MessageEvent) => {
-      console.log('🔍 ALL MESSAGES - Origin:', e.origin)
-      console.log('🔍 ALL MESSAGES - Data:', e.data)
+      // Only log messages from Simple Signer or in development
+      const isFromSimpleSigner = e.origin === SIMPLE_SIGNER_URL
+      const isDevelopment = process.env.NODE_ENV === 'development'
+      
+      if (isFromSimpleSigner || isDevelopment) {
+        console.log('🔍 ALL MESSAGES - Origin:', e.origin)
+        console.log('🔍 ALL MESSAGES - Data:', e.data)
+      }
       
       if (e.origin !== SIMPLE_SIGNER_URL) {
-        console.log('❌ Message from wrong origin, ignoring')
+        // Only log filtered messages in development to reduce noise
+        if (isDevelopment) {
+          console.log('❌ Message from wrong origin, ignoring')
+        }
         return
       }
 
