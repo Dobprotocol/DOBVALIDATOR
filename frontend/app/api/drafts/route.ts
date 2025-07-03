@@ -104,23 +104,50 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Forwarding to backend:', draftsUrl);
 
-    // Parse the request body
-    const body = await request.json();
-    console.log('🔍 Request body:', body);
+    // Check if this is FormData or JSON
+    const contentType = request.headers.get('content-type') || '';
+    console.log('🔍 Content-Type:', contentType);
 
-    // Safety filter: Remove customDeviceType to prevent backend schema issues
-    const { customDeviceType, ...filteredBody } = body;
-    console.log('🔍 Filtered body (removed customDeviceType):', filteredBody);
+    let backendResponse: Response;
 
-    // Forward the request to the backend
-    const backendResponse = await fetch(draftsUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(filteredBody)
-    });
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData
+      console.log('🔍 Processing FormData request');
+      
+      // Get the FormData from the request
+      const formData = await request.formData();
+      
+      // Forward the FormData to the backend
+      backendResponse = await fetch(draftsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type for FormData - let fetch set it with boundary
+        },
+        body: formData
+      });
+    } else {
+      // Handle JSON
+      console.log('🔍 Processing JSON request');
+      
+      // Parse the request body
+      const body = await request.json();
+      console.log('🔍 Request body:', body);
+
+      // Safety filter: Remove customDeviceType to prevent backend schema issues
+      const { customDeviceType, ...filteredBody } = body;
+      console.log('🔍 Filtered body (removed customDeviceType):', filteredBody);
+
+      // Forward the request to the backend
+      backendResponse = await fetch(draftsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(filteredBody)
+      });
+    }
 
     console.log('🔍 Backend response status:', backendResponse.status);
 
