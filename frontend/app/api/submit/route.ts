@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSafeBackendUrl } from '@/lib/api-utils'
 
 // Required for API routes in Next.js
 export const dynamic = 'force-dynamic'
@@ -33,8 +34,8 @@ export async function POST(request: NextRequest) {
     const token = authHeader.substring(7)
     console.log('🔍 Token extracted:', token.substring(0, 20) + '...')
 
-    // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    // Get the backend URL safely
+    const backendUrl = getSafeBackendUrl()
     const submitUrl = `${backendUrl}/api/submissions`
 
     console.log('🔍 Forwarding to backend:', submitUrl)

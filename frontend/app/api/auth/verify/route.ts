@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getSafeBackendUrl } from '@/lib/api-utils'
 import { storeSession } from '@/lib/auth-storage'
 
 // Required for API routes in Next.js
@@ -37,8 +38,8 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Calling backend for verification and JWT...')
     
-    // Get the backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+    // Get the backend URL safely
+    const backendUrl = getSafeBackendUrl()
     const backendResponse = await fetch(`${backendUrl}/api/auth/verify`, {
       method: 'POST',
       headers: {
