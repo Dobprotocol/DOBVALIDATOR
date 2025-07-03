@@ -846,10 +846,16 @@ app.get('/api/drafts', async (req, res) => {
   }
 })
 
-app.post('/api/drafts', async (req, res) => {
+app.post('/api/drafts', upload.fields([
+  { name: 'technicalCertification', maxCount: 1 },
+  { name: 'purchaseProof', maxCount: 1 },
+  { name: 'maintenanceRecords', maxCount: 1 },
+  { name: 'deviceImages', maxCount: 10 }
+]), async (req, res) => {
   try {
     console.log('🔍 Draft POST request received')
     console.log('🔍 Request body:', req.body)
+    console.log('🔍 Request files:', req.files)
     
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -871,10 +877,92 @@ app.post('/api/drafts', async (req, res) => {
     const user = await userService.findOrCreateByWallet(walletAddress)
     console.log('🔍 User found/created:', user.id)
 
-    const draftData = req.body
+    // Extract form data
+    const draftData = {
+      deviceName: req.body.deviceName,
+      deviceType: req.body.deviceType,
+      location: req.body.location,
+      serialNumber: req.body.serialNumber,
+      manufacturer: req.body.manufacturer,
+      model: req.body.model,
+      yearOfManufacture: req.body.yearOfManufacture,
+      condition: req.body.condition,
+      specifications: req.body.specifications,
+      purchasePrice: req.body.purchasePrice,
+      currentValue: req.body.currentValue,
+      expectedRevenue: req.body.expectedRevenue,
+      operationalCosts: req.body.operationalCosts
+    }
+
+    // Process files if any
+    const files: Array<{
+      filename: string
+      path: string
+      size: number
+      mimeType: string
+      documentType: string
+    }> = []
+
+    if (req.files) {
+      const uploadedFiles = req.files as { [fieldname: string]: Express.Multer.File[] }
+      
+      // Process technical certification
+      if (uploadedFiles.technicalCertification) {
+        const file = uploadedFiles.technicalCertification[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/drafts/technical/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'technical_certification'
+        })
+      }
+
+      // Process purchase proof
+      if (uploadedFiles.purchaseProof) {
+        const file = uploadedFiles.purchaseProof[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/drafts/purchase/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'purchase_proof'
+        })
+      }
+
+      // Process maintenance records
+      if (uploadedFiles.maintenanceRecords) {
+        const file = uploadedFiles.maintenanceRecords[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/drafts/maintenance/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'maintenance_records'
+        })
+      }
+
+      // Process device images
+      if (uploadedFiles.deviceImages) {
+        uploadedFiles.deviceImages.forEach((file, index) => {
+          files.push({
+            filename: file.originalname,
+            path: `/uploads/drafts/images/${file.filename}`,
+            size: file.size,
+            mimeType: file.mimetype,
+            documentType: 'device_image'
+          })
+        })
+      }
+    }
+
     console.log('🔍 Creating draft with data:', draftData)
+    console.log('🔍 Files to save:', files)
     
-    const draft = await draftService.create(user.id, draftData)
+    const draft = await draftService.create(user.id, {
+      ...draftData,
+      files: files.length > 0 ? files : undefined
+    })
 
     console.log('🔍 Draft created successfully:', draft.id)
     res.json({ success: true, draft })
@@ -926,8 +1014,17 @@ app.get('/api/drafts/:id', async (req, res) => {
   }
 })
 
-app.put('/api/drafts/:id', async (req, res) => {
+app.put('/api/drafts/:id', upload.fields([
+  { name: 'technicalCertification', maxCount: 1 },
+  { name: 'purchaseProof', maxCount: 1 },
+  { name: 'maintenanceRecords', maxCount: 1 },
+  { name: 'deviceImages', maxCount: 10 }
+]), async (req, res) => {
   try {
+    console.log('🔍 Draft PUT request received')
+    console.log('🔍 Request body:', req.body)
+    console.log('🔍 Request files:', req.files)
+    
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({ error: 'Authorization header required' })
@@ -942,7 +1039,6 @@ app.put('/api/drafts/:id', async (req, res) => {
 
     const user = await userService.findOrCreateByWallet(walletAddress)
     const { id } = req.params
-    const updateData = req.body
 
     // Check if draft exists and belongs to user
     const existingDraft = await prisma.draft.findFirst({
@@ -957,13 +1053,92 @@ app.put('/api/drafts/:id', async (req, res) => {
       return
     }
 
-    // Update the draft
-    const updatedDraft = await prisma.draft.update({
-      where: { id: id },
-      data: {
-        ...updateData,
-        updatedAt: new Date()
+    // Extract form data
+    const updateData = {
+      deviceName: req.body.deviceName,
+      deviceType: req.body.deviceType,
+      location: req.body.location,
+      serialNumber: req.body.serialNumber,
+      manufacturer: req.body.manufacturer,
+      model: req.body.model,
+      yearOfManufacture: req.body.yearOfManufacture,
+      condition: req.body.condition,
+      specifications: req.body.specifications,
+      purchasePrice: req.body.purchasePrice,
+      currentValue: req.body.currentValue,
+      expectedRevenue: req.body.expectedRevenue,
+      operationalCosts: req.body.operationalCosts
+    }
+
+    // Process files if any
+    const files: Array<{
+      filename: string
+      path: string
+      size: number
+      mimeType: string
+      documentType: string
+    }> = []
+
+    if (req.files) {
+      const uploadedFiles = req.files as { [fieldname: string]: Express.Multer.File[] }
+      
+      // Process technical certification
+      if (uploadedFiles.technicalCertification) {
+        const file = uploadedFiles.technicalCertification[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/drafts/technical/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'technical_certification'
+        })
       }
+
+      // Process purchase proof
+      if (uploadedFiles.purchaseProof) {
+        const file = uploadedFiles.purchaseProof[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/drafts/purchase/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'purchase_proof'
+        })
+      }
+
+      // Process maintenance records
+      if (uploadedFiles.maintenanceRecords) {
+        const file = uploadedFiles.maintenanceRecords[0]
+        files.push({
+          filename: file.originalname,
+          path: `/uploads/drafts/maintenance/${file.filename}`,
+          size: file.size,
+          mimeType: file.mimetype,
+          documentType: 'maintenance_records'
+        })
+      }
+
+      // Process device images
+      if (uploadedFiles.deviceImages) {
+        uploadedFiles.deviceImages.forEach((file, index) => {
+          files.push({
+            filename: file.originalname,
+            path: `/uploads/drafts/images/${file.filename}`,
+            size: file.size,
+            mimeType: file.mimetype,
+            documentType: 'device_image'
+          })
+        })
+      }
+    }
+
+    console.log('🔍 Updating draft with data:', updateData)
+    console.log('🔍 Files to save:', files)
+
+    // Update the draft
+    const updatedDraft = await draftService.update(id, {
+      ...updateData,
+      files: files.length > 0 ? files : undefined
     })
 
     res.json({ success: true, draft: updatedDraft })
