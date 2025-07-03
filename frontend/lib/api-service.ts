@@ -104,13 +104,11 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    // Use absolute URL for backend-only endpoints, but relative for Next.js API routes
-    const isFrontendApi = endpoint.startsWith('/api/')
-    const url = isFrontendApi ? endpoint : `${this.baseUrl}${endpoint}`
+    // ALWAYS use the backend URL for all API calls to ensure consistency
+    const url = `${this.baseUrl}${endpoint}`
     
     console.log(`🔍 URL resolution debug:`)
     console.log(`  - endpoint: ${endpoint}`)
-    console.log(`  - isFrontendApi: ${isFrontendApi}`)
     console.log(`  - baseUrl: ${this.baseUrl}`)
     console.log(`  - final url: ${url}`)
     
@@ -330,9 +328,9 @@ class ApiService {
     
     // Use the frontend API route which will proxy to the backend
     return this.request<{ success: boolean; submission: any }>('/api/submissions', {
-      method: 'POST',
-      body: formData,
-    })
+        method: 'POST',
+        body: formData,
+      })
   }
 }
 
