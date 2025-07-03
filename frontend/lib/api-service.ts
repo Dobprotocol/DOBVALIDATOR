@@ -297,8 +297,8 @@ class ApiService {
       throw new Error('No authentication token found')
     }
 
-    // Use backend API endpoint directly
-    const url = `${this.baseUrl}/api/submissions`
+    // Use frontend API route which will forward to backend
+    const url = `/api/submissions`
     
     // Prepare headers with auth token
     const headers: Record<string, string> = {
