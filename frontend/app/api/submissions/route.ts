@@ -21,10 +21,16 @@ export async function GET(request: NextRequest) {
 
     // Get the backend URL
     const { getSafeBackendUrl } = await import('../../../lib/api-utils')
-    const backendUrl = getSafeBackendUrl()
-    const submissionsUrl = `${backendUrl}/api/submissions`
+    let backendUrl = getSafeBackendUrl()
+    console.log('🔍 [GET] Initial backendUrl from getSafeBackendUrl:', backendUrl)
 
-    console.log('🔍 Forwarding to backend:', submissionsUrl)
+    // Final fallback: if still on the frontend domain, force the backend URL
+    if (backendUrl.includes('validator.dobprotocol.com')) {
+      console.log('🔍 [GET] Forcing backend URL to v.dobprotocol.com')
+      backendUrl = 'https://v.dobprotocol.com'
+    }
+    const submissionsUrl = `${backendUrl}/api/submissions`
+    console.log('🔍 [GET] Final submissionsUrl:', submissionsUrl)
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -105,17 +111,17 @@ export async function POST(request: NextRequest) {
     // Get the backend URL
     const { getSafeBackendUrl } = await import('../../../lib/api-utils')
     let backendUrl = getSafeBackendUrl()
+    console.log('🔍 [API Route] Initial backendUrl from getSafeBackendUrl:', backendUrl)
 
     // Final fallback: if still on the frontend domain, force the backend URL
-    if (
-      (typeof window !== 'undefined' && window.location.hostname === 'validator.dobprotocol.com') ||
-      backendUrl.includes('validator.dobprotocol.com')
-    ) {
+    if (backendUrl.includes('validator.dobprotocol.com')) {
       console.log('🔍 [API Route] Forcing backend URL to v.dobprotocol.com')
       backendUrl = 'https://v.dobprotocol.com'
     }
     const submissionsUrl = `${backendUrl}/api/submissions`
-    console.log('🔍 [API Route] Submitting to:', submissionsUrl)
+    console.log('🔍 [API Route] Final submissionsUrl:', submissionsUrl)
+    console.log('🔍 [API Route] NODE_ENV:', process.env.NODE_ENV)
+    console.log('🔍 [API Route] NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL)
 
     // Check if this is FormData or JSON
     const contentType = request.headers.get('content-type') || ''
