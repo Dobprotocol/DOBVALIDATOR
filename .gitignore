@@ -64,8 +64,22 @@ dist
 tmp/
 temp/
 
-# Ignore secret keys
-keys/account.json
+# Ignore secret keys and sensitive data
+keys/
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cert
+
+# GitHub Actions (remove deployment workflows)
+.github/workflows/deploy.yml
+.github/workflows/*.yml
+
+# Vercel deployment files
+.vercel/
+vercel.json
 
 # PNPM store
 .pnpm-store/
