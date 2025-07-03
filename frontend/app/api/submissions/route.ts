@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
       
       // Get the FormData from the request
       const formData = await request.formData()
+      console.log('🔍 FormData entries:', Array.from(formData.entries()).map(([key, value]) => `${key}: ${value instanceof File ? value.name : value}`))
       
       // Forward the FormData to the backend
       backendResponse = await fetch(submissionsUrl, {
@@ -128,6 +129,9 @@ export async function POST(request: NextRequest) {
         },
         body: formData
       })
+      
+      console.log('🔍 Backend response status:', backendResponse.status)
+      console.log('🔍 Backend response headers:', Object.fromEntries(backendResponse.headers.entries()))
     } else {
       // Handle JSON
       console.log('🔍 Processing JSON request')
