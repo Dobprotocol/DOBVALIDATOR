@@ -275,45 +275,15 @@ export function DeviceReview({ deviceData, onNext, onBack, onSubmissionSuccess }
               <div>
                 <div className="flex items-center mb-2">
                   <ImageIcon className="text-[#6366F1] mr-2" size={18} />
-                  <p className="font-medium">Device Images</p>
+                  <p className="font-medium">Device Images ({deviceData.deviceImages.length} files)</p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-                  {deviceData.deviceImages.map((file, index) => {
-                    // Check if file is a valid File object before creating object URL
-                    if (file && file instanceof File) {
-                      try {
-                        const objectUrl = URL.createObjectURL(file)
-                        return (
-                          <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                            <Image
-                              src={objectUrl}
-                              alt={`Device image ${index + 1}`}
-                              fill
-                              className="object-cover"
-                              onLoad={() => {
-                                // Clean up object URL after image loads
-                                setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-                              }}
-                            />
-                          </div>
-                        )
-                      } catch (error) {
-                        console.warn('Failed to create object URL for file:', file.name, error)
-                        return (
-                          <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
-                            <p className="text-sm text-gray-500">Invalid file</p>
-                          </div>
-                        )
-                      }
-                    } else {
-                      // Handle case where file might be serialized data or invalid
-                      return (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
-                          <p className="text-sm text-gray-500">File not available</p>
-                        </div>
-                      )
-                    }
-                  })}
+                <div className="space-y-2">
+                  {deviceData.deviceImages.map((file, index) => (
+                    <div key={index} className="flex items-center text-sm text-gray-600">
+                      <span className="mr-2">•</span>
+                      <span>{file?.name || `Image ${index + 1}`}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
