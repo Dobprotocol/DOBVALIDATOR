@@ -73,125 +73,34 @@ export default function DashboardPage() {
         console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
         console.log('Fetching submissions from backend database...')
         
-        // Try backend first with timeout
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
-        
+        // Use API service to fetch submissions
         try {
-          const backendUrl = process.env.NODE_ENV === 'development' 
-            ? 'http://localhost:3001' 
-            : 'https://v.dobprotocol.com'
-          const submissionsResponse = await fetch(`${backendUrl}/api/submissions`, {
-            headers: {
-              'Authorization': `Bearer ${tokenData.token}`
-            },
-            signal: controller.signal
-          })
-
-          clearTimeout(timeoutId)
-
-          if (submissionsResponse.ok) {
-            const submissionsData = await submissionsResponse.json()
-            console.log('Submissions response:', submissionsData)
-            if (submissionsData.success) {
-              console.log('Setting submissions to:', submissionsData.submissions || [])
-              setSubmissions(submissionsData.submissions || [])
-            } else {
-              console.log('Submissions API returned error:', submissionsData.error)
-              throw new Error(submissionsData.error || 'Backend API error')
-            }
-          } else {
-            console.log('Submissions API request failed:', submissionsResponse.status, submissionsResponse.statusText)
-            throw new Error(`Backend API failed: ${submissionsResponse.status}`)
-          }
-        } catch (backendError) {
-          clearTimeout(timeoutId)
-          console.log('Backend fetch failed, trying frontend fallback:', backendError)
-          throw backendError
+          const { apiService } = await import('@/lib/api-service')
+          const submissionsData = await apiService.getSubmissions()
+          console.log('Submissions response:', submissionsData)
+          console.log('Setting submissions to:', submissionsData.submissions || [])
+          setSubmissions(submissionsData.submissions || [])
+        } catch (apiError) {
+          console.log('API service failed:', apiError)
+          throw apiError
         }
-      } catch (backendError) {
-        // Fall back to frontend submissions if backend is down
-        console.log('Falling back to frontend submissions...')
-        
-        // Show user-friendly notification about backend being unavailable
+      } catch (apiError) {
+        console.error('Error fetching submissions:', apiError)
+        setSubmissions([])
         toast({
-          title: "Backend Unavailable",
-          description: "Using local data. Some features may be limited.",
-          variant: "default",
+          title: "Error",
+          description: "Failed to fetch submissions",
+          variant: "destructive",
         })
-        
-        try {
-          // Get auth token again for fallback
-          const authToken = localStorage.getItem('authToken')
-          if (!authToken) {
-            console.log('No auth token found for fallback submissions')
-            setSubmissions([])
-            return
-          }
-
-          const tokenData = JSON.parse(authToken)
-          const frontendResponse = await fetch('/api/submissions', {
-            headers: {
-              'Authorization': `Bearer ${tokenData.token}`
-            }
-          })
-          if (frontendResponse.ok) {
-            const frontendData = await frontendResponse.json()
-            if (frontendData.success) {
-              console.log('Using frontend submissions:', frontendData.submissions || [])
-              setSubmissions(frontendData.submissions || [])
-            } else {
-              console.log('Frontend submissions API returned error:', frontendData.error)
-              setSubmissions([])
-            }
-          } else {
-            console.log('Frontend submissions API request failed:', frontendResponse.status, frontendResponse.statusText)
-            setSubmissions([])
-          }
-        } catch (fallbackError) {
-          console.error('Fallback submissions failed:', fallbackError)
-          setSubmissions([])
-        }
       }
 
-      // Fetch drafts from frontend API routes
+      // Fetch drafts using API service
       try {
-        const authToken = localStorage.getItem('authToken')
-        if (!authToken) {
-          console.log('No auth token found for drafts')
-          setDrafts([])
-          return
-        }
-
-        const tokenData = JSON.parse(authToken)
-        console.log('Auth token data:', tokenData)
-        console.log('Token being sent:', tokenData.token ? tokenData.token.substring(0, 20) + '...' : 'No token')
-        console.log('Fetching drafts from frontend API...')
-        
-        const draftsResponse = await fetch('/api/drafts', {
-          headers: {
-            'Authorization': `Bearer ${tokenData.token}`
-          }
-        })
-
-        if (draftsResponse.ok) {
-          const draftsData = await draftsResponse.json()
-          console.log('Drafts response:', draftsData)
-          console.log('Drafts response.success:', draftsData.success)
-          console.log('Drafts response.drafts:', draftsData.drafts)
-          console.log('Drafts response.drafts length:', draftsData.drafts?.length)
-          console.log('Drafts response.drafts type:', typeof draftsData.drafts)
-          if (draftsData.success) {
-            console.log('Setting drafts to:', draftsData.drafts || [])
-            setDrafts(draftsData.drafts || [])
-          } else {
-            console.log('Drafts API returned error:', draftsData.error)
-            setDrafts([])
-          }
-        } else {
-          console.log('Drafts API request failed:', draftsResponse.status, draftsResponse.statusText)
-          setDrafts([])
-        }
+        const { apiService } = await import('@/lib/api-service')
+        const draftsData = await apiService.getDrafts()
+        console.log('Drafts response:', draftsData)
+        console.log('Setting drafts to:', draftsData.drafts || [])
+        setDrafts(draftsData.drafts || [])
       } catch (draftError) {
         console.error('Error fetching drafts:', draftError)
         setDrafts([])
