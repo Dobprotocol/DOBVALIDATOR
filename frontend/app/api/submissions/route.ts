@@ -104,10 +104,18 @@ export async function POST(request: NextRequest) {
 
     // Get the backend URL
     const { getSafeBackendUrl } = await import('../../../lib/api-utils')
-    const backendUrl = getSafeBackendUrl()
-    const submissionsUrl = `${backendUrl}/api/submissions`
+    let backendUrl = getSafeBackendUrl()
 
-    console.log('🔍 Forwarding to backend:', submissionsUrl)
+    // Final fallback: if still on the frontend domain, force the backend URL
+    if (
+      (typeof window !== 'undefined' && window.location.hostname === 'validator.dobprotocol.com') ||
+      backendUrl.includes('validator.dobprotocol.com')
+    ) {
+      console.log('🔍 [API Route] Forcing backend URL to v.dobprotocol.com')
+      backendUrl = 'https://v.dobprotocol.com'
+    }
+    const submissionsUrl = `${backendUrl}/api/submissions`
+    console.log('🔍 [API Route] Submitting to:', submissionsUrl)
 
     // Check if this is FormData or JSON
     const contentType = request.headers.get('content-type') || ''

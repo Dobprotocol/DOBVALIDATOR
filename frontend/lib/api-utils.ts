@@ -3,21 +3,20 @@
  * This ensures that the frontend never calls itself as the backend
  */
 export function getSafeBackendUrl(): string {
-  // Always use production backend URL in production, regardless of environment variables
+  // If running in the browser and on the production frontend, always use the production backend
+  if (typeof window !== 'undefined' && window.location.hostname === 'validator.dobprotocol.com') {
+    console.log('🔍 [getSafeBackendUrl] Detected production frontend domain, using v.dobprotocol.com');
+    return 'https://v.dobprotocol.com';
+  }
+
+  // If running on the server in production, use the production backend
   if (process.env.NODE_ENV === 'production') {
-    console.log('🔍 Production mode: using v.dobprotocol.com')
-    return 'https://v.dobprotocol.com'
+    console.log('🔍 [getSafeBackendUrl] NODE_ENV=production, using v.dobprotocol.com');
+    return 'https://v.dobprotocol.com';
   }
-  
-  // Development mode: use environment variable or localhost
-  let backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
-  
-  // Safety check: prevent calling the frontend domain as backend
-  if (backendUrl.includes('validator.dobprotocol.com')) {
-    console.warn('⚠️ Backend URL points to frontend domain, redirecting to v.dobprotocol.com')
-    backendUrl = 'https://v.dobprotocol.com'
-  }
-  
-  console.log('🔍 Using backend URL:', backendUrl)
-  return backendUrl
+
+  // Otherwise, use the environment variable or fallback to localhost
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  console.log('🔍 [getSafeBackendUrl] Using backendUrl:', backendUrl);
+  return backendUrl;
 } 
