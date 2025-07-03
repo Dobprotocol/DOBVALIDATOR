@@ -99,10 +99,19 @@ export default function FormReviewPage() {
   }
 
   const handleSubmit = async () => {
-    if (!deviceData) return
+    console.log('🔍 Submit button clicked!')
+    console.log('🔍 Device data available:', !!deviceData)
+    
+    if (!deviceData) {
+      console.log('❌ No device data available')
+      return
+    }
 
+    console.log('🔍 Starting submission process...')
     setLoading(true)
+    
     try {
+      console.log('🔍 Checking file validation...')
       // Enforce all file fields are File objects
       if (
         !(deviceData.technicalCertification instanceof File) ||
@@ -112,6 +121,13 @@ export default function FormReviewPage() {
         !deviceData.deviceImages.length ||
         !deviceData.deviceImages.every(f => f instanceof File)
       ) {
+        console.log('❌ File validation failed')
+        console.log('🔍 File types:', {
+          technicalCertification: deviceData.technicalCertification?.constructor?.name,
+          purchaseProof: deviceData.purchaseProof?.constructor?.name,
+          maintenanceRecords: deviceData.maintenanceRecords?.constructor?.name,
+          deviceImages: deviceData.deviceImages?.map(f => f?.constructor?.name)
+        })
         toast({
           title: "Missing or Invalid Files",
           description: "Please re-upload all required files before submitting.",
@@ -121,9 +137,12 @@ export default function FormReviewPage() {
         return;
       }
 
+      console.log('✅ File validation passed')
+
       // Validate that all required files are uploaded
       if (!deviceData.technicalCertification || !deviceData.purchaseProof || 
           !deviceData.maintenanceRecords || deviceData.deviceImages.length === 0) {
+        console.log('❌ Required files missing')
         toast({
           title: "Missing Files",
           description: "Please upload all required documentation before submitting.",
@@ -134,13 +153,17 @@ export default function FormReviewPage() {
         return
       }
 
+      console.log('✅ All required files present')
+
       // Create FormData for submission
+      console.log('🔍 Creating FormData...')
       const formData = new FormData()
       
       // Add draft ID if it exists
       const draftId = localStorage.getItem('currentDraftId')
       if (draftId) {
         formData.append('draftId', draftId)
+        console.log('🔍 Added draft ID:', draftId)
       }
       
       // Add all device data fields
@@ -157,41 +180,58 @@ export default function FormReviewPage() {
         }
       })
 
+      console.log('✅ Added device data fields')
+
       // Add files
       if (deviceData.technicalCertification) {
         formData.append('technicalCertification', deviceData.technicalCertification)
+        console.log('🔍 Added technical certification:', deviceData.technicalCertification.name)
       }
       if (deviceData.purchaseProof) {
         formData.append('purchaseProof', deviceData.purchaseProof)
+        console.log('🔍 Added purchase proof:', deviceData.purchaseProof.name)
       }
       if (deviceData.maintenanceRecords) {
         formData.append('maintenanceRecords', deviceData.maintenanceRecords)
+        console.log('🔍 Added maintenance records:', deviceData.maintenanceRecords.name)
       }
       if (deviceData.deviceImages && deviceData.deviceImages.length > 0) {
         deviceData.deviceImages.forEach((file, index) => {
           formData.append(`deviceImages[${index}]`, file)
         })
+        console.log('🔍 Added device images:', deviceData.deviceImages.length, 'files')
+      }
+
+      console.log('🔍 FormData created successfully')
+      console.log('🔍 FormData entries:')
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value instanceof File ? `${value.name} (${value.type})` : value)
       }
 
       // Submit using API service
+      console.log('🔍 Calling apiService.submitDevice...')
       const response = await apiService.submitDevice(formData)
+      console.log('🔍 API response received:', response)
 
       if (response.success) {
+        console.log('✅ Submission successful!')
         // Clear the draft ID from localStorage after successful submission
         localStorage.removeItem('currentDraftId')
         console.log('Draft ID cleared after successful submission')
         handleSubmissionSuccess()
       } else {
+        console.log('❌ Submission failed:', response)
         throw new Error('Submission failed')
       }
     } catch (error: any) {
-      console.error('Submission error:', error)
+      console.error('❌ Submission error:', error)
       toast({
         title: "Submission Failed",
         description: error.message || "Failed to submit device",
         variant: "destructive",
       })
     } finally {
+      console.log('🔍 Setting loading to false')
       setLoading(false)
     }
   }
@@ -321,7 +361,10 @@ export default function FormReviewPage() {
               </Button>
               
               <Button
-                onClick={handleSubmit}
+                onClick={() => {
+                  console.log('🔍 Submit button clicked - handler called!')
+                  handleSubmit()
+                }}
                 className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg font-semibold"
                 disabled={loading}
               >
