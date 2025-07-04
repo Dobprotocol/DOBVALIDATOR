@@ -147,6 +147,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 - [submission-review/page.tsx](backoffice/app/submission-review/page.tsx) - Review dashboard
 - [submission-review/layout.tsx](backoffice/app/submission-review/layout.tsx) - Review layout
 - [submissions/route.ts](backoffice/app/api/submissions/route.ts) - Backoffice submission API
+- [TRUFA Scoring Documentation](../docs/TRUFA.md) - Full details on the TRUFA scoring system
 
 **Key Features:**
 

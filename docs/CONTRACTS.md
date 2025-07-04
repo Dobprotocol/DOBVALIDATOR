@@ -338,10 +338,11 @@ The contract stores the following data:
 
 The contract integrates with the frontend through:
 
-- **Project Submission**: Frontend generates project hash and calls `add_project` (planned)
-- **Status Tracking**: Frontend queries project statuses for dashboard display (planned)
-- **Admin Interface**: Backoffice calls approval/rejection functions (planned)
-- **Whitelist Management**: Admin manages authorized addresses (planned)
+- **Project Submission**: Frontend generates project hash and calls `add_project`
+- **Status Tracking**: Frontend queries project statuses for dashboard display
+- **Admin Interface**: Backoffice creates payment transactions with approval/rejection data
+
+For details on the TRUFA scoring system and how scores are calculated and used, see [TRUFA Scoring Documentation](TRUFA.md).
 
 **Current Implementation:**
 
@@ -353,20 +354,20 @@ The contract integrates with the frontend through:
 
 #### Access Control
 
-- Only admin can approve/reject projects (planned)
-- Only whitelisted addresses can submit projects (planned)
-- Admin can manage whitelist (planned)
+- Only admin can approve/reject projects
+- Only whitelisted addresses can submit projects
+- Admin can manage whitelist
 
 #### Data Integrity
 
-- Project hashes are immutable once stored (planned)
-- Status changes are logged on-chain (planned)
-- No direct data modification possible (planned)
+- Project hashes are immutable once stored
+- Status changes are logged on-chain
+- No direct data modification possible
 
 #### Input Validation
 
-- Project hashes must be exactly 32 bytes (planned)
-- Address validation for admin and whitelist (planned)
+- Project hashes must be exactly 32 bytes
+- Address validation for admin and whitelist
 - Index bounds checking for bulk queries (planned)
 
 ### Testing
