@@ -3,13 +3,36 @@ const CONTRACT_VERSION = 'dob-validator-metadata-signer-' + Date.now()
 
 // Contract configuration
 const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
-const SOROBAN_RPC = 'https://soroban-testnet.stellar.org:443'
-const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015'
+const SOROBAN_RPC = 'https://rpc.ankr.com/stellar_testnet_soroban/9727cd322bf7c9e5118e51cf6986747839036665ddc1aeec2131fd6a65ef6545'
+const NETWORK_PASSPHRASE = 'Test SDF Network ; Chile 2025'
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
-// Import Stellar SDK and Soroban client
-import { TransactionBuilder, Networks, xdr, TimeoutInfinite } from '@stellar/stellar-sdk'
-import SorobanClient from 'soroban-client'
+// Import Stellar SDK with dynamic imports to avoid constructor issues
+let TransactionBuilder: any
+let Networks: any
+let xdr: any
+let TimeoutInfinite: any
+let SorobanClient: any
+
+// Dynamic import to avoid constructor issues
+async function loadStellarSDK() {
+  try {
+    const stellarSDK = await import('@stellar/stellar-sdk')
+    const sorobanClient = await import('soroban-client')
+    
+    TransactionBuilder = stellarSDK.TransactionBuilder
+    Networks = stellarSDK.Networks
+    xdr = stellarSDK.xdr
+    TimeoutInfinite = stellarSDK.TimeoutInfinite
+    SorobanClient = sorobanClient.default
+    
+    console.log('✅ Stellar SDK loaded successfully')
+    return true
+  } catch (error) {
+    console.error('❌ Failed to load Stellar SDK:', error)
+    return false
+  }
+}
 
 // Log version on module load
 console.log(`[${new Date().toISOString()}] [SorobanContract]  LOADED VERSION: ${CONTRACT_VERSION}`)
@@ -181,12 +204,18 @@ class StellarContractService {
     console.log('  Full Metadata object:', JSON.stringify(metadata, null, 2));
     
     try {
+      // Load Stellar SDK dynamically
+      const sdkLoaded = await loadStellarSDK()
+      if (!sdkLoaded) {
+        throw new Error('Failed to load Stellar SDK')
+      }
+
       // Initialize Soroban client
       const sorobanClient = new SorobanClient(SOROBAN_RPC, {
         networkPassphrase: NETWORK_PASSPHRASE
       });
 
-      console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Connected to Soroban RPC`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Connected to Ankr Soroban RPC`);
 
       // Get the latest ledger
       const latestLedger = await sorobanClient.getLatestLedger();
@@ -261,7 +290,7 @@ class StellarContractService {
       const signedTransaction = TransactionBuilder.fromXDR(signedTransactionXdr, NETWORK_PASSPHRASE);
 
       // Submit the transaction
-      console.log(`[${new Date().toISOString()}] [SorobanContract] 🚀 Submitting transaction to network...`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🚀 Submitting transaction to Ankr network...`);
       const sendResponse = await sorobanClient.sendTransaction(signedTransaction);
       
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📤 Transaction sent, hash: ${sendResponse.hash}`);
