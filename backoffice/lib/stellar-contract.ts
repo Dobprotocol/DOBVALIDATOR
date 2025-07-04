@@ -269,9 +269,15 @@ class StellarContractService {
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Validation hash: ${validationHash}`);
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Hash length: ${validationHash.length} bytes`);
       
+      // Debug network configuration
+      const networkPassphrase = "Test SDF Network ; September 2015"; // Explicitly match Freighter's testnet expectation
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Using network passphrase: ${networkPassphrase}`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Expected by Freighter: Test SDF Network ; September 2015`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Networks.TESTNET value: ${Networks.TESTNET}`);
+      
       const transaction = new TransactionBuilder(sourceAccount, {
         fee: '100',
-        networkPassphrase: Networks.TESTNET
+        networkPassphrase: networkPassphrase
       })
       .addOperation(
         (await import('@stellar/stellar-sdk')).Operation.manageData({

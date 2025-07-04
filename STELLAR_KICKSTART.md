@@ -115,6 +115,11 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 - Decision recording
 - Certificate generation
 
+**Smart Contract Implementation:**
+
+- [DOB Validator Contract](docs/CONTRACTS.md#dob-validator-contract) - Core validation and scoring contract
+- [Contract Address](backoffice/lib/stellar-contract.ts) - Testnet: `CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN`
+
 ## Testing Process
 
 ### 1. Unit Testing
@@ -137,6 +142,13 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 - Cross-browser testing
 - Mobile responsiveness
 - Error handling
+
+**Testing Documentation:**
+
+- [Backend Testing Suite](backend/TESTING_SUITE.md) - Comprehensive testing documentation
+- [API Testing Collection](frontend/DOB_Validator_API.postman_collection.json) - Postman collection for API testing
+- [Authentication Documentation](frontend/AUTHENTICATION_DOCUMENTATION.md) - Detailed auth flow testing
+- [Test Scripts](backend/scripts/) - Automated test scripts for complete workflow validation
 
 ## Technical Stack
 

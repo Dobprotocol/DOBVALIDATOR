@@ -10,14 +10,12 @@ DOB Protocol utilizes Stellar Soroban smart contracts to provide trustless valid
 
 1. **DOB Validator Contract** - Main validation and scoring contract
 2. **Certificate Generator** - Digital certificate creation and verification
-3. **Investment Manager** - Fractional investment management
-4. **Governance Contract** - Protocol governance and voting
 
 ## DOB Validator Contract
 
 ### Contract Address
 
-- **Testnet**: `CABC1234567890ABCDEF...`
+- **Testnet**: `CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN`
 - **Mainnet**: `TBD`
 
 ### Purpose
