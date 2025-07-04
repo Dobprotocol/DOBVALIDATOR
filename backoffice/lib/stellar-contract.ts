@@ -650,7 +650,6 @@ class StellarContractService {
     try {
       console.log('🔍 Checking transaction status:', transactionHash)
       
-      // For now, return a mock status
       // In a real implementation, this would query the Stellar network
       return {
         success: true,
