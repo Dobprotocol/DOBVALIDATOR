@@ -25,7 +25,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "main": true,
+      "main": false,
+      "prod": true,
       "develop": false,
       "staging": false,
       "preview": false
