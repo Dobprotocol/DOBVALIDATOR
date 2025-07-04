@@ -13,6 +13,8 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:seed": "ts-node scripts/setup-database.ts",
+    "deploy:log": "ts-node scripts/log-deployment.ts",
+    "deploy:check": "ts-node scripts/check-deployments.ts",
     "test:e2e": "ts-node scripts/e2e-test.ts",
     "test:integration": "ts-node scripts/integration-test.ts",
     "test:simple": "ts-node scripts/simple-test.ts",

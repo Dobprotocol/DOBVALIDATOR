@@ -1564,6 +1564,68 @@ app.delete('/api/drafts/:id', async (req, res) => {
   }
 })
 
+// Deployment endpoints
+app.get('/api/deployments', async (req, res) => {
+  try {
+    const { limit = 10, environment } = req.query
+    
+    const { deploymentService } = require('./lib/deployment-service')
+    
+    let deployments
+    if (environment) {
+      deployments = await deploymentService.getDeploymentsByEnvironment(environment as string, parseInt(limit as string))
+    } else {
+      deployments = await deploymentService.getRecentDeployments(parseInt(limit as string))
+    }
+    
+    res.json({ 
+      success: true, 
+      deployments,
+      total: deployments.length
+    })
+  } catch (error) {
+    console.error('Deployments fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch deployments' })
+  }
+})
+
+app.get('/api/deployments/stats', async (req, res) => {
+  try {
+    const { deploymentService } = require('./lib/deployment-service')
+    const stats = await deploymentService.getDeploymentStats()
+    
+    res.json({ 
+      success: true, 
+      stats
+    })
+  } catch (error) {
+    console.error('Deployment stats error:', error)
+    res.status(500).json({ error: 'Failed to fetch deployment stats' })
+  }
+})
+
+app.get('/api/deployments/latest/:environment', async (req, res) => {
+  try {
+    const { environment } = req.params
+    const { deploymentService } = require('./lib/deployment-service')
+    
+    const latest = await deploymentService.getLatestDeployment(environment)
+    
+    if (!latest) {
+      res.status(404).json({ error: 'No deployment found for environment' })
+      return
+    }
+    
+    res.json({ 
+      success: true, 
+      deployment: latest
+    })
+  } catch (error) {
+    console.error('Latest deployment fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch latest deployment' })
+  }
+})
+
 // Admin endpoints
 app.get('/api/admin/profiles', async (req, res) => {
   try {
@@ -1647,6 +1709,25 @@ async function startServer() {
     // Test database connection
     await prisma.$connect()
     console.log('✅ Database connected successfully')
+
+    // Log deployment to database
+    try {
+      const { deploymentService } = require('./lib/deployment-service')
+      const deploymentInfo = deploymentService.getCurrentDeploymentInfo()
+      deploymentInfo.notes = 'Backend startup deployment log'
+      deploymentInfo.metadata = {
+        ...deploymentInfo.metadata,
+        startupTime: new Date().toISOString(),
+        processId: process.pid,
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime()
+      }
+      
+      await deploymentService.logDeployment(deploymentInfo)
+      console.log('🚀 Deployment logged to database')
+    } catch (deploymentError) {
+      console.error('⚠️ Failed to log deployment (continuing anyway):', deploymentError)
+    }
 
     // Start session cleanup job (runs every hour)
     setInterval(async () => {

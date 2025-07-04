@@ -42,4 +42,8 @@ gcloud run deploy dob-validator-backend \
   --set-env-vars NODE_ENV=production
 
 echo "🎉 Deployment completed successfully!"
-echo "🌍 Backend should be available at the URL shown above" 
+echo "🌍 Backend should be available at the URL shown above"
+
+# Step 5: Log deployment to database (optional - will be logged on startup)
+echo "📝 Deployment will be logged to database on next startup"
+echo "🔍 You can check deployment history at: https://v.dobprotocol.com/api/deployments" 

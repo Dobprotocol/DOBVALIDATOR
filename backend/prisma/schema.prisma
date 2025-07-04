@@ -209,7 +209,7 @@ enum CertificateStatus {
 }
 
 model DeploymentLog {
-  id          String   @id @default(cuid())
+  id          String   @id
   version     String
   environment String   // "production", "staging", "development"
   deployedAt  DateTime @default(now())
