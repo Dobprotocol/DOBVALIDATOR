@@ -1100,24 +1100,25 @@ app.post('/api/admin-reviews', async (req, res) => {
       return
     }
 
-    const { submission_id, notes, technical_score, regulatory_score, financial_score, environmental_score, overall_score, decision } = req.body
+    const { submissionId, notes, technicalScore, regulatoryScore, financialScore, environmentalScore, overallScore, decision, validatorWallet } = req.body
 
-    if (!submission_id) {
-      res.status(400).json({ error: 'submission_id is required' })
+    if (!submissionId) {
+      res.status(400).json({ error: 'submissionId is required' })
       return
     }
 
     const adminReviewData: any = {}
     
     if (notes !== undefined) adminReviewData.notes = notes
-    if (technical_score !== undefined) adminReviewData.technicalScore = technical_score
-    if (regulatory_score !== undefined) adminReviewData.regulatoryScore = regulatory_score
-    if (financial_score !== undefined) adminReviewData.financialScore = financial_score
-    if (environmental_score !== undefined) adminReviewData.environmentalScore = environmental_score
-    if (overall_score !== undefined) adminReviewData.overallScore = overall_score
+    if (technicalScore !== undefined) adminReviewData.technicalScore = technicalScore
+    if (regulatoryScore !== undefined) adminReviewData.regulatoryScore = regulatoryScore
+    if (financialScore !== undefined) adminReviewData.financialScore = financialScore
+    if (environmentalScore !== undefined) adminReviewData.environmentalScore = environmentalScore
+    if (overallScore !== undefined) adminReviewData.overallScore = overallScore
     if (decision !== undefined) adminReviewData.decision = decision.toUpperCase()
+    if (validatorWallet !== undefined) adminReviewData.validatorWallet = validatorWallet
 
-    const review = await adminReviewService.upsert(submission_id, adminReviewData)
+    const review = await adminReviewService.upsert(submissionId, adminReviewData)
 
     res.json({ success: true, data: review })
     return

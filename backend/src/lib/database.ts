@@ -582,6 +582,7 @@ export const adminReviewService = {
     overallScore?: number
     decision?: 'APPROVED' | 'REJECTED'
     decisionAt?: Date
+    validatorWallet?: string
   }) {
     return prisma.adminReview.upsert({
       where: { submissionId },
