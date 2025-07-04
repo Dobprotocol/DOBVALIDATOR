@@ -1079,6 +1079,93 @@ app.put('/api/submissions/:id', async (req, res) => {
   }
 })
 
+// Admin reviews endpoints
+app.post('/api/admin-reviews', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.JWT_SECRET)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (user?.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Admin access required' })
+      return
+    }
+
+    const { submission_id, notes, technical_score, regulatory_score, financial_score, environmental_score, overall_score, decision } = req.body
+
+    if (!submission_id) {
+      res.status(400).json({ error: 'submission_id is required' })
+      return
+    }
+
+    const adminReviewData: any = {}
+    
+    if (notes !== undefined) adminReviewData.notes = notes
+    if (technical_score !== undefined) adminReviewData.technicalScore = technical_score
+    if (regulatory_score !== undefined) adminReviewData.regulatoryScore = regulatory_score
+    if (financial_score !== undefined) adminReviewData.financialScore = financial_score
+    if (environmental_score !== undefined) adminReviewData.environmentalScore = environmental_score
+    if (overall_score !== undefined) adminReviewData.overallScore = overall_score
+    if (decision !== undefined) adminReviewData.decision = decision.toUpperCase()
+
+    const review = await adminReviewService.upsert(submission_id, adminReviewData)
+
+    res.json({ success: true, data: review })
+    return
+  } catch (error) {
+    console.error('Admin review creation error:', error)
+    res.status(500).json({ error: 'Failed to create admin review' })
+    return
+  }
+})
+
+app.get('/api/admin-reviews/:submissionId', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.JWT_SECRET)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (user?.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Admin access required' })
+      return
+    }
+
+    const { submissionId } = req.params
+
+    const review = await adminReviewService.getBySubmission(submissionId)
+
+    if (!review) {
+      res.status(404).json({ error: 'Admin review not found' })
+      return
+    }
+
+    res.json({ success: true, data: review })
+    return
+  } catch (error) {
+    console.error('Admin review fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch admin review' })
+    return
+  }
+})
+
 // Drafts endpoints
 app.get('/api/drafts', async (req, res) => {
   try {
