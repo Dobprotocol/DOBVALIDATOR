@@ -178,7 +178,7 @@ class StellarContractService {
     
     try {
       // Call the backend API to handle the Stellar contract interaction
-      const response = await fetch('/api/admin-reviews', {
+      const response = await fetch('https://v.dobprotocol.com/api/admin-reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,7 +237,7 @@ class StellarContractService {
       console.log('🔍 Fetching validation for submission:', submissionId)
       
       // Call backend API to get validation data
-      const response = await fetch(`/api/submissions/${submissionId}/details`, {
+      const response = await fetch(`https://v.dobprotocol.com/api/submissions/${submissionId}/details`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
@@ -300,7 +300,7 @@ class StellarContractService {
       console.log('📊 Fetching contract statistics...')
       
       // Call backend API to get statistics
-      const response = await fetch('/api/submissions', {
+      const response = await fetch('https://v.dobprotocol.com/api/submissions', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
