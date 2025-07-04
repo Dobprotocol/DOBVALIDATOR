@@ -21,6 +21,9 @@ const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
 // Log version on module load
 console.log(`[${new Date().toISOString()}] [SorobanContract] 🚀 LOADED VERSION: ${CONTRACT_VERSION}`)
+console.log(`[${new Date().toISOString()}] [SorobanContract] 🔥 THIS IS THE REAL CONTRACT INTEGRATION - NO SIMULATION`)
+console.log(`[${new Date().toISOString()}] [SorobanContract] 📍 Contract Address: ${CONTRACT_ADDRESS}`)
+console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 RPC URL: ${SOROBAN_RPC}`)
 
 // TRUFA Metadata structure for blockchain storage
 export interface TrufaMetadata {
@@ -195,6 +198,7 @@ class StellarContractService {
     signTransaction: (transactionXdr: string) => Promise<string>
   }): Promise<ContractResult> {
     const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [SorobanContract] 🔥🔥🔥 REAL CONTRACT INTEGRATION CALLED - NO SIMULATION 🔥🔥🔥`);
     console.log(`[${timestamp}] [SorobanContract] 🚀 REAL CONTRACT CALL v2.0 - Starting...`);
     console.log(`[${timestamp}] [SorobanContract] VERSION: Real Stellar Integration Active`);
     console.log(`  Admin wallet: ${adminPublic}`);
