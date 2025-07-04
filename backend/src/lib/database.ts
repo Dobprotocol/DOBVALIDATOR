@@ -49,7 +49,7 @@ export const userService = {
 
 export const profileService = {
   // Create or update profile
-  async create(userId: string, data: { name: string; company?: string; email: string; walletAddress: string }) {
+  async create(userId: string, data: { name: string; company?: string; email: string; walletAddress: string; profileImage?: string }) {
     console.log('🔍 ProfileService.create called with:', { userId, data })
     
     try {
@@ -81,11 +81,16 @@ export const profileService = {
   },
 
   // Update profile
-  async update(walletAddress: string, data: { name?: string; company?: string; email?: string }) {
+  async update(walletAddress: string, data: { name?: string; company?: string; email?: string; profileImage?: string }) {
     return prisma.profile.update({
       where: { walletAddress },
       data: { ...data, updatedAt: new Date() }
     })
+  },
+
+  // Update profile by wallet address (alias for update)
+  async updateByWallet(walletAddress: string, data: { name?: string; company?: string; email?: string; profileImage?: string }) {
+    return this.update(walletAddress, data)
   }
 }
 

@@ -238,7 +238,7 @@ class ApiService {
     }
   }
 
-  async createProfile(profileData: { name: string; company?: string; email: string }) {
+  async createProfile(profileData: { name: string; company?: string; email: string; profileImage?: string }) {
     console.log('🔍 Creating profile in database with wallet address:', this.getWalletAddress())
     
     // For development mode, save to local storage
@@ -268,6 +268,20 @@ class ApiService {
       console.error('❌ Backend profile creation failed:', error)
       throw error
     }
+  }
+
+  // Upload profile image
+  async uploadProfileImage(imageFile: File) {
+    console.log('🔍 Uploading profile image')
+    
+    const formData = new FormData()
+    formData.append('profileImage', imageFile)
+    
+    // Use the frontend API route which will proxy to the backend
+    return this.request<{ success: boolean; imageUrl: string; profile: any }>('/api/profile/upload-image', {
+      method: 'POST',
+      body: formData,
+    })
   }
 
   // Submissions (use backend API)

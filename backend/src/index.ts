@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import multer from 'multer'
+import path from 'path'
 import { TransactionBuilder, Networks } from 'stellar-sdk'
 import { prisma } from './lib/database'
 import { userService, profileService, submissionService, authService, adminReviewService, draftService } from './lib/database'
@@ -202,6 +203,9 @@ app.use(cors({
 // Request size limits
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1mb' }))
+
+// Serve static files (profile images, uploads, etc.)
+app.use('/uploads', express.static(path.join(__dirname, '..', '..', 'uploads')))
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -460,8 +464,8 @@ app.post('/api/profile', async (req, res) => {
     const { walletAddress } = decoded
     console.log('✅ JWT verified, wallet address:', walletAddress)
 
-    const { name, company, email } = req.body
-    console.log('🔍 Profile data:', { name, company, email })
+    const { name, company, email, profileImage } = req.body
+    console.log('🔍 Profile data:', { name, company, email, profileImage })
 
     // Get user
     console.log('🔍 Getting user by wallet...')
@@ -479,7 +483,8 @@ app.post('/api/profile', async (req, res) => {
       name,
       company,
       email,
-      walletAddress
+      walletAddress,
+      profileImage
     })
     console.log('✅ Profile created/updated:', profile.id)
 
@@ -489,6 +494,86 @@ app.post('/api/profile', async (req, res) => {
     console.error('❌ Profile creation error:', error)
     console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     res.status(500).json({ error: 'Failed to create profile' })
+    return
+  }
+})
+
+// Profile image upload endpoint
+app.post('/api/profile/upload-image', upload.single('profileImage'), async (req, res) => {
+  try {
+    console.log('🔍 Profile image upload request received')
+    
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' })
+      return
+    }
+
+    const token = authHeader.substring(7)
+    const jwt = require('jsonwebtoken')
+    
+    const decoded = jwt.verify(token, env.JWT_SECRET)
+    const { walletAddress } = decoded
+
+    const user = await userService.getByWallet(walletAddress)
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'No image file provided' })
+      return
+    }
+
+    // Validate file type
+    if (!req.file.mimetype.startsWith('image/')) {
+      res.status(400).json({ error: 'File must be an image' })
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (req.file.size > 5 * 1024 * 1024) {
+      res.status(400).json({ error: 'Image size must be less than 5MB' })
+      return
+    }
+
+    // Generate unique filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const fileExtension = req.file.originalname.split('.').pop()
+    const filename = `profile-${walletAddress}-${timestamp}.${fileExtension}`
+    
+    // For now, we'll store the file path as the URL
+    // In production, you might want to upload to a CDN or cloud storage
+    const imageUrl = `/uploads/profiles/${filename}`
+    
+    // Save the file to the uploads directory
+    const fs = require('fs')
+    const path = require('path')
+    const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'profiles')
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true })
+    }
+    
+    const filePath = path.join(uploadDir, filename)
+    fs.writeFileSync(filePath, req.file.buffer)
+
+    // Update the user's profile with the image URL
+    const profile = await profileService.updateByWallet(walletAddress, {
+      profileImage: imageUrl
+    })
+
+    res.json({ 
+      success: true, 
+      imageUrl,
+      profile 
+    })
+    return
+  } catch (error) {
+    console.error('❌ Profile image upload error:', error)
+    res.status(500).json({ error: 'Failed to upload profile image' })
     return
   }
 })

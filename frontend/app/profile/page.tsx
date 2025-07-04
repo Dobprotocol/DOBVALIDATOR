@@ -129,7 +129,7 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
@@ -144,10 +144,24 @@ export default function ProfilePage() {
         return;
       }
 
-      // Create a preview URL
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImage(imageUrl);
-      setErrors(prev => ({ ...prev, image: '' }));
+      try {
+        // Upload the image to the backend
+        const response = await apiService.uploadProfileImage(file);
+        console.log('✅ Profile image uploaded:', response);
+        
+        // Use the returned image URL
+        setProfileImage(response.imageUrl);
+        setErrors(prev => ({ ...prev, image: '' }));
+      } catch (error) {
+        console.error('❌ Failed to upload profile image:', error);
+        setErrors(prev => ({ ...prev, image: 'Failed to upload image. Please try again.' }));
+        
+        // Fallback to local preview for development
+        if (process.env.NODE_ENV === 'development') {
+          const imageUrl = URL.createObjectURL(file);
+          setProfileImage(imageUrl);
+        }
+      }
     }
   };
 
