@@ -188,6 +188,25 @@ class StellarContractService {
   }
 
   /**
+   * Generate a validation hash that fits within 64-byte limit
+   */
+  private generateValidationHash(data: any): string {
+    const validationString = JSON.stringify(data, Object.keys(data).sort())
+    // Simple hash for now - in production, use a proper cryptographic hash
+    let hash = 0
+    if (validationString && typeof validationString === 'string') {
+      for (let i = 0; i < validationString.length; i++) {
+        const char = validationString.charCodeAt(i)
+        hash = ((hash << 5) - hash) + char
+        hash = hash & hash // Convert to 32-bit integer
+      }
+    }
+    const hashString = Math.abs(hash).toString(16)
+    // Ensure it's under 64 bytes and add prefix for identification
+    return `dob_${hashString}`.substring(0, 60) // Leave some room for safety
+  }
+
+  /**
    * Submit validation metadata to the Soroban contract
    * Production-ready implementation with real blockchain submission
    */
@@ -218,6 +237,24 @@ class StellarContractService {
       // This creates a real Stellar transaction that can be signed and submitted
       const sourceAccount = new (await import('@stellar/stellar-sdk')).Account(adminPublic, '0');
       
+      // Create a compressed hash of the validation data to stay within 64-byte limit
+      const validationData = {
+        submissionId: metadata.submissionId,
+        deviceName: metadata.deviceName,
+        deviceType: metadata.deviceType,
+        decision: metadata.decision,
+        scores: metadata.trufaScores,
+        timestamp: new Date().toISOString(),
+        contractAddress: CONTRACT_ADDRESS,
+        functionName: 'submit_validation'
+      };
+      
+      // Create a simple hash of the validation data (stays under 64 bytes)
+      const validationHash = this.generateValidationHash(validationData);
+      
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Validation hash: ${validationHash}`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Hash length: ${validationHash.length} bytes`);
+      
       const transaction = new TransactionBuilder(sourceAccount, {
         fee: '100',
         networkPassphrase: NETWORK_PASSPHRASE
@@ -225,16 +262,7 @@ class StellarContractService {
       .addOperation(
         (await import('@stellar/stellar-sdk')).Operation.manageData({
           name: 'dob_validation',
-          value: JSON.stringify({
-            submissionId: metadata.submissionId,
-            deviceName: metadata.deviceName,
-            deviceType: metadata.deviceType,
-            decision: metadata.decision,
-            scores: metadata.trufaScores,
-            timestamp: new Date().toISOString(),
-            contractAddress: CONTRACT_ADDRESS,
-            functionName: 'submit_validation'
-          })
+          value: validationHash
         })
       )
       .setTimeout(300) // 5 minutes
@@ -335,12 +363,14 @@ class StellarContractService {
           networkResponse: result,
           signedTransaction: signedTransactionXdr.substring(0, 100) + '...',
           transactionType: 'stellar_manage_data',
+          validationHash: validationHash,
           originalTransaction: {
             sourceAccount: adminPublic,
             fee: '100',
             networkPassphrase: NETWORK_PASSPHRASE,
             operation: 'manageData',
             dataName: 'dob_validation',
+            dataValue: validationHash,
             timeout: 300
           }
         }
