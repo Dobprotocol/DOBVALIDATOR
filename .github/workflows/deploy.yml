@@ -5,15 +5,16 @@ on:
     branches:
       - prod  # o la rama que quieras
 
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    environment: Production 
     steps:
       - name: Trigger deploy via SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.SERVER_IP }}
+          host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # Ojo: NO hay script aquí, el comando se corre porque la clave tiene restriction
