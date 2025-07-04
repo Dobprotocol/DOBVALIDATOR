@@ -4,6 +4,8 @@
 
 DOB Protocol utilizes Stellar Soroban smart contracts to provide trustless project validation and status management. This document provides comprehensive documentation for the DOB Validator smart contract.
 
+**⚠️ Implementation Status**: The contract functions are documented below, but the actual Soroban contract integration is currently in development. The current implementation uses payment operations with memos for metadata storage.
+
 ## Contract Architecture
 
 ### Core Contract
@@ -17,8 +19,9 @@ DOB Protocol utilizes Stellar Soroban smart contracts to provide trustless proje
 - **Contract Address**: `CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN`
 - **Network**: Stellar Testnet
 - **WASM Hash**: `cd45e70c30a0676f7eda6b817e6aa4949570b9ee0053e029649bb0d77e2d32a8`
-- **Soroban Version**: 1.87.0
-- **SDK Version**: 22.0.8
+- **Soroban Version**: 1.87.0 (from contract metadata)
+- **SDK Version**: 22.0.8 (from contract metadata)
+- **Current SDK in Use**: `@stellar/stellar-sdk` ^13.3.0, `soroban-client` ^1.0.1
 
 ### Purpose
 
@@ -63,7 +66,9 @@ pub enum DataKey {
 }
 ```
 
-### Contract Functions
+### Contract Functions (Documented but Not Yet Implemented)
+
+⚠️ **Note**: The following functions are documented based on the contract specification but are not yet implemented in the codebase. The current implementation uses payment operations with memos.
 
 #### `__constructor(admin: Address, whitelist_addresses: Vec<Address>)`
 
@@ -232,6 +237,30 @@ Change the admin address.
 - Updates admin address
 - Only current admin can change admin
 
+### Current Implementation Status
+
+#### What's Currently Working
+
+✅ **Contract Address**: Correctly configured as `CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN`
+
+✅ **SDK Integration**: Using `@stellar/stellar-sdk` ^13.3.0 and `soroban-client` ^1.0.1
+
+✅ **Transaction Submission**: Successfully submitting transactions to Soroban RPC
+
+✅ **Metadata Storage**: Using payment operations with memos to store validation metadata
+
+✅ **Wallet Integration**: Working with Freighter and Simple Stellar Signer
+
+#### What's Not Yet Implemented
+
+❌ **Direct Contract Function Calls**: The actual Soroban contract functions are not being called
+
+❌ **Contract State Management**: Not reading/writing to contract storage
+
+❌ **Whitelist Management**: Not using contract whitelist functions
+
+❌ **Project Status Queries**: Not querying contract for project statuses
+
 ### Contract Storage
 
 The contract stores the following data:
@@ -269,7 +298,23 @@ The contract stores the following data:
 - `get_projects_statuses_from_vec`
 - `get_all_projects_statuses`
 
-### Workflow
+### Current Workflow
+
+1. **Project Submission** (Current Implementation)
+   - Frontend generates project metadata
+   - Creates payment transaction with memo containing validation data
+   - Submits to Soroban RPC for blockchain storage
+
+2. **Project Review** (Current Implementation)
+   - Admin reviews project data (off-chain)
+   - Creates payment transaction with memo containing approval/rejection data
+   - Submits to Soroban RPC for blockchain storage
+
+3. **Status Tracking** (Current Implementation)
+   - Queries transaction history for project metadata
+   - Parses memo data to determine project status
+
+### Planned Workflow (When Contract Functions Are Implemented)
 
 1. **Contract Deployment**
    - Admin address is set
@@ -293,30 +338,36 @@ The contract stores the following data:
 
 The contract integrates with the frontend through:
 
-- **Project Submission**: Frontend generates project hash and calls `add_project`
-- **Status Tracking**: Frontend queries project statuses for dashboard display
-- **Admin Interface**: Backoffice calls approval/rejection functions
-- **Whitelist Management**: Admin manages authorized addresses
+- **Project Submission**: Frontend generates project hash and calls `add_project` (planned)
+- **Status Tracking**: Frontend queries project statuses for dashboard display (planned)
+- **Admin Interface**: Backoffice calls approval/rejection functions (planned)
+- **Whitelist Management**: Admin manages authorized addresses (planned)
+
+**Current Implementation:**
+
+- **Project Submission**: Frontend generates metadata and creates payment transactions
+- **Status Tracking**: Frontend queries transaction history for project data
+- **Admin Interface**: Backoffice creates payment transactions with approval/rejection data
 
 ### Security Considerations
 
 #### Access Control
 
-- Only admin can approve/reject projects
-- Only whitelisted addresses can submit projects
-- Admin can manage whitelist
+- Only admin can approve/reject projects (planned)
+- Only whitelisted addresses can submit projects (planned)
+- Admin can manage whitelist (planned)
 
 #### Data Integrity
 
-- Project hashes are immutable once stored
-- Status changes are logged on-chain
-- No direct data modification possible
+- Project hashes are immutable once stored (planned)
+- Status changes are logged on-chain (planned)
+- No direct data modification possible (planned)
 
 #### Input Validation
 
-- Project hashes must be exactly 32 bytes
-- Address validation for admin and whitelist
-- Index bounds checking for bulk queries
+- Project hashes must be exactly 32 bytes (planned)
+- Address validation for admin and whitelist (planned)
+- Index bounds checking for bulk queries (planned)
 
 ### Testing
 
@@ -329,24 +380,24 @@ cargo test
 #### Integration Tests
 
 ```bash
-# Test project submission flow
+# Test project submission flow (when implemented)
 soroban contract invoke --id <contract_id> add_project \
   --from <whitelisted_address> \
   --project-hash <32_byte_hash>
 
-# Test project approval
+# Test project approval (when implemented)
 soroban contract invoke --id <contract_id> set_project_approved \
   --from <admin_address> \
   --project-hash <32_byte_hash>
 
-# Query project status
+# Query project status (when implemented)
 soroban contract invoke --id <contract_id> get_project_status \
   --project-hash <32_byte_hash>
 ```
 
 ### Contract Interaction Examples
 
-#### JavaScript/TypeScript
+#### JavaScript/TypeScript (Planned Implementation)
 
 ```typescript
 import { SorobanRpc, Contract } from "soroban-client";
@@ -357,26 +408,26 @@ const contract = new Contract(
   "CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN"
 );
 
-// Add project
+// Add project (when implemented)
 const projectHash = new Uint8Array(32); // 32-byte hash
 const result = await contract.call("add_project", {
   from: "GABC123...",
   project_hash: projectHash,
 });
 
-// Get project status
+// Get project status (when implemented)
 const status = await contract.call("get_project_status", {
   project_hash: projectHash,
 });
 
-// Approve project (admin only)
+// Approve project (when implemented)
 await contract.call("set_project_approved", {
   from: "GADMIN123...",
   project_hash: projectHash,
 });
 ```
 
-#### Rust
+#### Rust (Planned Implementation)
 
 ```rust
 use soroban_sdk::{Address, Env, BytesN};
