@@ -42,7 +42,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 - Role-based access control
 - Signature verification
 
-### Deliverable 2: Profile Creation & Management 👍
+### Deliverable 2: Profile Creation & Management 👍👍
 
 #### 2.1 User Profiles
 
@@ -66,7 +66,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 - Financial metrics
 - Project history
 
-### Deliverable 3: Project Submission & Validation 👍
+### Deliverable 3: Project Submission & Validation 👍👍
 
 #### 3.1 Project Submission Form
 
@@ -90,7 +90,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 - Multi-signature approval process
 - On-chain validation record
 
-### Deliverable 4: 🔍 Validation Mechanism 👍
+### Deliverable 4: 🔍 Validation Mechanism 👍👍
 
 #### 4.1 TRUFA Score Implementation
 

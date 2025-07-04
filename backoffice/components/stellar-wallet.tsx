@@ -303,7 +303,8 @@ export function StellarWallet() {
         }
 
         const createChallengeTransaction = (challenge: string) => {
-          const networkPassphrase = StellarSDK.Networks.TESTNET
+          const networkPassphrase = "Test SDF Network ; September 2015" // Explicitly match Freighter's testnet expectation
+          console.log('🔍 [StellarWallet] Using network passphrase:', networkPassphrase)
           const sourceAccount = new StellarSDK.Account(walletAddress, '0')
           
           const transaction = new StellarSDK.TransactionBuilder(sourceAccount, {

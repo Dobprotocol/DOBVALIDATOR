@@ -220,7 +220,7 @@ export default function LandingPage() {
               new Account(walletAddress, '0'),
               {
                 fee: '100',
-                networkPassphrase: Networks.TESTNET
+                networkPassphrase: "Test SDF Network ; September 2015"
               }
             )
             .addOperation(

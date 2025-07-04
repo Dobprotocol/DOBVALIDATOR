@@ -20,7 +20,7 @@ function verifyXDRTransaction(walletAddress: string, signedXDR: string, challeng
   
   try {
     // Parse the signed XDR transaction
-    const transaction = TransactionBuilder.fromXDR(signedXDR, Networks.TESTNET)
+    const transaction = TransactionBuilder.fromXDR(signedXDR, "Test SDF Network ; September 2015")
     console.log('✅ Transaction parsed successfully')
     
     // Handle different transaction types

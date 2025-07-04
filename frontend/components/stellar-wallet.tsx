@@ -36,13 +36,24 @@ const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 // Environment-based network configuration
 const getNetworkConfig = () => {
   const network = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet'
-  return {
+  
+  // Debug logging
+  console.log('🔍 [StellarWallet] Environment check:')
+  console.log('  - NEXT_PUBLIC_STELLAR_NETWORK:', process.env.NEXT_PUBLIC_STELLAR_NETWORK)
+  console.log('  - Resolved network:', network)
+  console.log('  - Networks.TESTNET:', Networks.TESTNET)
+  console.log('  - Networks.PUBLIC:', Networks.PUBLIC)
+  
+  const config = {
     network,
-    passphrase: network === 'testnet' ? Networks.TESTNET : Networks.PUBLIC,
+    passphrase: "Test SDF Network ; September 2015", // Always use testnet passphrase explicitly
     explorerUrl: network === 'testnet' 
       ? 'https://stellar.expert/explorer/testnet'
       : 'https://stellar.expert/explorer/public'
   }
+  
+  console.log('  - Final config:', config)
+  return config
 }
 
 // Helper function to truncate wallet address
