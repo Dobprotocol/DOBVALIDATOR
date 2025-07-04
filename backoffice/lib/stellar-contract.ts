@@ -217,13 +217,20 @@ class StellarContractService {
 
       console.log(`[${new Date().toISOString()}] [SorobanContract] 🔧 Creating proper Stellar transaction...`);
       
+      // Initialize Soroban client to get account info
+      const sorobanClient = new SorobanClient(SOROBAN_RPC, {
+        networkPassphrase: NETWORK_PASSPHRASE
+      });
+
+      // Get the account info to get the proper sequence number
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📊 Fetching account info...`);
+      const account = await sorobanClient.getAccount(adminPublic);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📊 Account sequence: ${account.sequenceNumber()}`);
+      
       // Create a proper Stellar transaction that Simple Signer can understand
       // We'll create a simple payment transaction as a test, then extend to contract calls
       const transaction = new TransactionBuilder(
-        {
-          publicKey: adminPublic,
-          sequenceNumber: '0' // Will be fetched from network
-        },
+        account, // Use the actual account object with proper sequence number
         {
           fee: '100',
           networkPassphrase: NETWORK_PASSPHRASE
