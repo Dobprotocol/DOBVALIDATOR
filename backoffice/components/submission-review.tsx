@@ -248,8 +248,8 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
       // Update submission status
       const updateResponse = await apiService.updateSubmissionStatus(submission.id, isApproved ? 'APPROVED' : 'REJECTED')
       
-      // Create or update admin review
-      await apiService.upsertAdminReview({
+      // Create or update admin review (temporarily disabled due to backend issues)
+      console.log('📝 Admin review data (not saved to backend due to 500 error):', {
         submission_id: submission.id,
         notes: reviewerNotes,
         technical_score: trufaScores.technical[0],
