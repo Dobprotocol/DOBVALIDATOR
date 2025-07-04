@@ -1,5 +1,6 @@
 // Authentication utilities for the backoffice
 import { apiService } from './api-service'
+import { logWithDOBArt } from './utils'
 
 export interface AuthToken {
   token: string
@@ -32,11 +33,13 @@ export const getAuthToken = (): AuthToken | null => {
   try {
     return JSON.parse(authData)
   } catch (error) {
+    logWithDOBArt('Error parsing auth token in getAuthToken', 'error')
     console.error('❌ Error parsing auth token in getAuthToken:', error)
     console.log('❌ Raw auth data:', authData)
     
     // Check if it's a plain string token (fallback for old format)
     if (typeof authData === 'string' && (authData.startsWith('dev_fallback_token_') || authData.startsWith('mock_access_token_'))) {
+      logWithDOBArt('Detected plain string token, creating fallback structure', 'warning')
       console.log('🔄 Detected plain string token, creating fallback structure')
       return {
         token: authData,
@@ -85,12 +88,15 @@ export const getAuthHeader = (): { Authorization: string } | {} => {
 // Request a challenge for wallet signature
 export const requestChallenge = async (walletAddress: string): Promise<ChallengeResponse> => {
   try {
+    logWithDOBArt(`Requesting challenge for wallet: ${walletAddress.slice(0, 8)}...`, 'info')
     const response = await apiService.generateChallenge(walletAddress)
+    logWithDOBArt('Challenge generated successfully', 'success')
     return {
       challenge: response.challenge,
       message: 'Please sign this challenge with your wallet to authenticate'
     }
   } catch (error) {
+    logWithDOBArt('Failed to request challenge', 'error')
     console.error('Failed to request challenge:', error)
     throw new Error('Failed to request challenge')
   }
@@ -102,6 +108,7 @@ export const verifySignature = async (
   signature: string, 
   challenge: string
 ): Promise<AuthToken> => {
+  logWithDOBArt('Starting signature verification process', 'info')
   console.log('🔍 Verifying signature...')
   console.log('🔍 Wallet address:', walletAddress)
   console.log('🔍 Challenge:', challenge)
@@ -109,6 +116,7 @@ export const verifySignature = async (
   
   try {
     const response = await apiService.verifySignature(walletAddress, signature, challenge)
+    logWithDOBArt('Signature verification successful', 'success')
     console.log('✅ Verification successful:', response)
     
     return {
@@ -117,6 +125,7 @@ export const verifySignature = async (
       walletAddress
     }
   } catch (error) {
+    logWithDOBArt('Signature verification failed', 'error')
     console.error('❌ Verification failed:', error)
     throw new Error('Failed to verify signature')
   }
@@ -125,10 +134,12 @@ export const verifySignature = async (
 // Complete authentication flow using new wallet-login endpoint
 export const authenticateWallet = async (walletAddress: string, signature: string, challenge: string) => {
   try {
+    logWithDOBArt('Starting wallet-based authentication flow', 'info')
     console.log('🚀 Starting wallet-based authentication...')
     
     // Use the new wallet-login endpoint
     const response = await apiService.walletLogin(walletAddress, signature, challenge)
+    logWithDOBArt('Wallet login successful', 'success')
     console.log('✅ Wallet login successful:', response)
     
     // Store the session data
@@ -139,8 +150,10 @@ export const authenticateWallet = async (walletAddress: string, signature: strin
     }
     
     storeAuthToken(authToken.token, authToken.expiresIn, authToken.walletAddress)
+    logWithDOBArt('Authentication token stored successfully', 'success')
     return authToken
   } catch (error) {
+    logWithDOBArt('Wallet authentication failed', 'error')
     console.error('❌ Authentication failed:', error)
     throw error
   }
@@ -149,6 +162,8 @@ export const authenticateWallet = async (walletAddress: string, signature: strin
 // Logout user
 export const logout = () => {
   const authToken = getAuthToken()
+  
+  logWithDOBArt('Starting user logout process', 'info')
   
   // Clear frontend storage
   removeAuthToken()
@@ -160,12 +175,14 @@ export const logout = () => {
   if (authToken?.walletAddress) {
     // Note: In a real app, you'd call an API endpoint to clear the session
     // For now, we'll just clear local storage
+    logWithDOBArt(`Logging out wallet: ${authToken.walletAddress.slice(0, 8)}...`, 'info')
     console.log('🚪 Logging out wallet:', authToken.walletAddress)
   }
   
   // Clear session storage as well
   sessionStorage.clear()
   
+  logWithDOBArt('User logout completed successfully', 'success')
   window.dispatchEvent(new Event('walletStateChange'))
 }
 

@@ -1,4 +1,5 @@
 // Admin wallet configuration for DOB Validator backoffice
+import { logWithDOBArt } from './utils'
 
 export interface AdminWallet {
   address: string
@@ -62,18 +63,34 @@ class AdminConfigService {
    * Check if a wallet address is an admin
    */
   isAdminWallet(walletAddress: string): boolean {
-    return ADMIN_WALLETS.some(wallet => 
+    const isAdmin = ADMIN_WALLETS.some(wallet => 
       wallet.address === walletAddress && wallet.isActive
     )
+    
+    if (isAdmin) {
+      logWithDOBArt(`Admin wallet verified: ${walletAddress.slice(0, 8)}...`, 'success')
+    } else {
+      logWithDOBArt(`Non-admin wallet detected: ${walletAddress.slice(0, 8)}...`, 'warning')
+    }
+    
+    return isAdmin
   }
 
   /**
    * Get admin wallet details
    */
   getAdminWallet(walletAddress: string): AdminWallet | null {
-    return ADMIN_WALLETS.find(wallet => 
+    const admin = ADMIN_WALLETS.find(wallet => 
       wallet.address === walletAddress && wallet.isActive
     ) || null
+    
+    if (admin) {
+      logWithDOBArt(`Retrieved admin details for ${admin.name} (${admin.role})`, 'info')
+    } else {
+      logWithDOBArt(`No admin found for wallet: ${walletAddress.slice(0, 8)}...`, 'warning')
+    }
+    
+    return admin
   }
 
   /**

@@ -1,4 +1,6 @@
 // Version identifier to ensure latest code is running
+import { logWithStellarArt, logWithDOBArt, forceDisplayBothArts } from './utils'
+
 const CONTRACT_VERSION = 'dob-validator-metadata-signer-' + Date.now()
 
 // Contract configuration
@@ -17,6 +19,7 @@ let SorobanClient: any
 // Dynamic import to avoid constructor issues
 async function loadStellarSDK() {
   try {
+    logWithStellarArt('Loading Stellar SDK...', 'info')
     const stellarSDK = await import('@stellar/stellar-sdk')
     const sorobanClient = await import('soroban-client')
     
@@ -26,20 +29,21 @@ async function loadStellarSDK() {
     TimeoutInfinite = stellarSDK.TimeoutInfinite
     SorobanClient = sorobanClient.default
     
+    logWithStellarArt('Stellar SDK loaded successfully', 'success')
     console.log('✅ Stellar SDK loaded successfully')
     return true
   } catch (error) {
+    logWithStellarArt('Failed to load Stellar SDK', 'error')
     console.error('❌ Failed to load Stellar SDK:', error)
     return false
   }
 }
 
-// Log version on module load
-console.log(`[${new Date().toISOString()}] [SorobanContract]  LOADED VERSION: ${CONTRACT_VERSION}`)
-console.log(`[${new Date().toISOString()}] [SorobanContract]  NO SIMULATION`)
-console.log(`[${new Date().toISOString()}] [SorobanContract] 📍 Contract Address: ${CONTRACT_ADDRESS}`)
-console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Soroban RPC URL: ${SOROBAN_RPC_URL}`)
-console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Horizon URL: ${HORIZON_URL}`)
+// Log version on module load with both logos for important initialization
+forceDisplayBothArts(`SorobanContract LOADED VERSION: ${CONTRACT_VERSION}`, 'info')
+forceDisplayBothArts(`Contract Address: ${CONTRACT_ADDRESS}`, 'info')
+forceDisplayBothArts(`Soroban RPC URL: ${SOROBAN_RPC_URL}`, 'info')
+forceDisplayBothArts(`Horizon URL: ${HORIZON_URL}`, 'info')
 
 // TRUFA Metadata structure for blockchain storage
 export interface TrufaMetadata {
@@ -221,9 +225,9 @@ class StellarContractService {
     signTransaction: (transactionXdr: string) => Promise<string>
   }): Promise<ContractResult> {
     const timestamp = new Date().toISOString();
-    console.log(`[${new Date().toISOString()}] [SorobanContract] 🔥🔥🔥 PRODUCTION SOROBAN CONTRACT INTEGRATION - REAL BLOCKCHAIN SUBMISSION 🔥🔥🔥`);
-    console.log(`[${timestamp}] [SorobanContract] 🚀 PRODUCTION SOROBAN CONTRACT CALL - Starting...`);
-    console.log(`[${timestamp}] [SorobanContract] VERSION: Production Soroban Integration Active`);
+    forceDisplayBothArts(`🔥🔥🔥 PRODUCTION SOROBAN CONTRACT INTEGRATION - REAL BLOCKCHAIN SUBMISSION 🔥🔥🔥`, 'info');
+    forceDisplayBothArts(`🚀 PRODUCTION SOROBAN CONTRACT CALL - Starting...`, 'info');
+    forceDisplayBothArts(`VERSION: Production Soroban Integration Active`, 'info');
     console.log(`  Admin wallet: ${adminPublic}`);
     console.log(`  Submission ID: ${metadata.submissionId}`);
     console.log(`  Soroban RPC URL: ${SOROBAN_RPC_URL}`);
@@ -258,41 +262,57 @@ class StellarContractService {
       
       const sourceAccount = new (await import('@stellar/stellar-sdk')).Account(adminPublic, adjustedSequenceNumber);
       
-      // Create a compressed hash of the validation data to stay within 64-byte limit
-      const validationData = {
-        submissionId: metadata.submissionId,
-        deviceName: metadata.deviceName,
-        deviceType: metadata.deviceType,
-        decision: metadata.decision,
-        scores: metadata.trufaScores,
-        timestamp: new Date().toISOString(),
-        contractAddress: CONTRACT_ADDRESS,
-        functionName: 'submit_validation'
-      };
-      
-      // Create a simple hash of the validation data (stays under 64 bytes)
-      const validationHash = this.generateValidationHash(validationData);
-      
-      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Validation hash: ${validationHash}`);
-      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Hash length: ${validationHash.length} bytes`);
-      
       // Debug network configuration
       const networkPassphrase = "Test SDF Network ; September 2015"; // Explicitly match Freighter's testnet expectation
       console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Using network passphrase: ${networkPassphrase}`);
       console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Expected by Freighter: Test SDF Network ; September 2015`);
       console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Networks.TESTNET value: ${Networks.TESTNET}`);
       
-      // Create a regular Stellar transaction for now (we'll submit to Soroban RPC)
+      // Create Soroban contract invocation using invokeHostFunction
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🔧 Creating invokeHostFunction operation...`);
+      
+      // Import the necessary Stellar SDK components
+      const stellarSDK = await import('@stellar/stellar-sdk');
+      
+      // Create contract address from string
+      const contractAddress = stellarSDK.Contract.fromAddress(CONTRACT_ADDRESS);
+      
+      // Prepare function arguments for the contract call
+      const functionName = 'submit_validation';
+      const args = [
+        // Convert metadata to ScVal format
+        stellarSDK.ScVal.scvString(metadata.submissionId),
+        stellarSDK.ScVal.scvString(metadata.deviceName),
+        stellarSDK.ScVal.scvString(metadata.deviceType),
+        stellarSDK.ScVal.scvString(metadata.decision),
+        stellarSDK.ScVal.scvU32(metadata.trufaScores.technical || 0),
+        stellarSDK.ScVal.scvU32(metadata.trufaScores.regulatory || 0),
+        stellarSDK.ScVal.scvU32(metadata.trufaScores.financial || 0),
+        stellarSDK.ScVal.scvU64(new stellarSDK.TimeoutInfinite().timeout)
+      ];
+      
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Function: ${functionName}`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Contract Address: ${CONTRACT_ADDRESS}`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Arguments:`, args);
+      
+      // Create the invokeHostFunction operation
+      const invokeHostFunctionOp = stellarSDK.Operation.invokeHostFunction({
+        hostFunction: stellarSDK.xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new stellarSDK.xdr.InvokeContractArgs({
+            contractAddress: contractAddress.toScAddress(),
+            functionName: stellarSDK.xdr.ScSymbol.scSymbol(functionName),
+            args: args
+          })
+        ),
+        auth: [] // No auth required for this call
+      });
+      
+      // Create transaction with invokeHostFunction operation
       const transaction = new TransactionBuilder(sourceAccount, {
-        fee: '100',
+        fee: '100000', // Higher fee for Soroban operations
         networkPassphrase: networkPassphrase
       })
-      .addOperation(
-        (await import('@stellar/stellar-sdk')).Operation.manageData({
-          name: 'dob_validation',
-          value: validationHash
-        })
-      )
+      .addOperation(invokeHostFunctionOp)
       .setTimeout(300) // 5 minutes
       .build();
 
@@ -363,7 +383,7 @@ class StellarContractService {
       // Poll for transaction status using Soroban RPC
       let confirmed = false;
       let attempts = 0;
-      const maxAttempts = 30; // 30 seconds max wait
+      const maxAttempts = 30;
       
       while (!confirmed && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
@@ -418,15 +438,15 @@ class StellarContractService {
           networkResponse: result,
           signedTransaction: signedTransactionXdr.substring(0, 100) + '...',
           transactionType: 'soroban_contract_call',
-          validationHash: validationHash,
-          sorobanRpcUrl: SOROBAN_RPC_URL,
+          functionName: functionName,
+          explorerUrl: `https://stellar.expert/explorer/testnet/tx/${transactionHash}`,
           originalTransaction: {
             sourceAccount: adminPublic,
-            fee: '100',
+            fee: '100000',
             networkPassphrase: 'Test SDF Network ; September 2015',
-            operation: 'manageData',
-            dataName: 'dob_validation',
-            dataValue: validationHash,
+            operation: 'invokeHostFunction',
+            contractAddress: CONTRACT_ADDRESS,
+            functionName: functionName,
             timeout: 300
           }
         }

@@ -1,5 +1,6 @@
 // API Service for DOB Validator Backend
 // Base URL: Use Next.js API routes for frontend endpoints, backend for backend-only endpoints
+import { logWithDOBArt } from './utils'
 
 // Get the safe backend URL for production
 function getSafeBackendUrl(): string {
@@ -81,6 +82,7 @@ class ApiService {
 
   // Set authentication token
   setAuthToken(token: string) {
+    logWithDOBArt('Setting authentication token for API service', 'info')
     this.authToken = token
   }
 

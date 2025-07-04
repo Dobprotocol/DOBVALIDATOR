@@ -1,4 +1,5 @@
 // Wallet state management utilities
+import { logWithDOBArt, logWithStellarArt, logWithBothArts } from './utils'
 
 export interface WalletState {
   isConnected: boolean
@@ -31,22 +32,27 @@ class WalletStateManager {
   }
 
   connect(publicKey: string, walletType: string) {
+    logWithStellarArt(`Connecting wallet: ${publicKey.slice(0, 8)}... (${walletType})`, 'info')
     this.setState({
       isConnected: true,
       publicKey,
       walletType,
       isConnecting: false
     })
+    logWithStellarArt('Wallet connection successful', 'success')
   }
 
   authenticate() {
+    logWithDOBArt('Authenticating wallet', 'info')
     this.setState({
       isAuthenticated: true,
       isAuthenticating: false
     })
+    logWithDOBArt('Wallet authentication successful', 'success')
   }
 
   disconnect() {
+    logWithBothArts('Disconnecting wallet', 'info')
     this.setState({
       isConnected: false,
       isAuthenticated: false,
@@ -55,6 +61,7 @@ class WalletStateManager {
       isConnecting: false,
       isAuthenticating: false
     })
+    logWithBothArts('Wallet disconnection completed', 'success')
   }
 
   setConnecting(isConnecting: boolean) {
@@ -90,14 +97,17 @@ export const walletStateManager = new WalletStateManager()
 export const getWalletState = () => walletStateManager.getState()
 
 export const connectWallet = (publicKey: string, walletType: string) => {
+  logWithStellarArt(`Helper: Connecting wallet ${publicKey.slice(0, 8)}...`, 'info')
   walletStateManager.connect(publicKey, walletType)
 }
 
 export const authenticateWallet = () => {
+  logWithDOBArt('Helper: Authenticating wallet', 'info')
   walletStateManager.authenticate()
 }
 
 export const disconnectWallet = () => {
+  logWithBothArts('Helper: Disconnecting wallet', 'info')
   walletStateManager.disconnect()
 }
 
