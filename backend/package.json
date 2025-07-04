@@ -22,7 +22,6 @@
     "demo": "ts-node scripts/demo-automation.ts"
   },
   "dependencies": {
-    "@dob-validator/shared": "workspace:*",
     "@prisma/client": "^6.10.1",
     "@types/multer": "^2.0.0",
     "axios": "^1.10.0",

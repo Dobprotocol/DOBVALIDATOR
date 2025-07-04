@@ -1,20 +1,26 @@
 # Use Node.js 18 Alpine for smaller image size
 FROM node:18-alpine
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Set working directory
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package*.json pnpm-lock.yaml ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm install
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
+# Generate Prisma client
+RUN pnpm run db:generate
+
 # Build the application
-RUN npm run build
+RUN pnpm run build
 
 # Create uploads directory
 RUN mkdir -p uploads
@@ -26,4 +32,4 @@ EXPOSE 4000
 ENV NODE_ENV=production
 
 # Start the application
-CMD ["npm", "start"] 
+CMD ["pnpm", "start"] 
