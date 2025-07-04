@@ -135,7 +135,6 @@ model AdminReview {
   overallScore       Int?
   decision           AdminDecision?
   decisionAt         DateTime?
-  validatorWallet    String?
   reviewedAt         DateTime       @default(now())
   submissionId       String         @unique
   submission         Submission     @relation(fields: [submissionId], references: [id], onDelete: Cascade)

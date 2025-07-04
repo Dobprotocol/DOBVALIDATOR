@@ -185,15 +185,14 @@ class StellarContractService {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
-          submissionId: metadata.submissionId,
+          submission_id: metadata.submissionId,
           decision: metadata.decision,
-          technicalScore: metadata.trufaScores.technical,
-          regulatoryScore: metadata.trufaScores.regulatory,
-          financialScore: metadata.trufaScores.financial,
-          environmentalScore: metadata.trufaScores.environmental,
-          overallScore: metadata.trufaScores.overall,
-          notes: '',
-          validatorWallet: adminPublic
+          technical_score: metadata.trufaScores.technical,
+          regulatory_score: metadata.trufaScores.regulatory,
+          financial_score: metadata.trufaScores.financial,
+          environmental_score: metadata.trufaScores.environmental,
+          overall_score: metadata.trufaScores.overall,
+          notes: ''
         })
       });
 
