@@ -207,3 +207,19 @@ enum CertificateStatus {
   EXPIRED
   REVOKED
 }
+
+model DeploymentLog {
+  id          String   @id @default(cuid())
+  version     String
+  environment String   // "production", "staging", "development"
+  deployedAt  DateTime @default(now())
+  commitHash  String?
+  branch      String?
+  notes       String?
+  metadata    Json?    // Additional deployment info
+
+  @@index([deployedAt], map: "idx_deployment_logs_deployed_at")
+  @@index([version], map: "idx_deployment_logs_version")
+  @@index([environment], map: "idx_deployment_logs_environment")
+  @@map("deployment_logs")
+}
