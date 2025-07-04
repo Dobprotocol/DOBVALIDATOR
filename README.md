@@ -123,7 +123,7 @@ Proprietary - All rights reserved
 
 DOB Validator is the official project validation portal of the DOB Protocol, designed to assess and certify DePIN projects through the TRUFA standard (Trustless Revenue Utility & Flow Automation). It enables infrastructure operators to submit documentation and metadata for review, aiming to tokenize their devices and qualify for inclusion in verified revenue pools.
 
-On the other side, the BackOffice CMS is an internal tool used by the DOB team to manage, review, and score incoming submissions. Admins can track submission statuses, leave comments, assign TRUFA scores, and push certified metadata to the Stellar blockchain.
+On the other side, the BackOffice CMS is an internal tool used by the DOB team to manage, review, and score incoming submissions. Admins can track submission statuses, leave comments, assign TRUFA scores, and push certified metadata to the Stellar blockchain via Soroban smart contracts ([see implementation](backoffice/lib/stellar-contract.ts)).
 
 ## Problem Statement
 

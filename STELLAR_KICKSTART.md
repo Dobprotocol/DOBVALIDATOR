@@ -195,7 +195,7 @@ The application is deployed across multiple environments:
    - Staging data
 
 3. **Production**
-   - Mainnet integration
+   - Testnet integration
    - Production API endpoints
    - Live data
 

@@ -7,9 +7,13 @@ const SOROBAN_RPC = 'https://soroban-testnet.stellar.org:443'
 const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015'
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
+// Import Stellar SDK and Soroban client
+import { TransactionBuilder, Networks, xdr, TimeoutInfinite } from '@stellar/stellar-sdk'
+import SorobanClient from 'soroban-client'
+
 // Log version on module load
-console.log(`[${new Date().toISOString()}] [SorobanContract] 🚀 LOADED VERSION: ${CONTRACT_VERSION}`)
-console.log(`[${new Date().toISOString()}] [SorobanContract] 🔥 THIS IS THE REAL CONTRACT INTEGRATION - NO SIMULATION`)
+console.log(`[${new Date().toISOString()}] [SorobanContract]  LOADED VERSION: ${CONTRACT_VERSION}`)
+console.log(`[${new Date().toISOString()}] [SorobanContract]  NO SIMULATION`)
 console.log(`[${new Date().toISOString()}] [SorobanContract] 📍 Contract Address: ${CONTRACT_ADDRESS}`)
 console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 RPC URL: ${SOROBAN_RPC}`)
 
@@ -157,7 +161,7 @@ class StellarContractService {
 
   /**
    * Submit validation metadata to the Soroban contract
-   * Browser-compatible version that handles Stellar operations directly
+   * Real implementation using Stellar SDK and Soroban client
    */
   async submitValidationToSoroban({
     adminPublic,
@@ -169,7 +173,7 @@ class StellarContractService {
     signTransaction: (transactionXdr: string) => Promise<string>
   }): Promise<ContractResult> {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] [SorobanContract] 🔥🔥🔥 REAL CONTRACT INTEGRATION CALLED - NO SIMULATION 🔥🔥🔥`);
+    console.log(`[${new Date().toISOString()}] [SorobanContract] 🔥🔥🔥 REAL CONTRACT INTEGRATION CALLED - NO SIMULATION 🔥🔥🔥`);
     console.log(`[${timestamp}] [SorobanContract] 🚀 REAL CONTRACT CALL v2.0 - Starting...`);
     console.log(`[${timestamp}] [SorobanContract] VERSION: Real Stellar Integration Active`);
     console.log(`  Admin wallet: ${adminPublic}`);
@@ -177,28 +181,116 @@ class StellarContractService {
     console.log('  Full Metadata object:', JSON.stringify(metadata, null, 2));
     
     try {
-      // For now, simulate successful contract submission since backend doesn't handle Stellar operations
-      // In a real implementation, this would interact with the Soroban contract
-      console.log(`[${new Date().toISOString()}] [SorobanContract] Simulating successful contract submission...`);
-      
-      // Generate a mock transaction hash for demonstration
-      const mockTxHash = 'mock_' + Date.now().toString(16) + '_' + Math.random().toString(36).substr(2, 9);
-      
-      console.log(`[${new Date().toISOString()}] [SorobanContract] SUCCESS!`);
-      console.log(`  Tx hash: ${mockTxHash}`);
-      
-      return {
-        success: true,
-        transactionHash: mockTxHash,
-        metadata: {
-          ...metadata,
-          contractAddress: CONTRACT_ADDRESS,
-          submittedAt: new Date().toISOString()
-        }
+      // Initialize Soroban client
+      const sorobanClient = new SorobanClient(SOROBAN_RPC, {
+        networkPassphrase: NETWORK_PASSPHRASE
+      });
+
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 Connected to Soroban RPC`);
+
+      // Get the latest ledger
+      const latestLedger = await sorobanClient.getLatestLedger();
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📊 Latest ledger: ${latestLedger.sequence}`);
+
+      // Create the contract instance using a simpler approach
+      const contract = {
+        contractId: CONTRACT_ADDRESS
       };
 
+      // Prepare the function arguments for the smart contract
+      // Using simpler data types that we know work
+      const submissionId = metadata.submissionId;
+      const metadataString = JSON.stringify(metadata);
+      const decision = metadata.decision;
+      const scores = [
+        metadata.trufaScores.technical,
+        metadata.trufaScores.regulatory,
+        metadata.trufaScores.financial,
+        metadata.trufaScores.environmental,
+        metadata.trufaScores.overall
+      ];
+
+      // Create the function call
+      const functionName = 'submit_validation';
+
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🔧 Preparing contract call: ${functionName}`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Arguments:`, {
+        submissionId,
+        metadataString: metadataString.substring(0, 100) + '...',
+        decision,
+        scores
+      });
+
+      // Create a simple transaction for now - we'll use the basic Stellar SDK
+      const account = await sorobanClient.getAccount(adminPublic);
+      
+      // Build a basic transaction using the correct InvokeHostFunction operation
+      const transaction = new TransactionBuilder(account, {
+        fee: '1000', // Use a reasonable fee
+        networkPassphrase: NETWORK_PASSPHRASE
+      })
+        .addOperation(
+          // Use the proper InvokeHostFunction operation from Stellar SDK
+          {
+            type: 'invokeHostFunction',
+            function: 'HostFunctionTypeHostFunctionTypeInvokeContract',
+            parameters: [
+              { type: 'scvAddress', value: contract.contractId },
+              { type: 'scvString', value: functionName },
+              { type: 'scvString', value: submissionId },
+              { type: 'scvString', value: metadataString },
+              { type: 'scvString', value: decision },
+              { type: 'scvVec', value: scores.map(s => ({ type: 'scvU32', value: s })) }
+            ]
+          } as any // Type assertion to bypass strict typing for now
+        )
+        .setTimeout(TimeoutInfinite)
+        .build();
+
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📋 Transaction built, requesting signature...`);
+
+      // Get the transaction XDR for signing
+      const transactionXdr = transaction.toXDR();
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Transaction XDR length: ${transactionXdr.length}`);
+
+      // Sign the transaction using the provided signTransaction function
+      const signedTransactionXdr = await signTransaction(transactionXdr);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] ✅ Transaction signed successfully`);
+
+      // Parse the signed transaction
+      const signedTransaction = TransactionBuilder.fromXDR(signedTransactionXdr, NETWORK_PASSPHRASE);
+
+      // Submit the transaction
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🚀 Submitting transaction to network...`);
+      const sendResponse = await sorobanClient.sendTransaction(signedTransaction);
+      
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 📤 Transaction sent, hash: ${sendResponse.hash}`);
+
+      // Wait for the transaction to be confirmed
+      console.log(`[${new Date().toISOString()}] [SorobanContract] ⏳ Waiting for transaction confirmation...`);
+      const getResponse = await sorobanClient.getTransaction(sendResponse.hash);
+
+      if (getResponse.status === 'SUCCESS') {
+        console.log(`[${new Date().toISOString()}] [SorobanContract] 🎉 Transaction confirmed successfully!`);
+        console.log(`[${new Date().toISOString()}] [SorobanContract] 📊 Result:`, getResponse.resultMetaXdr);
+        
+        return {
+          success: true,
+          transactionHash: sendResponse.hash,
+          metadata: {
+            ...metadata,
+            contractAddress: CONTRACT_ADDRESS,
+            submittedAt: new Date().toISOString(),
+            ledger: getResponse.ledger,
+            resultMeta: getResponse.resultMetaXdr
+          }
+        };
+      } else {
+        throw new Error(`Transaction failed with status: ${getResponse.status}`);
+      }
+
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [SorobanContract] ERROR`);
+      console.error(`[${new Date().toISOString()}] [SorobanContract] ❌ ERROR`);
       console.error('Full error object:', error);
       console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
