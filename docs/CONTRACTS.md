@@ -2,110 +2,32 @@
 
 ## Overview
 
-DOB Protocol utilizes Stellar Soroban smart contracts to provide trustless validation, certificate generation, and investment management capabilities. This document provides comprehensive documentation for all smart contracts in the ecosystem.
+DOB Protocol utilizes Stellar Soroban smart contracts to provide trustless project validation and status management. This document provides comprehensive documentation for the DOB Validator smart contract.
 
 ## Contract Architecture
 
-### Core Contracts
+### Core Contract
 
-1. **DOB Validator Contract** - Main validation and scoring contract
-2. **Certificate Generator** - Digital certificate creation and verification
+**DOB Validator Contract** - Main project validation and status management contract
 
 ## DOB Validator Contract
 
-### Contract Address
+### Contract Information
 
-- **Testnet**: `CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN`
-- **Mainnet**: `TBD`
+- **Contract Address**: `CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN`
+- **Network**: Stellar Testnet
+- **WASM Hash**: `cd45e70c30a0676f7eda6b817e6aa4949570b9ee0053e029649bb0d77e2d32a8`
+- **Soroban Version**: 1.87.0
+- **SDK Version**: 22.0.8
 
 ### Purpose
 
-The DOB Validator contract is the core contract responsible for:
+The DOB Validator contract is responsible for:
 
-- Project validation and scoring
-- TRUFA score calculation
-- Multi-signature approval process
-- Certificate issuance
-
-### Key Functions
-
-#### `initialize()`
-
-Initialize the contract with admin addresses and configuration.
-
-```rust
-pub fn initialize(
-    e: &mut Env,
-    admin_addresses: Vec<Address>,
-    min_signatures: u32,
-    trufa_weights: TrufaWeights
-) -> Result<(), Error>
-```
-
-**Parameters:**
-
-- `admin_addresses`: List of admin wallet addresses
-- `min_signatures`: Minimum required signatures for approval
-- `trufa_weights`: Scoring weights for TRUFA algorithm
-
-#### `submit_project(project_data: ProjectData)`
-
-Submit a new project for validation.
-
-```rust
-pub fn submit_project(
-    e: &mut Env,
-    project_data: ProjectData
-) -> Result<u32, Error>
-```
-
-**Parameters:**
-
-- `project_data`: Project information and metadata
-
-**Returns:**
-
-- Project ID for tracking
-
-#### `calculate_trufa_score(project_id: u32)`
-
-Calculate TRUFA score for a project.
-
-```rust
-pub fn calculate_trufa_score(
-    e: &mut Env,
-    project_id: u32
-) -> Result<TrufaScore, Error>
-```
-
-**Returns:**
-
-- `TrufaScore` struct with technical, regulatory, and financial scores
-
-#### `approve_project(project_id: u32, admin_signature: Signature)`
-
-Approve a project with admin signature.
-
-```rust
-pub fn approve_project(
-    e: &mut Env,
-    project_id: u32,
-    admin_signature: Signature
-) -> Result<(), Error>
-```
-
-#### `reject_project(project_id: u32, reason: String, admin_signature: Signature)`
-
-Reject a project with reason and admin signature.
-
-```rust
-pub fn reject_project(
-    e: &mut Env,
-    project_id: u32,
-    reason: String,
-    admin_signature: Signature
-) -> Result<(), Error>
-```
+- Project status management (Pending, Approved, Rejected)
+- Whitelist management for authorized addresses
+- Project hash storage and retrieval
+- Admin role management
 
 ### Data Structures
 
@@ -113,525 +35,420 @@ pub fn reject_project(
 
 ```rust
 pub struct ProjectData {
-    pub title: String,
-    pub description: String,
-    pub operator_address: Address,
-    pub technical_specs: String,
-    pub financial_metrics: FinancialMetrics,
-    pub documents_hash: String,
-    pub submission_timestamp: u64,
+    pub hash: [u8; 32],        // 32-byte project hash
+    pub status: ProjectStatusEnum
 }
 ```
 
-#### `TrufaScore`
+#### `ProjectStatusEnum`
 
 ```rust
-pub struct TrufaScore {
-    pub technical_score: u32,    // 0-100
-    pub regulatory_score: u32,   // 0-100
-    pub financial_score: u32,    // 0-100
-    pub overall_score: u32,      // 0-100
-    pub calculated_at: u64,
+pub enum ProjectStatusEnum {
+    NotSet,     // Initial state
+    Pending,    // Submitted for review
+    Approved,   // Approved by admin
+    Rejected    // Rejected by admin
 }
 ```
 
-#### `FinancialMetrics`
+#### `DataKey`
 
 ```rust
-pub struct FinancialMetrics {
-    pub total_investment: i128,
-    pub expected_roi: u32,       // Percentage
-    pub payback_period: u32,     // Months
-    pub risk_level: u32,         // 1-5 scale
+pub enum DataKey {
+    Admin,                      // Admin address
+    Whitelist(Address),         // Whitelisted address
+    ProjectStatus([u8; 32]),    // Project status by hash
+    ProjectIndex(u32),          // Project index
+    ProjectIndexLength          // Total number of projects
 }
 ```
 
-### TRUFA Scoring Algorithm
+### Contract Functions
 
-The TRUFA (Technical, Regulatory, and Financial Assessment) scoring algorithm:
+#### `__constructor(admin: Address, whitelist_addresses: Vec<Address>)`
 
-```rust
-pub fn calculate_overall_score(
-    technical: u32,
-    regulatory: u32,
-    financial: u32,
-    weights: &TrufaWeights
-) -> u32 {
-    let weighted_sum =
-        (technical as u64 * weights.technical as u64) +
-        (regulatory as u64 * weights.regulatory as u64) +
-        (financial as u64 * weights.financial as u64);
+Initialize the contract with admin and whitelist addresses.
 
-    (weighted_sum / 100) as u32
-}
-```
+**Parameters:**
 
-**Default Weights:**
+- `admin`: Admin address with full control
+- `whitelist_addresses`: Initial list of whitelisted addresses
 
-- Technical: 40%
-- Regulatory: 30%
-- Financial: 30%
+**Access Control:** Only callable during contract deployment
 
-### Events
+#### `is_whitelisted(address: Address) -> bool`
 
-#### `ProjectSubmitted`
+Check if an address is whitelisted.
 
-```rust
-pub struct ProjectSubmitted {
-    pub project_id: u32,
-    pub operator_address: Address,
-    pub submission_timestamp: u64,
-}
-```
+**Parameters:**
 
-#### `ProjectApproved`
-
-```rust
-pub struct ProjectApproved {
-    pub project_id: u32,
-    pub trufa_score: TrufaScore,
-    pub approved_by: Address,
-    pub approval_timestamp: u64,
-}
-```
-
-#### `ProjectRejected`
-
-```rust
-pub struct ProjectRejected {
-    pub project_id: u32,
-    pub reason: String,
-    pub rejected_by: Address,
-    pub rejection_timestamp: u64,
-}
-```
-
-## Certificate Generator Contract
-
-### Contract Address
-
-- **Testnet**: `CXYZ9876543210ZYXWVU...`
-- **Mainnet**: `TBD`
-
-### Purpose
-
-Generate and verify digital certificates for approved projects.
-
-### Key Functions
-
-#### `generate_certificate(project_id: u32, certificate_data: CertificateData)`
-
-Generate a new certificate for an approved project.
-
-```rust
-pub fn generate_certificate(
-    e: &mut Env,
-    project_id: u32,
-    certificate_data: CertificateData
-) -> Result<String, Error>
-```
+- `address`: Address to check
 
 **Returns:**
 
-- Certificate hash for verification
+- `bool`: True if address is whitelisted, false otherwise
 
-#### `verify_certificate(certificate_hash: String)`
+#### `add_to_whitelist(address: Address)`
 
-Verify the authenticity of a certificate.
+Add an address to the whitelist.
+
+**Parameters:**
+
+- `address`: Address to add to whitelist
+
+**Access Control:** Admin only
+
+#### `remove_from_whitelist(address: Address)`
+
+Remove an address from the whitelist.
+
+**Parameters:**
+
+- `address`: Address to remove from whitelist
+
+**Access Control:** Admin only
+
+#### `add_project(from: Address, project_hash: [u8; 32])`
+
+Add a new project to the system.
+
+**Parameters:**
+
+- `from`: Address submitting the project (must be whitelisted)
+- `project_hash`: 32-byte hash of the project data
+
+**Access Control:** Whitelisted addresses only
+
+**Behavior:**
+
+- Creates new project with status `Pending`
+- Increments project index counter
+- Stores project hash and status
+
+#### `set_project_approved(from: Address, project_hash: [u8; 32])`
+
+Approve a project.
+
+**Parameters:**
+
+- `from`: Admin address approving the project
+- `project_hash`: 32-byte hash of the project to approve
+
+**Access Control:** Admin only
+
+**Behavior:**
+
+- Changes project status to `Approved`
+- Emits approval event
+
+#### `set_project_rejected(from: Address, project_hash: [u8; 32])`
+
+Reject a project.
+
+**Parameters:**
+
+- `from`: Admin address rejecting the project
+- `project_hash`: 32-byte hash of the project to reject
+
+**Access Control:** Admin only
+
+**Behavior:**
+
+- Changes project status to `Rejected`
+- Emits rejection event
+
+#### `reset_project(project_hash: [u8; 32])`
+
+Reset a project status to `NotSet`.
+
+**Parameters:**
+
+- `project_hash`: 32-byte hash of the project to reset
+
+**Access Control:** Admin only
+
+**Behavior:**
+
+- Changes project status to `NotSet`
+- Allows project to be resubmitted
+
+#### `get_project_status(project_hash: [u8; 32]) -> ProjectStatusEnum`
+
+Get the status of a specific project.
+
+**Parameters:**
+
+- `project_hash`: 32-byte hash of the project
+
+**Returns:**
+
+- `ProjectStatusEnum`: Current status of the project
+
+#### `get_projects_statuses_in_bulk(start: u32, end: u32) -> Vec<ProjectData>`
+
+Get project statuses for a range of project indices.
+
+**Parameters:**
+
+- `start`: Starting project index
+- `end`: Ending project index
+
+**Returns:**
+
+- `Vec<ProjectData>`: Array of project data for the specified range
+
+#### `get_projects_statuses_from_vec(project_hashes: Vec<[u8; 32]>) -> Vec<ProjectStatusEnum>`
+
+Get statuses for specific project hashes.
+
+**Parameters:**
+
+- `project_hashes`: Array of 32-byte project hashes
+
+**Returns:**
+
+- `Vec<ProjectStatusEnum>`: Array of project statuses in same order
+
+#### `get_all_projects_statuses() -> Vec<ProjectData>`
+
+Get all project statuses in the system.
+
+**Returns:**
+
+- `Vec<ProjectData>`: Array of all project data
+
+#### `set_admin(new_admin: Address)`
+
+Change the admin address.
+
+**Parameters:**
+
+- `new_admin`: New admin address
+
+**Access Control:** Current admin only
+
+**Behavior:**
+
+- Updates admin address
+- Only current admin can change admin
+
+### Contract Storage
+
+The contract stores the following data:
 
 ```rust
-pub fn verify_certificate(
-    e: &mut Env,
-    certificate_hash: String
-) -> Result<CertificateInfo, Error>
-```
-
-#### `revoke_certificate(certificate_hash: String, reason: String)`
-
-Revoke a certificate with reason.
-
-```rust
-pub fn revoke_certificate(
-    e: &mut Env,
-    certificate_hash: String,
-    reason: String
-) -> Result<(), Error>
-```
-
-### Data Structures
-
-#### `CertificateData`
-
-```rust
-pub struct CertificateData {
-    pub project_id: u32,
-    pub operator_name: String,
-    pub project_title: String,
-    pub trufa_score: TrufaScore,
-    pub valid_until: u64,
-    pub certificate_type: CertificateType,
+{
+    "Admin": Address,                    // Current admin address
+    "ProjectIndex": u32,                 // Current project index
+    "ProjectIndexLength": u32,           // Total number of projects
+    "ProjectStatus": Vec<ProjectData>,   // Project statuses
+    "Whitelist": Vec<Address>           // Whitelisted addresses
 }
 ```
 
-#### `CertificateInfo`
+### Access Control
 
-```rust
-pub struct CertificateInfo {
-    pub certificate_hash: String,
-    pub project_id: u32,
-    pub is_valid: bool,
-    pub issued_at: u64,
-    pub valid_until: u64,
-    pub revoked_at: Option<u64>,
-    pub revocation_reason: Option<String>,
-}
-```
+#### Admin Functions
 
-## Investment Manager Contract
+- `add_to_whitelist`
+- `remove_from_whitelist`
+- `set_project_approved`
+- `set_project_rejected`
+- `reset_project`
+- `set_admin`
 
-### Contract Address
+#### Whitelisted Functions
 
-- **Testnet**: `CINV1234567890INVEST...`
-- **Mainnet**: `TBD`
+- `add_project`
 
-### Purpose
+#### Public Functions
 
-Manage fractional investments in validated infrastructure projects.
+- `is_whitelisted`
+- `get_project_status`
+- `get_projects_statuses_in_bulk`
+- `get_projects_statuses_from_vec`
+- `get_all_projects_statuses`
 
-### Key Functions
+### Workflow
 
-#### `create_investment_pool(project_id: u32, total_amount: i128, min_investment: i128)`
+1. **Contract Deployment**
+   - Admin address is set
+   - Initial whitelist is configured
 
-Create an investment pool for a validated project.
+2. **Project Submission**
+   - Whitelisted address calls `add_project`
+   - Project hash is stored with `Pending` status
+   - Project index is incremented
 
-```rust
-pub fn create_investment_pool(
-    e: &mut Env,
-    project_id: u32,
-    total_amount: i128,
-    min_investment: i128
-) -> Result<u32, Error>
-```
+3. **Project Review**
+   - Admin reviews project data (off-chain)
+   - Admin calls `set_project_approved` or `set_project_rejected`
+   - Project status is updated on-chain
 
-#### `invest(pool_id: u32, amount: i128)`
+4. **Status Queries**
+   - Anyone can query project statuses
+   - Bulk queries available for efficiency
 
-Invest in a project pool.
+### Integration with Frontend
 
-```rust
-pub fn invest(
-    e: &mut Env,
-    pool_id: u32,
-    amount: i128
-) -> Result<InvestmentReceipt, Error>
-```
+The contract integrates with the frontend through:
 
-#### `withdraw_investment(pool_id: u32, receipt_id: u32)`
+- **Project Submission**: Frontend generates project hash and calls `add_project`
+- **Status Tracking**: Frontend queries project statuses for dashboard display
+- **Admin Interface**: Backoffice calls approval/rejection functions
+- **Whitelist Management**: Admin manages authorized addresses
 
-Withdraw investment (if allowed by project terms).
+### Security Considerations
 
-```rust
-pub fn withdraw_investment(
-    e: &mut Env,
-    pool_id: u32,
-    receipt_id: u32
-) -> Result<(), Error>
-```
+#### Access Control
 
-### Data Structures
+- Only admin can approve/reject projects
+- Only whitelisted addresses can submit projects
+- Admin can manage whitelist
 
-#### `InvestmentPool`
+#### Data Integrity
 
-```rust
-pub struct InvestmentPool {
-    pub pool_id: u32,
-    pub project_id: u32,
-    pub total_amount: i128,
-    pub raised_amount: i128,
-    pub min_investment: i128,
-    pub max_investment: i128,
-    pub status: PoolStatus,
-    pub created_at: u64,
-}
-```
+- Project hashes are immutable once stored
+- Status changes are logged on-chain
+- No direct data modification possible
 
-#### `InvestmentReceipt`
+#### Input Validation
 
-```rust
-pub struct InvestmentReceipt {
-    pub receipt_id: u32,
-    pub pool_id: u32,
-    pub investor_address: Address,
-    pub amount: i128,
-    pub shares: u32,
-    pub invested_at: u64,
-}
-```
+- Project hashes must be exactly 32 bytes
+- Address validation for admin and whitelist
+- Index bounds checking for bulk queries
 
-## Governance Contract
+### Testing
 
-### Contract Address
-
-- **Testnet**: `CGOV1234567890GOVERN...`
-- **Mainnet**: `TBD`
-
-### Purpose
-
-Manage protocol governance, voting, and parameter updates.
-
-### Key Functions
-
-#### `propose_update(proposal: Proposal)`
-
-Create a new governance proposal.
-
-```rust
-pub fn propose_update(
-    e: &mut Env,
-    proposal: Proposal
-) -> Result<u32, Error>
-```
-
-#### `vote(proposal_id: u32, vote: Vote)`
-
-Vote on a governance proposal.
-
-```rust
-pub fn vote(
-    e: &mut Env,
-    proposal_id: u32,
-    vote: Vote
-) -> Result<(), Error>
-```
-
-#### `execute_proposal(proposal_id: u32)`
-
-Execute an approved proposal.
-
-```rust
-pub fn execute_proposal(
-    e: &mut Env,
-    proposal_id: u32
-) -> Result<(), Error>
-```
-
-## Contract Deployment
-
-### Prerequisites
-
-- Stellar Testnet account with XLM
-- Soroban CLI installed
-- Contract source code compiled
-
-### Deployment Steps
-
-1. **Compile Contracts**
+#### Unit Tests
 
 ```bash
-cd contracts
-soroban contract build
+cargo test
 ```
 
-2. **Deploy to Testnet**
+#### Integration Tests
 
 ```bash
-soroban contract deploy \
-  --network testnet \
-  --source admin \
-  target/wasm32-unknown-unknown/release/dob_validator.wasm
+# Test project submission flow
+soroban contract invoke --id <contract_id> add_project \
+  --from <whitelisted_address> \
+  --project-hash <32_byte_hash>
+
+# Test project approval
+soroban contract invoke --id <contract_id> set_project_approved \
+  --from <admin_address> \
+  --project-hash <32_byte_hash>
+
+# Query project status
+soroban contract invoke --id <contract_id> get_project_status \
+  --project-hash <32_byte_hash>
 ```
 
-3. **Initialize Contract**
+### Contract Interaction Examples
 
-```bash
-soroban contract invoke \
-  --network testnet \
-  --id <contract_id> \
-  --source admin \
-  -- initialize \
-  --admin-addresses '["GABC123...", "GDEF456..."]' \
-  --min-signatures 2 \
-  --trufa-weights '{"technical": 40, "regulatory": 30, "financial": 30}'
-```
-
-### Environment Configuration
-
-#### Testnet
-
-```env
-STELLAR_NETWORK=testnet
-STELLAR_RPC_URL=https://soroban-testnet.stellar.org
-STELLAR_SECRET_KEY=your_testnet_secret_key
-```
-
-#### Mainnet
-
-```env
-STELLAR_NETWORK=public
-STELLAR_RPC_URL=https://soroban.stellar.org
-STELLAR_SECRET_KEY=your_mainnet_secret_key
-```
-
-## Contract Interaction Examples
-
-### JavaScript/TypeScript
+#### JavaScript/TypeScript
 
 ```typescript
 import { SorobanRpc, Contract } from "soroban-client";
 
 // Initialize client
 const server = new SorobanRpc.Server("https://soroban-testnet.stellar.org");
-const contract = new Contract("CABC1234567890ABCDEF...");
+const contract = new Contract(
+  "CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN"
+);
 
-// Submit project
-const projectData = {
-  title: "Solar Farm Project",
-  description: "Large-scale solar farm",
-  operator_address: "GABC123...",
-  technical_specs: "Technical specifications...",
-  financial_metrics: {
-    total_investment: 1000000,
-    expected_roi: 15,
-    payback_period: 60,
-    risk_level: 3,
-  },
-  documents_hash: "QmHash...",
-  submission_timestamp: Date.now(),
-};
+// Add project
+const projectHash = new Uint8Array(32); // 32-byte hash
+const result = await contract.call("add_project", {
+  from: "GABC123...",
+  project_hash: projectHash,
+});
 
-const result = await contract.call("submit_project", projectData);
+// Get project status
+const status = await contract.call("get_project_status", {
+  project_hash: projectHash,
+});
+
+// Approve project (admin only)
+await contract.call("set_project_approved", {
+  from: "GADMIN123...",
+  project_hash: projectHash,
+});
 ```
 
-### Rust
+#### Rust
 
 ```rust
-use soroban_sdk::{Address, Env, String};
+use soroban_sdk::{Address, Env, BytesN};
 
 #[contract]
 pub struct DobValidator;
 
 #[contractimpl]
 impl DobValidator {
-    pub fn submit_project(
+    pub fn add_project(
         e: &mut Env,
-        project_data: ProjectData
-    ) -> Result<u32, Error> {
+        from: Address,
+        project_hash: BytesN<32>
+    ) -> Result<(), Error> {
         // Implementation
     }
 }
 ```
 
-## Security Considerations
+### Monitoring
 
-### Access Control
-
-- Multi-signature requirements for critical operations
-- Role-based access control
-- Admin address management
-
-### Input Validation
-
-- Parameter bounds checking
-- Data type validation
-- Malicious input prevention
-
-### Error Handling
-
-- Graceful error recovery
-- Detailed error messages
-- State consistency maintenance
-
-### Audit Trail
-
-- Event logging for all operations
-- Immutable transaction history
-- Transparent governance
-
-## Testing
-
-### Unit Tests
-
-```bash
-cd contracts
-cargo test
-```
-
-### Integration Tests
-
-```bash
-cargo test --test integration_tests
-```
-
-### Testnet Testing
-
-```bash
-# Deploy to testnet
-soroban contract deploy --network testnet target/...
-
-# Run test scenarios
-npm run test:contracts
-```
-
-## Monitoring and Analytics
-
-### Contract Events
+#### Contract Events
 
 Monitor contract events for:
 
 - Project submissions
-- Approval/rejection decisions
-- Investment activities
-- Governance proposals
+- Status changes (Approved/Rejected)
+- Whitelist modifications
+- Admin changes
 
-### Performance Metrics
+#### Key Metrics
 
-- Transaction throughput
-- Gas usage optimization
-- Contract call frequency
-- Error rates
+- Number of projects submitted
+- Approval/rejection rates
+- Whitelist size
+- Admin activity
 
-### Health Checks
+### Deployment
 
-- Contract availability
-- RPC endpoint status
-- Network connectivity
-- Balance monitoring
+#### Testnet Deployment
 
-## Upgrade Strategy
+```bash
+# Deploy contract
+soroban contract deploy \
+  --network testnet \
+  --source admin \
+  target/wasm32-unknown-unknown/release/dob_validator.wasm
 
-### Contract Upgrades
+# Initialize contract
+soroban contract invoke \
+  --network testnet \
+  --id <contract_id> \
+  --source admin \
+  -- __constructor \
+  --admin <admin_address> \
+  --whitelist-addresses '["GABC123...", "GDEF456..."]'
+```
 
-1. **Proxy Pattern**: Use upgradeable proxy contracts
-2. **Migration Scripts**: Automated data migration
-3. **Backward Compatibility**: Maintain API compatibility
-4. **Governance Approval**: Require governance approval for upgrades
+#### Environment Configuration
 
-### Version Management
+```env
+STELLAR_NETWORK=testnet
+STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+CONTRACT_ID=CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN
+```
 
-- Semantic versioning for contracts
-- Migration documentation
-- Rollback procedures
-- Testing in staging environment
-
-## Support and Resources
-
-### Documentation
+### Support and Resources
 
 - [Soroban Documentation](https://soroban.stellar.org/docs)
 - [Stellar Documentation](https://developers.stellar.org/docs)
-- [Contract Examples](https://github.com/stellar/soroban-examples)
+- [Contract Explorer](https://stellar.expert/explorer/testnet/contract/CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN)
 
-### Community
-
-- [Stellar Discord](https://discord.gg/stellarlabs)
-- [GitHub Issues](https://github.com/blessedux/DOBVALIDATOR/issues)
-- [Developer Forum](https://stellar.org/developers/community)
-
-### Tools
-
-- [Soroban CLI](https://github.com/stellar/soroban-cli)
-- [Stellar Laboratory](https://laboratory.stellar.org)
-- [Stellar Expert](https://stellar.expert)
-
-## License
+### License
 
 Smart contracts are licensed under the MIT License.
