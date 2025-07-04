@@ -3,8 +3,7 @@ const CONTRACT_VERSION = 'dob-validator-metadata-signer-' + Date.now()
 
 // Contract configuration
 const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
-const SOROBAN_RPC = 'https://rpc.ankr.com/stellar_testnet_soroban/9727cd322bf7c9e5118e51cf6986747839036665ddc1aeec2131fd6a65ef6545'
-const NETWORK_PASSPHRASE = 'Test SDF Network ; Chile 2025'
+const HORIZON_URL = 'https://rpc.ankr.com/premium-http/stellar_testnet_horizon/9727cd322bf7c9e5118e51cf6986747839036665ddc1aeec2131fd6a65ef6545'
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
 // Import Stellar SDK with dynamic imports to avoid constructor issues
@@ -38,7 +37,7 @@ async function loadStellarSDK() {
 console.log(`[${new Date().toISOString()}] [SorobanContract]  LOADED VERSION: ${CONTRACT_VERSION}`)
 console.log(`[${new Date().toISOString()}] [SorobanContract]  NO SIMULATION`)
 console.log(`[${new Date().toISOString()}] [SorobanContract] 📍 Contract Address: ${CONTRACT_ADDRESS}`)
-console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 RPC URL: ${SOROBAN_RPC}`)
+console.log(`[${new Date().toISOString()}] [SorobanContract] 🌐 RPC URL: ${HORIZON_URL}`)
 
 // TRUFA Metadata structure for blockchain storage
 export interface TrufaMetadata {
@@ -233,9 +232,24 @@ class StellarContractService {
       // Ensure Stellar SDK is loaded
       await loadStellarSDK();
       
-      // Create a proper Stellar transaction using TransactionBuilder
-      // This creates a real Stellar transaction that can be signed and submitted
-      const sourceAccount = new (await import('@stellar/stellar-sdk')).Account(adminPublic, '0');
+      // First, get the actual account sequence number from the network
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🔍 Fetching account sequence number for: ${adminPublic}`);
+      
+      const accountResponse = await fetch(`${HORIZON_URL}/accounts/${adminPublic}`);
+      if (!accountResponse.ok) {
+        if (accountResponse.status === 404) {
+          throw new Error(`Account ${adminPublic} does not exist on Stellar testnet. Please ensure the wallet has been funded with XLM.`);
+        }
+        throw new Error(`Failed to fetch account: ${accountResponse.status} - ${await accountResponse.text()}`);
+      }
+      
+      const accountData = await accountResponse.json();
+      const sequenceNumber = accountData.sequence;
+      
+      console.log(`[${new Date().toISOString()}] [SorobanContract] ✅ Account sequence number: ${sequenceNumber}`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] ✅ Account exists and is ready for transactions`);
+      
+      const sourceAccount = new (await import('@stellar/stellar-sdk')).Account(adminPublic, sequenceNumber);
       
       // Create a compressed hash of the validation data to stay within 64-byte limit
       const validationData = {
@@ -257,7 +271,7 @@ class StellarContractService {
       
       const transaction = new TransactionBuilder(sourceAccount, {
         fee: '100',
-        networkPassphrase: NETWORK_PASSPHRASE
+        networkPassphrase: Networks.TESTNET
       })
       .addOperation(
         (await import('@stellar/stellar-sdk')).Operation.manageData({
@@ -294,7 +308,7 @@ class StellarContractService {
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📤 Submitting transaction payload...`);
 
       // Submit to Stellar Horizon API (regular Stellar transactions)
-      const response = await fetch('https://horizon-testnet.stellar.org/transactions', {
+      const response = await fetch(`${HORIZON_URL}/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -330,7 +344,7 @@ class StellarContractService {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         
         try {
-          const statusResponse = await fetch(`https://horizon-testnet.stellar.org/transactions/${transactionHash}`);
+          const statusResponse = await fetch(`${HORIZON_URL}/transactions/${transactionHash}`);
           if (statusResponse.ok) {
             const statusResult = await statusResponse.json();
             if (statusResult.successful) {
@@ -367,7 +381,7 @@ class StellarContractService {
           originalTransaction: {
             sourceAccount: adminPublic,
             fee: '100',
-            networkPassphrase: NETWORK_PASSPHRASE,
+            networkPassphrase: 'Test SDF Network ; September 2015',
             operation: 'manageData',
             dataName: 'dob_validation',
             dataValue: validationHash,
