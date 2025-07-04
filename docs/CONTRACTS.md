@@ -367,7 +367,7 @@ For details on the TRUFA scoring system and how scores are calculated and used, 
 #### Input Validation
 
 - Project hashes must be exactly 32 bytes
-- Address validation for admin and whitelist
+- Address validation for admin signature and smart contract whitelist
 - Index bounds checking for bulk queries (planned)
 
 ### Testing
