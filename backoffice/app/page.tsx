@@ -91,7 +91,7 @@ export default function LandingPage() {
         console.log('✅ Wallet connected:', connectedPublicKey)
         console.log('✅ Wallet type:', walletType)
 
-        // Check if wallet is in admin list
+        // Check if wallet is in admin list (or if we're in MVP mode)
         const adminWallet = adminConfigService.getAdminWallet(connectedPublicKey)
         if (!adminWallet) {
           setError('This wallet is not authorized to access the backoffice.')

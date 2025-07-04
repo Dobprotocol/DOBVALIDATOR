@@ -19,7 +19,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 **Description:** Implementation of Stellar wallet connectivity using Freighter and Simple Stellar Signer.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [stellar-wallet.tsx](frontend/components/stellar-wallet.tsx) - Frontend wallet integration
 - [stellar-wallet.tsx](backoffice/components/stellar-wallet.tsx) - Backoffice wallet integration
@@ -38,7 +38,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 **Description:** Implementation of a secure authentication flow using Stellar signatures.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [auth.ts](frontend/lib/auth.ts) - Frontend authentication utilities
 - [auth.ts](backoffice/lib/auth.ts) - Backoffice authentication utilities
@@ -61,7 +61,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 **Description:** Implementation of user profile creation and management system.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [profile/page.tsx](frontend/app/profile/page.tsx) - Profile management page
 - [profile/route.ts](frontend/app/api/profile/route.ts) - Profile API endpoints
@@ -79,7 +79,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 **Description:** Extended profile system for infrastructure operators.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [device-verification-flow.tsx](frontend/components/device-verification-flow.tsx) - Enhanced device verification flow
 - [enhanced-device-verification-flow.tsx](frontend/components/enhanced-device-verification-flow.tsx) - Advanced device verification
@@ -101,7 +101,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 **Description:** Implementation of the project submission interface for operators.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [form/page.tsx](frontend/app/form/page.tsx) - Main submission form page
 - [form/review/page.tsx](frontend/app/form/review/page.tsx) - Submission review page
@@ -121,7 +121,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 **Description:** Implementation of the DOB Validator smart contract on Stellar.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [stellar-contract.ts](backoffice/lib/stellar-contract.ts) - Smart contract integration
 - [CONTRACTS.md](docs/CONTRACTS.md) - Smart contract documentation
@@ -140,7 +140,7 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 **Description:** Implementation of the Technical, Regulatory, and Financial Assessment scoring system.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [submission-review.tsx](backoffice/components/submission-review.tsx) - TRUFA scoring interface
 - [submissions-list.tsx](backoffice/components/submissions-list.tsx) - Submissions management
@@ -157,9 +157,9 @@ DOB Protocol is a blockchain-based DePIN x DeFi x DeFAI platform that bridges th
 
 #### 4.2 Validation Dashboard
 
-**Description:** Implementation of the validation dashboard for reviewers.
+**Description:** Implementation of the validation dashboard for (Manual) reviewers.
 
-**Reviewer Instructions:** Check implementation in:
+**Implementation:**
 
 - [backoffice-dashboard.tsx](backoffice/components/backoffice-dashboard.tsx) - Main dashboard component
 - [dashboard/page.tsx](backoffice/app/dashboard/page.tsx) - Dashboard page

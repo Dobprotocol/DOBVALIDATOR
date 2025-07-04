@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if the wallet is an admin
+    // Check if the wallet is an admin (or if we're in MVP mode)
     const adminWallet = adminConfigService.getAdminWallet(walletAddress)
     if (!adminWallet) {
       return NextResponse.json(

@@ -59,10 +59,24 @@ export const ADMIN_WALLETS: AdminWallet[] = [
 
 // Admin configuration service
 class AdminConfigService {
+  // MVP Mode: Allow any wallet to connect (enabled for production MVP)
+  private isMVPMode(): boolean {
+    // MVP mode is enabled for all environments during the MVP phase
+    // This allows any wallet to connect to the backoffice for Stellar's review process
+    return true
+  }
+
   /**
    * Check if a wallet address is an admin
+   * 
    */
   isAdminWallet(walletAddress: string): boolean {
+    // In MVP mode, treat any connected wallet as a VALIDATOR
+    if (this.isMVPMode()) {
+      logWithDOBArt(`MVP Mode: Treating wallet as VALIDATOR: ${walletAddress.slice(0, 8)}...`, 'success')
+      return true
+    }
+
     const isAdmin = ADMIN_WALLETS.some(wallet => 
       wallet.address === walletAddress && wallet.isActive
     )
@@ -80,6 +94,20 @@ class AdminConfigService {
    * Get admin wallet details
    */
   getAdminWallet(walletAddress: string): AdminWallet | null {
+    // In MVP mode, create a temporary admin profile for any wallet
+    if (this.isMVPMode()) {
+      const mvpAdmin: AdminWallet = {
+        address: walletAddress,
+        name: `MVP User (${walletAddress.slice(0, 8)}...)`,
+        role: 'VALIDATOR',
+        permissions: ['approve', 'reject', 'review'],
+        isActive: true
+      }
+      
+      logWithDOBArt(`MVP Mode: Created temporary admin profile for ${walletAddress.slice(0, 8)}...`, 'info')
+      return mvpAdmin
+    }
+
     const admin = ADMIN_WALLETS.find(wallet => 
       wallet.address === walletAddress && wallet.isActive
     ) || null
@@ -97,6 +125,12 @@ class AdminConfigService {
    * Check if admin has specific permission
    */
   hasPermission(walletAddress: string, permission: string): boolean {
+    // In MVP mode, grant all basic permissions
+    if (this.isMVPMode()) {
+      const basicPermissions = ['approve', 'reject', 'review']
+      return basicPermissions.includes(permission)
+    }
+
     const admin = this.getAdminWallet(walletAddress)
     if (!admin) return false
     
@@ -107,6 +141,11 @@ class AdminConfigService {
    * Get all active admin wallets
    */
   getActiveAdmins(): AdminWallet[] {
+    if (this.isMVPMode()) {
+      // In MVP mode, return empty array since we don't have persistent admin list
+      return []
+    }
+    
     return ADMIN_WALLETS.filter(wallet => wallet.isActive)
   }
 
@@ -114,6 +153,11 @@ class AdminConfigService {
    * Get admins by role
    */
   getAdminsByRole(role: AdminWallet['role']): AdminWallet[] {
+    if (this.isMVPMode()) {
+      // In MVP mode, return empty array since we don't have persistent admin list
+      return []
+    }
+    
     return ADMIN_WALLETS.filter(wallet => 
       wallet.role === role && wallet.isActive
     )
@@ -146,6 +190,17 @@ class AdminConfigService {
    * Get admin statistics
    */
   getAdminStats() {
+    if (this.isMVPMode()) {
+      // In MVP mode, return basic stats
+      return {
+        totalAdmins: 0, // We don't track persistent admins in MVP mode
+        superAdmins: 0,
+        validators: 0,
+        reviewers: 0,
+        mvpMode: true
+      }
+    }
+    
     const activeAdmins = this.getActiveAdmins()
     const superAdmins = activeAdmins?.filter(a => a.role === 'SUPER_ADMIN') || []
     const validators = activeAdmins?.filter(a => a.role === 'VALIDATOR') || []
@@ -155,8 +210,16 @@ class AdminConfigService {
       totalAdmins: activeAdmins && Array.isArray(activeAdmins) ? activeAdmins.length : 0,
       superAdmins: superAdmins.length,
       validators: validators.length,
-      reviewers: reviewers.length
+      reviewers: reviewers.length,
+      mvpMode: false
     }
+  }
+
+  /**
+   * Check if MVP mode is enabled
+   */
+  isMVPModeEnabled(): boolean {
+    return this.isMVPMode()
   }
 }
 

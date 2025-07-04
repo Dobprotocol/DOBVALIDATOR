@@ -1,4 +1,103 @@
-# Backoffice TODO
+# DOB Validator Backoffice - TODO
+
+## Current Status: MVP Mode Enabled ✅
+
+### MVP Phase (Current)
+
+- ✅ **MVP Mode Enabled**: Any wallet can now connect to the backoffice
+- ✅ **Authentication Flow**: Stellar Simple Signer integration working
+- ✅ **Dashboard**: Basic admin dashboard with stats and submissions
+- ✅ **Submission Review**: Full review workflow with TRUFA scoring
+- ✅ **Stellar Contract Integration**: Smart contract submission working
+
+### Production Phase (Future)
+
+- 🔄 **Whitelist Management**: Will be re-enabled for production
+- 🔄 **Role-based Access Control**: SUPER_ADMIN, VALIDATOR, REVIEWER roles
+- 🔄 **Database Integration**: Move from hardcoded config to database
+- 🔄 **Advanced Analytics**: Detailed reporting and metrics
+- 🔄 **Audit Logging**: Complete audit trail for all actions
+
+## Recent Changes
+
+### MVP Mode Implementation
+
+- Modified `admin-config.ts` to allow any wallet to connect
+- Updated authentication API routes to work with MVP mode
+- All wallets are treated as VALIDATOR admins with basic permissions
+- Enabled for both development and production environments
+
+### Authentication Flow
+
+- Stellar Simple Signer integration
+- Challenge-response authentication
+- JWT token generation
+- Session management
+
+### Dashboard Features
+
+- Real-time submission statistics
+- Recent submissions list
+- Recent drafts list
+- Admin wallet information display
+
+### Submission Review
+
+- TRUFA scoring system (Technical, Regulatory, Financial, Environmental)
+- Stellar smart contract integration
+- Transaction signing and submission
+- Status tracking and updates
+
+## Next Steps for Production
+
+1. **Disable MVP Mode**: Set `isMVPMode()` to return `false`
+2. **Implement Database**: Move admin wallets to database
+3. **Add Role Management**: Admin interface for managing roles
+4. **Enhanced Security**: Proper JWT implementation
+5. **Audit System**: Log all admin actions
+6. **Advanced Analytics**: Detailed reporting dashboard
+
+## Technical Notes
+
+### MVP Mode Configuration
+
+```typescript
+// In admin-config.ts
+private isMVPMode(): boolean {
+  // Currently enabled for all environments
+  return true
+}
+```
+
+### Admin Permissions (MVP Mode)
+
+- All wallets get VALIDATOR role
+- Basic permissions: ['approve', 'reject', 'review']
+- No persistent admin list in MVP mode
+
+### Authentication Flow
+
+1. Wallet connects via Simple Signer
+2. Challenge generated and sent to wallet
+3. Wallet signs challenge transaction
+4. Signature verified and JWT token generated
+5. User redirected to dashboard
+
+## Environment Variables
+
+```env
+# Required for production
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_CONTRACT_ID=CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN
+NEXT_PUBLIC_SIMPLE_SIGNER_URL=https://signer.stellar.org
+```
+
+## Deployment Notes
+
+- MVP mode is currently enabled for production
+- Suitable for Stellar's review process
+- Can be disabled by changing `isMVPMode()` return value
+- No database required for MVP phase
 
 ## ✅ **COMPLETED TASKS**
 

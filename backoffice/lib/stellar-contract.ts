@@ -307,7 +307,6 @@ class StellarContractService {
         // Create proper Soroban contract invocation using invokeHostFunction
         console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Creating proper Soroban contract call...`);
         
-        // For now, use a working approach that creates a proper Soroban transaction
         // Create a validation hash that includes the function name and project data
         const validationData = {
           submissionId: metadata.submissionId,
