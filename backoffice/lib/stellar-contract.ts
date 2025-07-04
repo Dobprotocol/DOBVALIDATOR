@@ -10,11 +10,17 @@ import { Contract, nativeToScVal } from 'soroban-client'
 // Type assertion for Server to avoid TypeScript issues
 const StellarServer = require('@stellar/stellar-sdk').Server
 
+// Version identifier to ensure latest code is running
+const CONTRACT_VERSION = 'dob-validator-metadata-signer-' + Date.now()
+
 // Contract configuration
 const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
 const SOROBAN_RPC = 'https://soroban-testnet.stellar.org:443'
 const NETWORK_PASSPHRASE = Networks.TESTNET
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
+
+// Log version on module load
+console.log(`[${new Date().toISOString()}] [SorobanContract] 🚀 LOADED VERSION: ${CONTRACT_VERSION}`)
 
 // TRUFA Metadata structure for blockchain storage
 export interface TrufaMetadata {
@@ -115,9 +121,11 @@ class StellarContractService {
   contract: Contract
 
   constructor() {
+    console.log('🔧 StellarContractService constructor called - REAL VERSION')
     // Initialize server and contract
     this.initializeServer()
     this.contract = new Contract(CONTRACT_ADDRESS)
+    console.log('🔧 Contract address:', CONTRACT_ADDRESS)
   }
 
   private async initializeServer() {
@@ -187,7 +195,8 @@ class StellarContractService {
     signTransaction: (transactionXdr: string) => Promise<string>
   }): Promise<ContractResult> {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] [SorobanContract] REAL CONTRACT CALL - Starting...`);
+    console.log(`[${timestamp}] [SorobanContract] 🚀 REAL CONTRACT CALL v2.0 - Starting...`);
+    console.log(`[${timestamp}] [SorobanContract] VERSION: Real Stellar Integration Active`);
     console.log(`  Admin wallet: ${adminPublic}`);
     console.log(`  Submission ID: ${metadata.submissionId}`);
     console.log('  Full Metadata object:', JSON.stringify(metadata, null, 2));
