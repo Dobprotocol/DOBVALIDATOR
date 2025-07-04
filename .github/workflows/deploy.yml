@@ -5,10 +5,11 @@ on:
     branches:
       - prod  # o la rama que quieras
 
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    environment: Production 
     steps:
       - name: Trigger deploy via SSH
         uses: appleboy/ssh-action@v0.1.10
