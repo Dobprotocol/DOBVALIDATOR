@@ -65,7 +65,6 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
     technical: [75],
     regulatory: [80],
     financial: [70],
-    environmental: [85],
   })
   const [reviewerNotes, setReviewerNotes] = useState("")
   const [isApproved, setIsApproved] = useState<boolean | null>(null)
@@ -85,7 +84,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
   const currentSubmissionId = submissionId || searchParams.get('id') || ""
 
   // Calculate average score (must be before any conditional returns)
-  const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
+  const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 3)
 
   // Fetch submission data
   useEffect(() => {
@@ -117,7 +116,6 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
             technical: [review.technical_score || 75],
             regulatory: [review.regulatory_score || 80],
             financial: [review.financial_score || 70],
-            environmental: [review.environmental_score || 85],
           })
         }
         // Load existing admin notes
@@ -255,7 +253,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
         technical_score: trufaScores.technical[0],
         regulatory_score: trufaScores.regulatory[0],
         financial_score: trufaScores.financial[0],
-        environmental_score: trufaScores.environmental[0],
+        environmental_score: 85, // Default environmental score
         overall_score: averageScore,
         decision: isApproved ? 'APPROVED' : 'REJECTED',
       })
@@ -271,7 +269,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
           technical: trufaScores.technical[0],
           regulatory: trufaScores.regulatory[0],
           financial: trufaScores.financial[0],
-          environmental: trufaScores.environmental[0],
+          environmental: 85, // Default environmental score
           overall: averageScore
         },
         decision: isApproved ? 'APPROVED' : 'REJECTED'
@@ -575,19 +573,7 @@ export function SubmissionReview({ submissionId, onBack }: SubmissionReviewProps
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <Label className="text-sm">Environmental Impact</Label>
-                      <span className="text-sm font-medium">{trufaScores.environmental[0]}</span>
-                    </div>
-                    <Slider
-                      value={trufaScores.environmental}
-                      onValueChange={(value) => setTrufaScores((prev) => ({ ...prev, environmental: value }))}
-                      max={100}
-                      step={5}
-                      className="w-full"
-                    />
-                  </div>
+
                 </div>
 
                 <Separator />

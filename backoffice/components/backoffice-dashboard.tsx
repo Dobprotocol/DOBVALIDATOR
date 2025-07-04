@@ -482,7 +482,6 @@ function ValidationToolsSection() {
     technical: [75],
     regulatory: [80],
     financial: [70],
-    environmental: [85],
   })
   const [comments, setComments] = useState("")
 
@@ -526,7 +525,7 @@ function ValidationToolsSection() {
     fetchSubmissions()
   }, [toast])
 
-  const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 4)
+  const averageScore = Math.round(Object.values(trufaScores).reduce((sum, score) => sum + score[0], 0) / 3)
 
   if (loading) {
     return (
@@ -649,19 +648,7 @@ function ValidationToolsSection() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label className="text-sm">Environmental Impact</Label>
-                  <span className="text-sm font-medium">{trufaScores.environmental[0]}</span>
-                </div>
-                <Slider
-                  value={trufaScores.environmental}
-                  onValueChange={(value) => setTrufaScores((prev) => ({ ...prev, environmental: value }))}
-                  max={100}
-                  step={5}
-                  className="w-full"
-                />
-              </div>
+
             </div>
 
             <Separator />
