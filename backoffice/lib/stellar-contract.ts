@@ -307,7 +307,9 @@ class StellarContractService {
         // Create proper Soroban contract invocation using invokeHostFunction
         console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Creating proper Soroban contract call...`);
         
-        // For now, use a working approach that doesn't rely on manageData
+        // Use the soroban-client library to create a proper Soroban transaction
+        const sorobanServer = new SorobanClient.Server(SOROBAN_RPC_URL);
+        
         // Create a validation hash that includes the function name and project data
         const validationData = {
           submissionId: metadata.submissionId,
@@ -329,22 +331,19 @@ class StellarContractService {
         console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Validation hash: ${validationHash}`);
         console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Hash length: ${validationHash.length} bytes`);
         
-        // Use a different operation that's supported in Soroban SDK 13
-        // For now, use a simple payment operation with memo to store validation data
-        transaction = new TransactionBuilder(sourceAccount, {
+        // Create a proper Soroban transaction using the soroban-client
+        // This will create a transaction that can be submitted to Soroban RPC
+        const sorobanTransaction = await sorobanServer.prepareTransaction({
+          source: adminPublic,
           fee: '100',
-          networkPassphrase: networkPassphrase
-        })
-        .addOperation(
-          stellarSDK.Operation.payment({
-            destination: adminPublic, // Send to self (no actual transfer)
-            asset: stellarSDK.Asset.native(),
-            amount: '0.0000001' // Minimal amount
-          })
-        )
-        .addMemo(stellarSDK.Memo.text(`DOB_VALIDATION:${validationHash}`))
-        .setTimeout(300) // 5 minutes
-        .build();
+          networkPassphrase: networkPassphrase,
+          contractId: CONTRACT_ADDRESS,
+          functionName: functionName,
+          args: [projectId.toString()] // Simple argument for now
+        });
+        
+        // Convert the Soroban transaction to a regular Stellar transaction
+        transaction = stellarSDK.TransactionBuilder.fromXDR(sorobanTransaction.toXDR(), networkPassphrase);
         
         console.log(`[${new Date().toISOString()}] [SorobanContract] ✅ Soroban contract operation created successfully`);
         isSorobanOperation = true;
