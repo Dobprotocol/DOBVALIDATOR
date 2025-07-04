@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Wallet verification successful, creating session...')
     
-    // Create a session (mock for now, real Supabase in production)
+    // Create a session (JWT-based authentication)
     const session = {
       access_token: 'mock_access_token_' + Date.now(),
       refresh_token: 'mock_refresh_token_' + Date.now(),

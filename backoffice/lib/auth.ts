@@ -125,7 +125,7 @@ export const verifySignature = async (
 // Complete authentication flow using new wallet-login endpoint
 export const authenticateWallet = async (walletAddress: string, signature: string, challenge: string) => {
   try {
-    console.log('🚀 Starting Supabase-based authentication...')
+    console.log('🚀 Starting wallet-based authentication...')
     
     // Use the new wallet-login endpoint
     const response = await apiService.walletLogin(walletAddress, signature, challenge)
