@@ -136,7 +136,7 @@ export function BrowserCompatibilityWarning({ onDismiss, showOnConnect = false }
                 Got it
               </Button>
               <Button 
-                onClick={() => window.open('https://wiki.dobprotocol.com', '_blank')}
+                onClick={() => window.open('https://dobprotocol-1.gitbook.io/dobprotocol-wiki/dob-validator/overview', '_blank')}
                 variant="outline"
               >
                 <HelpCircle className="h-4 w-4 mr-2" />
