@@ -209,54 +209,46 @@ class StellarContractService {
     console.log('  Full Metadata object:', JSON.stringify(metadata, null, 2));
     
     try {
-      console.log(`[${new Date().toISOString()}] [SorobanContract] 🔧 Creating production transaction structure...`);
+      console.log(`[${new Date().toISOString()}] [SorobanContract] 🔧 Creating Soroban contract call...`);
       
-      // Create a production-ready Stellar transaction structure
-      // This will be a real transaction that gets submitted to the blockchain
-      const transactionData = {
-        // Stellar transaction header
-        sourceAccount: adminPublic,
-        fee: 100,
-        seqNum: 1, // Will be updated by Simple Signer
-        timeBounds: {
-          minTime: Math.floor(Date.now() / 1000),
-          maxTime: Math.floor(Date.now() / 1000) + 300 // 5 minutes
-        },
-        memo: {
-          type: 0, // MEMO_NONE
-          text: `DOB Validation: ${metadata.submissionId}`
-        },
-        operations: [
-          {
-            type: 1, // PAYMENT
-            sourceAccount: adminPublic,
-            destination: adminPublic, // Self-payment for testing
-            asset: {
-              type: 0, // NATIVE
-              code: 'XLM'
-            },
-            amount: '1' // 1 stroop (0.0000001 XLM)
-          }
-        ],
-        // Contract metadata for smart contract interaction
-        contractAddress: CONTRACT_ADDRESS,
-        functionName: 'submit_validation',
-        metadata: {
-          submissionId: metadata.submissionId,
-          deviceName: metadata.deviceName,
-          deviceType: metadata.deviceType,
-          decision: metadata.decision,
-          scores: metadata.trufaScores,
-          timestamp: new Date().toISOString()
-        }
-      };
+      // Ensure Stellar SDK is loaded
+      await loadStellarSDK();
+      
+      // Create a proper Stellar transaction using TransactionBuilder
+      // This creates a real Stellar transaction that can be signed and submitted
+      const sourceAccount = new (await import('@stellar/stellar-sdk')).Account(adminPublic, '0');
+      
+      const transaction = new TransactionBuilder(sourceAccount, {
+        fee: '100',
+        networkPassphrase: NETWORK_PASSPHRASE
+      })
+      .addOperation(
+        (await import('@stellar/stellar-sdk')).Operation.manageData({
+          name: 'dob_validation',
+          value: JSON.stringify({
+            submissionId: metadata.submissionId,
+            deviceName: metadata.deviceName,
+            deviceType: metadata.deviceType,
+            decision: metadata.decision,
+            scores: metadata.trufaScores,
+            timestamp: new Date().toISOString(),
+            contractAddress: CONTRACT_ADDRESS,
+            functionName: 'submit_validation'
+          })
+        })
+      )
+      .setTimeout(300) // 5 minutes
+      .build();
 
-      console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Production transaction data created:`, transactionData);
-
-      // Convert to XDR format for Simple Signer
-      const transactionXdr = btoa(JSON.stringify(transactionData));
+      // Convert to proper XDR format
+      const transactionXdr = transaction.toXDR();
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 Transaction XDR length: ${transactionXdr.length}`);
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📝 XDR preview: ${transactionXdr.substring(0, 100)}...`);
+
+      // Validate XDR format
+      if (!transactionXdr.startsWith('AAAA') || transactionXdr.length < 100) {
+        throw new Error('Invalid XDR transaction format generated');
+      }
 
       // Sign the transaction using Simple Signer
       console.log(`[${new Date().toISOString()}] [SorobanContract] 🔐 Requesting production wallet signature...`);
@@ -266,22 +258,20 @@ class StellarContractService {
       // Submit the signed transaction to the Stellar network
       console.log(`[${new Date().toISOString()}] [SorobanContract] 🚀 Submitting to Stellar network...`);
       
-      // Create the submission payload
+      // Create the submission payload for regular Stellar transaction
       const submissionPayload = {
-        tx: signedTransactionXdr,
-        skipPreflight: false,
-        preflightCommitment: 'confirmed'
+        tx: signedTransactionXdr
       };
 
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📤 Submitting transaction payload...`);
 
-      // Submit to Stellar network using fetch
-      const response = await fetch(`${SOROBAN_RPC}/submit`, {
+      // Submit to Stellar Horizon API (regular Stellar transactions)
+      const response = await fetch('https://horizon-testnet.stellar.org/transactions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify(submissionPayload)
+        body: `tx=${encodeURIComponent(signedTransactionXdr)}`
       });
 
       if (!response.ok) {
@@ -296,14 +286,14 @@ class StellarContractService {
         throw new Error(`Transaction submission error: ${result.error}`);
       }
 
-      const transactionHash = result.hash || result.result?.hash || `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const transactionHash = result.hash || `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       console.log(`[${new Date().toISOString()}] [SorobanContract] 📤 Transaction submitted successfully, hash: ${transactionHash}`);
 
       // Wait for transaction confirmation
       console.log(`[${new Date().toISOString()}] [SorobanContract] ⏳ Waiting for transaction confirmation...`);
       
-      // Poll for transaction status
+      // Poll for transaction status using Horizon API
       let confirmed = false;
       let attempts = 0;
       const maxAttempts = 30; // 30 seconds max wait
@@ -312,15 +302,15 @@ class StellarContractService {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         
         try {
-          const statusResponse = await fetch(`${SOROBAN_RPC}/getTransaction?hash=${transactionHash}`);
+          const statusResponse = await fetch(`https://horizon-testnet.stellar.org/transactions/${transactionHash}`);
           if (statusResponse.ok) {
             const statusResult = await statusResponse.json();
-            if (statusResult.status === 'SUCCESS') {
+            if (statusResult.successful) {
               confirmed = true;
               console.log(`[${new Date().toISOString()}] [SorobanContract] 🎉 Transaction confirmed on blockchain!`);
               console.log(`[${new Date().toISOString()}] [SorobanContract] 📊 Transaction result:`, statusResult);
-            } else if (statusResult.status === 'FAILED') {
-              throw new Error(`Transaction failed on blockchain: ${statusResult.resultMetaXdr}`);
+            } else {
+              throw new Error(`Transaction failed on blockchain: ${statusResult.result_meta_xdr}`);
             }
           }
         } catch (error) {
@@ -344,8 +334,15 @@ class StellarContractService {
           confirmed: confirmed,
           networkResponse: result,
           signedTransaction: signedTransactionXdr.substring(0, 100) + '...',
-          transactionType: 'production_blockchain_submission',
-          originalTransaction: transactionData
+          transactionType: 'stellar_manage_data',
+          originalTransaction: {
+            sourceAccount: adminPublic,
+            fee: '100',
+            networkPassphrase: NETWORK_PASSPHRASE,
+            operation: 'manageData',
+            dataName: 'dob_validation',
+            timeout: 300
+          }
         }
       };
 
