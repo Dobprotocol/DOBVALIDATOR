@@ -1,7 +1,19 @@
+import {
+  Networks,
+  BASE_FEE,
+  TransactionBuilder,
+  Operation,
+  Account
+} from '@stellar/stellar-sdk'
+import { Contract, nativeToScVal } from 'soroban-client'
+
+// Type assertion for Server to avoid TypeScript issues
+const StellarServer = require('@stellar/stellar-sdk').Server
+
 // Contract configuration
 const CONTRACT_ADDRESS = 'CBS3QODERORJH4GPDAWNQMUNTB4O6LO6NUETRXE5H2NSR3G542QOWKTN'
 const SOROBAN_RPC = 'https://soroban-testnet.stellar.org:443'
-const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015'
+const NETWORK_PASSPHRASE = Networks.TESTNET
 const SIMPLE_SIGNER_URL = 'https://sign.bigger.systems'
 
 // TRUFA Metadata structure for blockchain storage
@@ -99,12 +111,32 @@ export async function signTransactionWithSimpleSigner(
 }
 
 class StellarContractService {
+  server: any
+  contract: Contract
+
+  constructor() {
+    // Initialize server and contract
+    this.initializeServer()
+    this.contract = new Contract(CONTRACT_ADDRESS)
+  }
+
+  private async initializeServer() {
+    try {
+      // Use require to avoid TypeScript issues
+      this.server = new StellarServer(SOROBAN_RPC, { allowHttp: false })
+      console.log('✅ Stellar server initialized')
+    } catch (error) {
+      console.error('❌ Failed to initialize Stellar server:', error)
+    }
+  }
+
   /**
    * Initialize the contract service
    */
   async initialize(): Promise<boolean> {
     try {
-      console.log('✅ Stellar Contract Service initialized (simplified version)')
+      await this.initializeServer()
+      console.log('✅ Stellar Contract Service initialized')
       return true
     } catch (error) {
       console.error('❌ Failed to initialize Stellar contract service:', error)
@@ -143,7 +175,7 @@ class StellarContractService {
 
   /**
    * Submit validation metadata to the Soroban contract
-   * Simplified version that focuses on debugging the metadata format issue
+   * Real implementation with proper error handling
    */
   async submitValidationToSoroban({
     adminPublic,
@@ -155,69 +187,126 @@ class StellarContractService {
     signTransaction: (transactionXdr: string) => Promise<string>
   }): Promise<ContractResult> {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] [SorobanContract] DEBUGGING MODE - Metadata Analysis`);
+    console.log(`[${timestamp}] [SorobanContract] REAL CONTRACT CALL - Starting...`);
     console.log(`  Admin wallet: ${adminPublic}`);
     console.log(`  Submission ID: ${metadata.submissionId}`);
     console.log('  Full Metadata object:', JSON.stringify(metadata, null, 2));
     
-    // Analyze the metadata structure
-    console.log(`[${timestamp}] [SorobanContract] Metadata Analysis:`);
-    console.log(`  - submissionId type: ${typeof metadata.submissionId}, value: "${metadata.submissionId}"`);
-    console.log(`  - deviceName type: ${typeof metadata.deviceName}, value: "${metadata.deviceName}"`);
-    console.log(`  - deviceType type: ${typeof metadata.deviceType}, value: "${metadata.deviceType}"`);
-    console.log(`  - operatorWallet type: ${typeof metadata.operatorWallet}, value: "${metadata.operatorWallet}"`);
-    console.log(`  - validatorWallet type: ${typeof metadata.validatorWallet}, value: "${metadata.validatorWallet}"`);
-    console.log(`  - trufaScores type: ${typeof metadata.trufaScores}, value:`, metadata.trufaScores);
-    console.log(`  - decision type: ${typeof metadata.decision}, value: "${metadata.decision}"`);
-    console.log(`  - decisionAt type: ${typeof metadata.decisionAt}, value: "${metadata.decisionAt}"`);
-    console.log(`  - metadataHash type: ${typeof metadata.metadataHash}, value: "${metadata.metadataHash}"`);
-    
-    // Check for potential issues
-    const issues = [];
-    if (!metadata.submissionId || metadata.submissionId === 'N/A') {
-      issues.push('submissionId is missing or invalid');
-    }
-    if (!metadata.deviceName || metadata.deviceName === 'N/A') {
-      issues.push('deviceName is missing or invalid');
-    }
-    if (!metadata.deviceType || metadata.deviceType === 'N/A') {
-      issues.push('deviceType is missing or invalid');
-    }
-    if (!metadata.operatorWallet || metadata.operatorWallet === 'N/A') {
-      issues.push('operatorWallet is missing or invalid');
-    }
-    if (!metadata.validatorWallet || metadata.validatorWallet === 'N/A') {
-      issues.push('validatorWallet is missing or invalid');
-    }
-    
-    if (issues.length > 0) {
-      console.error(`[${timestamp}] [SorobanContract] METADATA ISSUES DETECTED:`, issues);
+    try {
+      // Ensure server is initialized
+      if (!this.server) {
+        await this.initializeServer()
+      }
+
+      const account = await this.server.getAccount(adminPublic)
+      console.log(`[${timestamp}] [SorobanContract] Account fetched successfully`);
+      
+      // Prepare metadata as a simplified object to avoid complex JSON issues
+      const simplifiedMetadata = {
+        submissionId: metadata.submissionId,
+        deviceName: metadata.deviceName,
+        deviceType: metadata.deviceType,
+        operatorWallet: metadata.operatorWallet,
+        validatorWallet: metadata.validatorWallet,
+        technicalScore: metadata.trufaScores.technical,
+        regulatoryScore: metadata.trufaScores.regulatory,
+        financialScore: metadata.trufaScores.financial,
+        environmentalScore: metadata.trufaScores.environmental,
+        overallScore: metadata.trufaScores.overall,
+        decision: metadata.decision,
+        decisionAt: metadata.decisionAt,
+        metadataHash: metadata.metadataHash
+      };
+      
+      console.log(`[${timestamp}] [SorobanContract] Simplified metadata:`, JSON.stringify(simplifiedMetadata, null, 2));
+      
+      // Try string type for deviceId first (most common)
+      console.log(`[${timestamp}] [SorobanContract] Creating transaction with string deviceId...`);
+      const deviceIdString = nativeToScVal(metadata.submissionId, { type: 'string' })
+      const metadataString = nativeToScVal(JSON.stringify(simplifiedMetadata), { type: 'string' })
+      
+      const txString = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE
+      })
+        .addOperation((this.contract as any).callOperation('submit_validation', deviceIdString, metadataString))
+        .setTimeout(30)
+        .build()
+      
+      try {
+        // Get transaction XDR for wallet signing
+        const transactionXdr = txString.toXDR()
+        console.log(`[${timestamp}] [SorobanContract] Transaction XDR generated, requesting wallet signature...`);
+        console.log(`[${timestamp}] [SorobanContract] XDR preview:`, transactionXdr.substring(0, 100) + '...');
+        
+        // Sign transaction with wallet
+        const signedTransactionXdr = await signTransaction(transactionXdr)
+        console.log(`[${timestamp}] [SorobanContract] Transaction signed by wallet`);
+        
+        // Submit signed transaction
+        console.log(`[${timestamp}] [SorobanContract] Submitting signed transaction to network...`);
+        const response = await this.server.sendTransaction(signedTransactionXdr)
+        console.log(`[${new Date().toISOString()}] [SorobanContract] SUCCESS!`);
+        console.log(`  Tx hash: ${response.hash}`);
+        console.log(`  Response:`, response);
+        return {
+          success: true,
+          transactionHash: response.hash,
+          metadata: response
+        }
+      } catch (e) {
+        console.warn(`[${new Date().toISOString()}] [SorobanContract] String call failed, trying symbol. Error:`, e);
+        console.warn(`[${new Date().toISOString()}] [SorobanContract] Error details:`, JSON.stringify(e, null, 2));
+        
+        // If string fails, try symbol
+        console.log(`[${timestamp}] [SorobanContract] Trying symbol type for deviceId...`);
+        const deviceIdSymbol = nativeToScVal(metadata.submissionId, { type: 'symbol' })
+        const txSymbol = new TransactionBuilder(account, {
+          fee: BASE_FEE,
+          networkPassphrase: NETWORK_PASSPHRASE
+        })
+          .addOperation((this.contract as any).callOperation('submit_validation', deviceIdSymbol, metadataString))
+          .setTimeout(30)
+          .build()
+        
+        // Get transaction XDR for wallet signing
+        const transactionXdr = txSymbol.toXDR()
+        console.log(`[${timestamp}] [SorobanContract] Transaction XDR generated (symbol), requesting wallet signature...`);
+        
+        // Sign transaction with wallet
+        const signedTransactionXdr = await signTransaction(transactionXdr)
+        console.log(`[${timestamp}] [SorobanContract] Transaction signed by wallet (symbol)`);
+        
+        // Submit signed transaction
+        const responseSymbol = await this.server.sendTransaction(signedTransactionXdr)
+        console.log(`[${new Date().toISOString()}] [SorobanContract] SUCCESS (symbol)!`);
+        console.log(`  Tx hash: ${responseSymbol.hash}`);
+        return {
+          success: true,
+          transactionHash: responseSymbol.hash,
+          metadata: responseSymbol
+        }
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] [SorobanContract] ERROR`);
+      console.error('Full error object:', error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Try to extract more details from the error
+      if (error && typeof error === 'object') {
+        console.error('Error properties:', Object.keys(error));
+        if ('response' in error) {
+          console.error('Error response:', (error as any).response);
+        }
+        if ('data' in error) {
+          console.error('Error data:', (error as any).data);
+        }
+      }
+      
       return {
         success: false,
-        error: `Metadata validation failed: ${issues.join(', ')}`
-      }
-    }
-    
-    // For now, simulate a successful contract call to test the flow
-    console.log(`[${timestamp}] [SorobanContract] SIMULATING SUCCESSFUL CONTRACT CALL`);
-    console.log(`[${timestamp}] [SorobanContract] In production, this would call the Soroban contract with:`);
-    console.log(`  - Contract address: ${CONTRACT_ADDRESS}`);
-    console.log(`  - Function: submit_validation`);
-    console.log(`  - Parameters: [deviceId, metadata]`);
-    
-    // Simulate transaction hash
-    const mockTxHash = 'mock_' + Date.now().toString(16);
-    
-    return {
-      success: true,
-      transactionHash: mockTxHash,
-      metadata: {
-        message: 'Simulated successful contract call for debugging',
-        timestamp: timestamp,
-        adminWallet: adminPublic,
-        submissionId: metadata.submissionId,
-        decision: metadata.decision,
-        overallScore: metadata.trufaScores.overall
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
   }
@@ -229,15 +318,26 @@ class StellarContractService {
     try {
       console.log('🔍 Fetching validation for submission:', submissionId)
       
-      // Simulate validation retrieval
-      return {
-        success: true,
-        metadata: {
-          submissionId,
-          contractAddress: CONTRACT_ADDRESS,
-          timestamp: new Date().toISOString(),
-          message: 'Simulated validation retrieval'
+      // Query the smart contract for validation data
+      const deviceIdSymbol = nativeToScVal(submissionId, { type: 'symbol' })
+      const result = await this.contract.call('get_validation', deviceIdSymbol)
+      
+      if (result) {
+        const validationData = JSON.parse(result.toString())
+        return {
+          success: true,
+          metadata: {
+            submissionId,
+            ...validationData,
+            contractAddress: CONTRACT_ADDRESS,
+            timestamp: new Date().toISOString()
+          }
         }
+      }
+      
+      return {
+        success: false,
+        error: 'Validation not found'
       }
 
     } catch (error) {
@@ -256,8 +356,14 @@ class StellarContractService {
     try {
       console.log('🔐 Verifying admin wallet:', walletAddress)
       
-      // For now, return true to allow testing
-      return true
+      // Query the smart contract for admin permissions
+      const walletAddressSymbol = nativeToScVal(walletAddress, { type: 'symbol' })
+      const result = await this.contract.call('is_admin', walletAddressSymbol)
+      
+      const isAdmin = result && result.toString() === 'true'
+      console.log('🔐 Admin verification result:', isAdmin)
+      
+      return isAdmin
 
     } catch (error) {
       console.error('❌ Failed to verify admin wallet:', error)
@@ -272,13 +378,24 @@ class StellarContractService {
     try {
       console.log('📊 Fetching contract statistics...')
       
-      return {
-        success: true,
-        metadata: {
-          contractAddress: CONTRACT_ADDRESS,
-          lastUpdated: new Date().toISOString(),
-          message: 'Simulated contract statistics'
+      // Query the smart contract for statistics
+      const result = await this.contract.call('get_stats')
+      
+      if (result) {
+        const stats = JSON.parse(result.toString())
+        return {
+          success: true,
+          metadata: {
+            ...stats,
+            contractAddress: CONTRACT_ADDRESS,
+            lastUpdated: new Date().toISOString()
+          }
         }
+      }
+      
+      return {
+        success: false,
+        error: 'Failed to get contract statistics'
       }
 
     } catch (error) {
@@ -297,14 +414,26 @@ class StellarContractService {
     try {
       console.log('🔍 Checking transaction status:', transactionHash)
       
-      return {
-        success: true,
-        metadata: {
-          hash: transactionHash,
-          status: 'SUCCESS',
-          timestamp: new Date().toISOString(),
-          message: 'Simulated transaction status'
+      // Query the Stellar network for transaction status
+      const transaction = await this.server.getTransaction(transactionHash)
+      
+      if (transaction) {
+        return {
+          success: true,
+          metadata: {
+            hash: transactionHash,
+            status: transaction.successful ? 'SUCCESS' : 'FAILED',
+            ledger: transaction.ledger_attr,
+            timestamp: new Date(transaction.created_at).toISOString(),
+            fee: transaction.fee_charged,
+            operations: transaction.operation_count
+          }
         }
+      }
+      
+      return {
+        success: false,
+        error: 'Transaction not found'
       }
 
     } catch (error) {
