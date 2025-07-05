@@ -96,12 +96,12 @@ export class CertificateService {
 
       // 6. Send email with certificate
       const emailSent = await emailService.sendCertificateEmail({
-        submission: certificate.submission as any,
+        submission: submission as any,
         certificateHash,
-        stellarTxHash: request.stellarTxHash,
+        stellarTxHash: request.stellarTxHash ?? undefined,
         certificatePath,
         issuedAt: certificate.issuedAt,
-        expiresAt: certificate.expiresAt || undefined
+        expiresAt: certificate.expiresAt ?? undefined
       })
 
       if (emailSent) {
@@ -237,12 +237,12 @@ export class CertificateService {
       }
 
       const emailSent = await emailService.sendCertificateEmail({
-        submission: certificate.submission,
+        submission: (certificate as any).submission,
         certificateHash,
-        stellarTxHash: certificate.stellarTxHash,
+        stellarTxHash: certificate.stellarTxHash ?? undefined,
         certificatePath,
         issuedAt: certificate.issuedAt,
-        expiresAt: certificate.expiresAt
+        expiresAt: certificate.expiresAt ?? undefined
       })
 
       return emailSent

@@ -50,7 +50,7 @@ export class EmailService {
       replyTo: process.env.SMTP_REPLY_TO
     }
 
-    this.transporter = nodemailer.createTransporter(this.config)
+    this.transporter = nodemailer.createTransport(this.config)
   }
 
   async sendCertificateEmail(data: CertificateEmailData): Promise<boolean> {
