@@ -301,6 +301,6 @@ Automated test scripts are available in the `backend/scripts/` directory:
 
 For API support and questions:
 
-- [GitHub Issues](https://github.com/blessedux/DOBVALIDATOR/issues)
-- [Documentation](https://wiki.dobprotocol.com)
+- [GitHub Issues](https://github.com/dobprotocol/DOBVALIDATOR/issues)
+- [Documentation](https://dobprotocol-1.gitbook.io/dobprotocol-wiki/dob-validator/overview)
 - [Technical Documentation](../README.md)

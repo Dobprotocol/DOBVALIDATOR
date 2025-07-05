@@ -566,7 +566,7 @@ export function StellarWallet() {
               <Button 
                 variant="link" 
                 className="p-0 h-auto text-yellow-700 underline ml-1"
-                onClick={() => window.open('https://wiki.dobprotocol.com', '_blank')}
+                onClick={() => window.open('https://dobprotocol-1.gitbook.io/dobprotocol-wiki/dob-validator/overview', '_blank')}
               >
                 Learn how to fix this
               </Button>

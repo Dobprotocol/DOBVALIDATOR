@@ -283,5 +283,5 @@ The application is deployed across multiple environments:
 ## Community and Support
 
 - [Twitter](https://twitter.com/dobprotocol)
-- [Documentation](https://wiki.dobprotocol.com)
-- [GitHub Repository](https://github.com/blessedux/DOBVALIDATOR)
+- [Documentation](https://dobprotocol-1.gitbook.io/dobprotocol-wiki/dob-validator/overview)
+- [GitHub Repository](https://github.com/dobprotocol/DOBVALIDATOR)
