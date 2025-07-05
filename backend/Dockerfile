@@ -5,7 +5,8 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package*.json pnpm-lock.yaml ./
+COPY backend/package*.json ./
+COPY pnpm-lock.yaml ./
 
 # Install pnpm globally
 RUN npm install -g pnpm
@@ -14,7 +15,7 @@ RUN npm install -g pnpm
 RUN pnpm install
 
 # Copy source code
-COPY . .
+COPY backend/ .
 
 # Generate Prisma client
 RUN pnpm run db:generate

@@ -19,7 +19,7 @@ echo "  Region: $REGION"
 
 # Step 1: Build the Docker image
 echo "🔨 Building Docker image..."
-docker build -t $IMAGE_NAME .
+docker build -t $IMAGE_NAME -f backend/Dockerfile .
 
 # Step 2: Tag for Google Cloud
 echo "🏷️  Tagging image for Google Cloud..."
