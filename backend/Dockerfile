@@ -5,19 +5,22 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package*.json pnpm-lock.yaml ./
+
+# Install pnpm globally
+RUN npm install -g pnpm
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm install
+RUN pnpm install
 
 # Copy source code
 COPY . .
 
 # Generate Prisma client
-RUN npm run db:generate
+RUN pnpm run db:generate
 
 # Build the application
-RUN npm run build
+RUN pnpm run build
 
 # Create uploads directory
 RUN mkdir -p uploads
@@ -29,4 +32,4 @@ EXPOSE 4000
 ENV NODE_ENV=production
 
 # Start the application
-CMD ["npm", "start"] 
+CMD ["pnpm", "start"] 
